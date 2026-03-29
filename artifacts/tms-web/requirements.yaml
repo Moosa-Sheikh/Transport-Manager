@@ -1,0 +1,16 @@
+packages:
+  "framer-motion": "Smooth page transitions and highly polished component animations"
+  "react-hook-form": "Robust form state management for login"
+  "@hookform/resolvers": "Zod validation integration for forms"
+
+images:
+  - path: "artifacts/tms-web/public/images/auth-bg.png"
+    description: "Clean, minimal, professional abstract geometric background in light cool grays and very soft corporate blue, corporate enterprise SaaS style, light mode, highly polished, 8k resolution"
+    aspect_ratio: "16:9"
+  - path: "artifacts/tms-web/public/images/logo.png"
+    description: "Minimalist, premium corporate logo for a Transport Management System, navy blue and teal geometric shape on transparent background, flat design, modern"
+    aspect_ratio: "1:1"
+
+notes:
+  - Using React Query hooks generated from the OpenAPI spec
+  - Relying on @workspace/api-client-react for all data fetching

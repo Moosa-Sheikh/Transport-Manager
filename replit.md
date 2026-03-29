@@ -14,14 +14,17 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Database**: PostgreSQL + Drizzle ORM
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
+- **Build**: esbuild (ESM bundle)
+- **Frontend**: React 19 + Vite + Tailwind CSS
+- **Auth**: express-session + connect-pg-simple (PostgreSQL session store) + bcrypt
 
 ## Structure
 
 ```text
 artifacts-monorepo/
 ├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
+│   ├── api-server/         # Express API server
+│   └── tms-web/            # TMS React + Vite frontend (served at /)
 ├── lib/                    # Shared libraries
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config
 │   ├── api-client-react/   # Generated React Query hooks
@@ -48,19 +51,39 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 - `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
 - `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
 
+## Application
+
+### Transport Management System (TMS)
+
+**Phase 1** is complete and includes:
+- Login page at `/` with username/password form (default admin: admin / admin123)
+- Protected dashboard at `/dashboard` showing logged-in username + logout
+- Session-based authentication stored in PostgreSQL via `connect-pg-simple`
+- Automatic admin seed: if no users exist, `admin/admin123` is created on startup
+
 ## Packages
+
+### `artifacts/tms-web` (`@workspace/tms-web`)
+
+React + Vite TMS frontend served at `/`. Two pages: login and dashboard.
+
+- Routing: wouter
+- Forms: react-hook-form + zod
+- API: `@workspace/api-client-react` generated hooks (React Query)
+- Auth hook: `src/hooks/use-auth.ts`
 
 ### `artifacts/api-server` (`@workspace/api-server`)
 
 Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
 
-- Entry: `src/index.ts` — reads `PORT`, starts Express
-- App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
+- Entry: `src/index.ts` — reads `PORT`, starts Express, runs admin seed
+- App setup: `src/app.ts` — mounts CORS, session middleware, JSON/urlencoded parsing, routes at `/api`
+- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` and `src/routes/auth.ts`
+- Auth routes: `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`
+- Session: express-session + connect-pg-simple (PostgreSQL), 7-day cookie
 - Depends on: `@workspace/db`, `@workspace/api-zod`
 - `pnpm --filter @workspace/api-server run dev` — run the dev server
-- `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
-- Build bundles an allowlist of deps (express, cors, pg, drizzle-orm, zod, etc.) and externalizes the rest
+- `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.mjs`)
 
 ### `lib/db` (`@workspace/db`)
 
@@ -68,7 +91,7 @@ Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client insta
 
 - `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
 - `src/schema/index.ts` — barrel re-export of all models
-- `src/schema/<modelname>.ts` — table definitions with `drizzle-zod` insert schemas (no models definitions exist right now)
+- `src/schema/users.ts` — `usersTable` (id, username, password, created_at)
 - `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
 - Exports: `.` (pool, db, schema), `./schema` (schema only)
 
@@ -85,11 +108,11 @@ Run codegen: `pnpm --filter @workspace/api-spec run codegen`
 
 ### `lib/api-zod` (`@workspace/api-zod`)
 
-Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used by `api-server` for response validation.
+Generated Zod schemas from the OpenAPI spec. Used by `api-server` for response validation.
 
 ### `lib/api-client-react` (`@workspace/api-client-react`)
 
-Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
+Generated React Query hooks and fetch client from the OpenAPI spec. The custom fetch in `src/custom-fetch.ts` sends `credentials: "include"` for session cookie support.
 
 ### `scripts` (`@workspace/scripts`)
 

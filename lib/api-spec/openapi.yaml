@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,63 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      description: Authenticate with username and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      description: Destroy the current session
+      responses:
+        "200":
+          description: Logged out successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user
+      description: Returns the currently authenticated user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +92,37 @@ components:
           type: string
       required:
         - status
-
+    LoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required:
+        - username
+        - password
+    AuthUser:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+      required:
+        - id
+        - username
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message

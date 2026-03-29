@@ -14,3 +14,34 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * Authenticate with username and password
+ * @summary Login
+ */
+export const LoginBody = zod.object({
+  username: zod.string(),
+  password: zod.string(),
+});
+
+export const LoginResponse = zod.object({
+  id: zod.number(),
+  username: zod.string(),
+});
+
+/**
+ * Destroy the current session
+ * @summary Logout
+ */
+export const LogoutResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * Returns the currently authenticated user
+ * @summary Get current user
+ */
+export const GetMeResponse = zod.object({
+  id: zod.number(),
+  username: zod.string(),
+});
