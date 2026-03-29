@@ -16,7 +16,7 @@ export async function seedAdminUser() {
       password: hash,
     });
 
-    logger.info("Default admin user created (username: admin, password: admin123)");
+    logger.info("Default admin user seeded successfully");
   } catch (err) {
     logger.error({ err }, "Failed to seed admin user");
   }
