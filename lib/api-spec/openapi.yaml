@@ -605,6 +605,11 @@ paths:
           schema:
             type: string
             enum: [Open, Closed]
+        - name: profit
+          in: query
+          schema:
+            type: string
+            enum: [positive, negative]
       responses:
         "200":
           description: Trip list
@@ -770,6 +775,101 @@ paths:
       responses:
         "200":
           description: Load deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Trip is closed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /trips/{id}/expenses:
+    get:
+      operationId: listTripExpenses
+      tags: [trips]
+      summary: List expenses for a trip
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Expense list with summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TripExpensesResponse"
+        "404":
+          description: Trip not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: addTripExpense
+      tags: [trips]
+      summary: Add an expense to a trip
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TripExpenseInput"
+      responses:
+        "201":
+          description: Expense added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TripExpenseWithType"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Trip not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /trips/{id}/expenses/{expenseId}:
+    delete:
+      operationId: deleteTripExpense
+      tags: [trips]
+      summary: Delete an expense from a trip
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: expenseId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Expense deleted
           content:
             application/json:
               schema:
@@ -1005,7 +1105,11 @@ components:
           type: string
         income:
           type: number
-      required: [id, tripDate, truckId, truckNumber, driverId, driverName, fromCityId, fromCityName, toCityId, toCityName, status, income]
+        expense:
+          type: number
+        profit:
+          type: number
+      required: [id, tripDate, truckId, truckNumber, driverId, driverName, fromCityId, fromCityName, toCityId, toCityName, status, income, expense, profit]
 
     TripLoadInput:
       type: object
@@ -1087,3 +1191,50 @@ components:
         summary:
           $ref: "#/components/schemas/TripIncomeSummary"
       required: [loads, summary]
+
+    TripExpenseInput:
+      type: object
+      properties:
+        expenseTypeId:
+          type: integer
+        amount:
+          type: string
+        expenseDate:
+          type: string
+          format: date
+        notes:
+          type: string
+      required: [expenseTypeId, amount, expenseDate]
+
+    TripExpenseWithType:
+      type: object
+      properties:
+        id:
+          type: integer
+        tripId:
+          type: integer
+        expenseTypeId:
+          type: integer
+        expenseTypeName:
+          type: string
+        amount:
+          type: string
+        expenseDate:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required: [id, tripId, expenseTypeId, expenseTypeName, amount, expenseDate]
+
+    TripExpensesResponse:
+      type: object
+      properties:
+        expenses:
+          type: array
+          items:
+            $ref: "#/components/schemas/TripExpenseWithType"
+        totalExpense:
+          type: number
+      required: [expenses, totalExpense]

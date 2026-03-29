@@ -333,6 +333,7 @@ export const ListTripsQueryParams = zod.object({
   truck_id: zod.coerce.number().optional(),
   driver_id: zod.coerce.number().optional(),
   status: zod.enum(["Open", "Closed"]).optional(),
+  profit: zod.enum(["positive", "negative"]).optional(),
 });
 
 export const ListTripsResponseItem = zod.object({
@@ -349,6 +350,8 @@ export const ListTripsResponseItem = zod.object({
   status: zod.enum(["Open", "Closed"]),
   createdAt: zod.string().optional(),
   income: zod.number(),
+  expense: zod.number(),
+  profit: zod.number(),
 });
 export const ListTripsResponse = zod.array(ListTripsResponseItem);
 
@@ -384,6 +387,8 @@ export const GetTripResponse = zod.object({
   status: zod.enum(["Open", "Closed"]),
   createdAt: zod.string().optional(),
   income: zod.number(),
+  expense: zod.number(),
+  profit: zod.number(),
 });
 
 /**
@@ -407,6 +412,8 @@ export const CloseTripResponse = zod.object({
   status: zod.enum(["Open", "Closed"]),
   createdAt: zod.string().optional(),
   income: zod.number(),
+  expense: zod.number(),
+  profit: zod.number(),
 });
 
 /**
@@ -470,5 +477,54 @@ export const DeleteTripLoadParams = zod.object({
 });
 
 export const DeleteTripLoadResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary List expenses for a trip
+ */
+export const ListTripExpensesParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListTripExpensesResponse = zod.object({
+  expenses: zod.array(
+    zod.object({
+      id: zod.number(),
+      tripId: zod.number(),
+      expenseTypeId: zod.number(),
+      expenseTypeName: zod.string(),
+      amount: zod.string(),
+      expenseDate: zod.string(),
+      notes: zod.string().nullish(),
+      createdAt: zod.string().optional(),
+    }),
+  ),
+  totalExpense: zod.number(),
+});
+
+/**
+ * @summary Add an expense to a trip
+ */
+export const AddTripExpenseParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AddTripExpenseBody = zod.object({
+  expenseTypeId: zod.number(),
+  amount: zod.string(),
+  expenseDate: zod.coerce.date(),
+  notes: zod.string().optional(),
+});
+
+/**
+ * @summary Delete an expense from a trip
+ */
+export const DeleteTripExpenseParams = zod.object({
+  id: zod.coerce.number(),
+  expenseId: zod.coerce.number(),
+});
+
+export const DeleteTripExpenseResponse = zod.object({
   message: zod.string(),
 });

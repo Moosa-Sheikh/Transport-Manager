@@ -148,8 +148,21 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 - **API endpoints**: GET `/api/trips/:id/loads`, POST `/api/trips/:id/loads`, DELETE `/api/trips/:id/loads/:loadId`
 - Cannot add/delete loads on closed trips
 
+#### Phase 5 — Complete (Trip Expense System + Profit Calculation Engine)
+- **trip_expenses table**: FK to trips (CASCADE), FK to expense_types (RESTRICT)
+- **Fields**: expense_type_id, amount (numeric), expense_date, notes
+- **Expense CRUD**: Add/list/delete expenses per trip
+- **Profit calculation** (backend): Profit = Income - Expenses, computed via SQL subqueries
+- **Trip detail page** at `/trips/:id` enhanced with:
+  - Three summary stat cards: Total Income (blue), Total Expenses (orange), Net Profit (green if >= 0, red if < 0)
+  - Add Expense form (expense type dropdown, amount, date, notes) — only shown when trip is Open
+  - Expenses table with type, amount, date, notes, delete button — delete only when Open
+- **Trip list** updated with Expense and Profit columns (color-coded)
+- **Profit filter**: Filter panel has Profit dropdown (All Trips / Profitable / Loss-Making)
+- **Validation**: amount > 0, valid date format (YYYY-MM-DD), expense type existence check, closed trip lockout
+- **API endpoints**: GET `/api/trips/:id/expenses`, POST `/api/trips/:id/expenses`, DELETE `/api/trips/:id/expenses/:expenseId`
+
 #### Planned Tables (Future Phases — NOT YET BUILT)
-- **trip_expenses** — trip_id, category (fuel/toll/etc), amount, notes
 - **customer_payments** — customer_id, trip_id (or load_id), amount, date, payment_type
 - **driver_payments** — driver_id, trip_id (optional), type (salary/commission/advance), amount, date
 

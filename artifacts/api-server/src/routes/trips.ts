@@ -1,6 +1,10 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
-import { tripsTable, trucksTable, driversTable, citiesTable, tripLoadsTable, customersTable } from "@workspace/db/schema";
+import {
+  tripsTable, trucksTable, driversTable, citiesTable,
+  tripLoadsTable, customersTable,
+  tripExpensesTable, expenseTypesTable,
+} from "@workspace/db/schema";
 import { eq, and, gte, lte, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { parseId } from "../lib/validate-id.js";
@@ -9,6 +13,16 @@ const fromCities = alias(citiesTable, "from_city");
 const toCities = alias(citiesTable, "to_city");
 
 const router: IRouter = Router();
+
+const incomeSubquery = sql<number>`COALESCE((
+  SELECT SUM(COALESCE(freight, 0) + COALESCE(loading_charges, 0) + COALESCE(unloading_charges, 0) - COALESCE(broker_commission, 0))
+  FROM trip_loads WHERE trip_loads.trip_id = ${tripsTable.id}
+), 0)::double precision`;
+
+const expenseSubquery = sql<number>`COALESCE((
+  SELECT SUM(COALESCE(amount, 0))
+  FROM trip_expenses WHERE trip_expenses.trip_id = ${tripsTable.id}
+), 0)::double precision`;
 
 function buildTripQuery() {
   return db
@@ -25,10 +39,9 @@ function buildTripQuery() {
       toCityName: toCities.name,
       status: tripsTable.status,
       createdAt: tripsTable.createdAt,
-      income: sql<number>`COALESCE((
-        SELECT SUM(COALESCE(freight, 0) + COALESCE(loading_charges, 0) + COALESCE(unloading_charges, 0) - COALESCE(broker_commission, 0))
-        FROM trip_loads WHERE trip_loads.trip_id = ${tripsTable.id}
-      ), 0)::double precision`.as("income"),
+      income: incomeSubquery.as("income"),
+      expense: expenseSubquery.as("expense"),
+      profit: sql<number>`(${incomeSubquery} - ${expenseSubquery})::double precision`.as("profit"),
     })
     .from(tripsTable)
     .innerJoin(trucksTable, eq(tripsTable.truckId, trucksTable.id))
@@ -39,7 +52,7 @@ function buildTripQuery() {
 
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const { date_from, date_to, truck_id, driver_id, status } = req.query;
+    const { date_from, date_to, truck_id, driver_id, status, profit } = req.query;
     const conditions: SQL[] = [];
 
     if (typeof date_from === "string" && date_from) {
@@ -65,9 +78,17 @@ router.get("/", async (req: Request, res: Response) => {
     }
 
     const query = buildTripQuery();
-    const rows = conditions.length > 0
+    let rows = conditions.length > 0
       ? await query.where(and(...conditions)).orderBy(sql`${tripsTable.tripDate} DESC`)
       : await query.orderBy(sql`${tripsTable.tripDate} DESC`);
+
+    if (typeof profit === "string") {
+      if (profit === "positive") {
+        rows = rows.filter((r) => r.profit > 0);
+      } else if (profit === "negative") {
+        rows = rows.filter((r) => r.profit < 0);
+      }
+    }
 
     res.json(rows);
   } catch (err) {
@@ -386,6 +407,166 @@ router.delete("/:id/loads/:loadId", async (req: Request, res: Response) => {
     res.json({ message: "Load deleted successfully" });
   } catch (err) {
     req.log.error({ err }, "Delete trip load error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/:id/expenses", async (req: Request, res: Response) => {
+  try {
+    const id = parseId(req, res);
+    if (id === null) return;
+
+    const [trip] = await db.select({ id: tripsTable.id }).from(tripsTable).where(eq(tripsTable.id, id));
+    if (!trip) {
+      res.status(404).json({ error: "Trip not found" });
+      return;
+    }
+
+    const rows = await db
+      .select({
+        id: tripExpensesTable.id,
+        tripId: tripExpensesTable.tripId,
+        expenseTypeId: tripExpensesTable.expenseTypeId,
+        expenseTypeName: expenseTypesTable.name,
+        amount: tripExpensesTable.amount,
+        expenseDate: tripExpensesTable.expenseDate,
+        notes: tripExpensesTable.notes,
+        createdAt: tripExpensesTable.createdAt,
+      })
+      .from(tripExpensesTable)
+      .innerJoin(expenseTypesTable, eq(tripExpensesTable.expenseTypeId, expenseTypesTable.id))
+      .where(eq(tripExpensesTable.tripId, id))
+      .orderBy(tripExpensesTable.expenseDate);
+
+    let totalExpense = 0;
+    for (const r of rows) {
+      totalExpense += Number(r.amount ?? 0);
+    }
+
+    res.json({ expenses: rows, totalExpense });
+  } catch (err) {
+    req.log.error({ err }, "List trip expenses error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/:id/expenses", async (req: Request, res: Response) => {
+  try {
+    const id = parseId(req, res);
+    if (id === null) return;
+
+    const [trip] = await db.select().from(tripsTable).where(eq(tripsTable.id, id));
+    if (!trip) {
+      res.status(404).json({ error: "Trip not found" });
+      return;
+    }
+    if (trip.status === "Closed") {
+      res.status(400).json({ error: "Cannot add expense to a closed trip" });
+      return;
+    }
+
+    const { expenseTypeId, amount, expenseDate, notes } = req.body;
+
+    const numExpenseTypeId = Number(expenseTypeId);
+    if (!Number.isInteger(numExpenseTypeId) || numExpenseTypeId <= 0) {
+      res.status(400).json({ error: "Valid expense type is required" });
+      return;
+    }
+
+    const numAmount = Number(amount);
+    if (!Number.isFinite(numAmount) || numAmount <= 0) {
+      res.status(400).json({ error: "Amount must be greater than 0" });
+      return;
+    }
+
+    if (!expenseDate || typeof expenseDate !== "string") {
+      res.status(400).json({ error: "Expense date is required" });
+      return;
+    }
+
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(expenseDate) || isNaN(Date.parse(expenseDate))) {
+      res.status(400).json({ error: "Expense date must be a valid date (YYYY-MM-DD)" });
+      return;
+    }
+
+    const [expenseType] = await db
+      .select({ id: expenseTypesTable.id })
+      .from(expenseTypesTable)
+      .where(eq(expenseTypesTable.id, numExpenseTypeId))
+      .limit(1);
+    if (!expenseType) {
+      res.status(400).json({ error: "Expense type not found" });
+      return;
+    }
+
+    const [inserted] = await db
+      .insert(tripExpensesTable)
+      .values({
+        tripId: id,
+        expenseTypeId: numExpenseTypeId,
+        amount: String(numAmount),
+        expenseDate: expenseDate,
+        notes: notes ? String(notes) : null,
+      })
+      .returning();
+
+    const [row] = await db
+      .select({
+        id: tripExpensesTable.id,
+        tripId: tripExpensesTable.tripId,
+        expenseTypeId: tripExpensesTable.expenseTypeId,
+        expenseTypeName: expenseTypesTable.name,
+        amount: tripExpensesTable.amount,
+        expenseDate: tripExpensesTable.expenseDate,
+        notes: tripExpensesTable.notes,
+        createdAt: tripExpensesTable.createdAt,
+      })
+      .from(tripExpensesTable)
+      .innerJoin(expenseTypesTable, eq(tripExpensesTable.expenseTypeId, expenseTypesTable.id))
+      .where(eq(tripExpensesTable.id, inserted.id));
+
+    res.status(201).json(row);
+  } catch (err) {
+    req.log.error({ err }, "Add trip expense error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.delete("/:id/expenses/:expenseId", async (req: Request, res: Response) => {
+  try {
+    const id = parseId(req, res);
+    if (id === null) return;
+
+    const expenseIdRaw = Number(req.params["expenseId"]);
+    if (!Number.isFinite(expenseIdRaw) || expenseIdRaw <= 0 || !Number.isInteger(expenseIdRaw)) {
+      res.status(400).json({ error: "Invalid expense ID" });
+      return;
+    }
+
+    const [trip] = await db.select().from(tripsTable).where(eq(tripsTable.id, id));
+    if (!trip) {
+      res.status(404).json({ error: "Trip not found" });
+      return;
+    }
+    if (trip.status === "Closed") {
+      res.status(400).json({ error: "Cannot delete expense from a closed trip" });
+      return;
+    }
+
+    const [deleted] = await db
+      .delete(tripExpensesTable)
+      .where(and(eq(tripExpensesTable.id, expenseIdRaw), eq(tripExpensesTable.tripId, id)))
+      .returning();
+
+    if (!deleted) {
+      res.status(404).json({ error: "Expense not found" });
+      return;
+    }
+
+    res.json({ message: "Expense deleted successfully" });
+  } catch (err) {
+    req.log.error({ err }, "Delete trip expense error");
     res.status(500).json({ error: "Internal server error" });
   }
 });

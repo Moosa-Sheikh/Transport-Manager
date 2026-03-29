@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.2.0
  */
+import type { ListTripsProfit } from "./listTripsProfit";
 import type { ListTripsStatus } from "./listTripsStatus";
 
 export type ListTripsParams = {
@@ -13,4 +14,5 @@ export type ListTripsParams = {
   truck_id?: number;
   driver_id?: number;
   status?: ListTripsStatus;
+  profit?: ListTripsProfit;
 };

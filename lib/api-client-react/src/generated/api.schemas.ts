@@ -142,6 +142,8 @@ export interface TripWithDetails {
   status: TripWithDetailsStatus;
   createdAt?: string;
   income: number;
+  expense: number;
+  profit: number;
 }
 
 export interface TripLoadInput {
@@ -185,6 +187,29 @@ export interface TripLoadsResponse {
   summary: TripIncomeSummary;
 }
 
+export interface TripExpenseInput {
+  expenseTypeId: number;
+  amount: string;
+  expenseDate: string;
+  notes?: string;
+}
+
+export interface TripExpenseWithType {
+  id: number;
+  tripId: number;
+  expenseTypeId: number;
+  expenseTypeName: string;
+  amount: string;
+  expenseDate: string;
+  notes?: string | null;
+  createdAt?: string;
+}
+
+export interface TripExpensesResponse {
+  expenses: TripExpenseWithType[];
+  totalExpense: number;
+}
+
 export type ListCustomersParams = {
   search?: string;
 };
@@ -211,6 +236,7 @@ export type ListTripsParams = {
   truck_id?: number;
   driver_id?: number;
   status?: ListTripsStatus;
+  profit?: ListTripsProfit;
 };
 
 export type ListTripsStatus =
@@ -219,4 +245,12 @@ export type ListTripsStatus =
 export const ListTripsStatus = {
   Open: "Open",
   Closed: "Closed",
+} as const;
+
+export type ListTripsProfit =
+  (typeof ListTripsProfit)[keyof typeof ListTripsProfit];
+
+export const ListTripsProfit = {
+  positive: "positive",
+  negative: "negative",
 } as const;

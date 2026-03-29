@@ -25,6 +25,7 @@ export default function TripListPage() {
     truck_id?: number;
     driver_id?: number;
     status?: "Open" | "Closed";
+    profit?: "positive" | "negative";
   }>({});
   const [showFilters, setShowFilters] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
@@ -106,7 +107,7 @@ export default function TripListPage() {
                 </button>
               )}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">
                   Date From
@@ -202,6 +203,25 @@ export default function TripListPage() {
                   <option value="Closed">Closed</option>
                 </select>
               </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Profit
+                </label>
+                <select
+                  value={filters.profit ?? ""}
+                  onChange={(e) =>
+                    setFilters((f) => ({
+                      ...f,
+                      profit: (e.target.value || undefined) as "positive" | "negative" | undefined,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">All Trips</option>
+                  <option value="positive">Profitable</option>
+                  <option value="negative">Loss-Making</option>
+                </select>
+              </div>
             </div>
           </div>
         )}
@@ -278,6 +298,12 @@ export default function TripListPage() {
                       Income
                     </th>
                     <th className="text-right px-4 py-3 font-medium text-gray-600">
+                      Expense
+                    </th>
+                    <th className="text-right px-4 py-3 font-medium text-gray-600">
+                      Profit
+                    </th>
+                    <th className="text-right px-4 py-3 font-medium text-gray-600">
                       Actions
                     </th>
                   </tr>
@@ -322,8 +348,14 @@ export default function TripListPage() {
                           {trip.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right font-medium text-green-700">
+                      <td className="px-4 py-3 text-right font-medium text-blue-700">
                         {new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(trip.income)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-medium text-orange-700">
+                        {new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(trip.expense)}
+                      </td>
+                      <td className={`px-4 py-3 text-right font-semibold ${trip.profit >= 0 ? "text-green-700" : "text-red-600"}`}>
+                        {new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(trip.profit)}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">

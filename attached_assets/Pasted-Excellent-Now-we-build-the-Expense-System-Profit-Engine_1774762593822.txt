@@ -1,0 +1,227 @@
+Excellent.
+Now we build the Expense System + Profit Engine.
+
+This completes your core business logic:
+Income – Expenses = Profit.
+
+After this phase, your system will behave like a real trucking accounting engine.
+
+🚛 Phase 5 – Trip Expense System + Profit Calculation Engine
+
+This phase will:
+
+Add trip expenses (fuel, toll, etc.)
+Allow multiple fuel entries
+Calculate total trip expense
+Calculate trip profit
+Show profit in trip detail
+Show profit in trip list
+Prevent editing after trip is closed
+
+Copy everything below into Replit Agent.
+
+🚀 PHASE 5 PROMPT FOR REPLIT AGENT
+
+(Trip Expense + Profit Engine – PostgreSQL – TMS)
+
+🔷 CONTEXT
+
+Phase 4 completed:
+
+Trips working
+Multi-load system working
+Trip Income calculated
+Trip detail page exists
+
+Now implement Trip Expense System and Profit Engine.
+
+🔷 STEP 1: UPDATE DATABASE SCHEMA
+
+Open database/schema.sql
+
+Add:
+
+1️⃣ trip_expenses
+CREATE TABLE trip_expenses (
+    id SERIAL PRIMARY KEY,
+    trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    expense_type_id INTEGER NOT NULL REFERENCES expense_types(id) ON DELETE RESTRICT,
+    amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+    expense_date DATE NOT NULL,
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+Important:
+
+One trip → many expenses
+Expense types come from masters
+If trip deleted → expenses auto delete
+
+Run migration safely.
+
+🔷 STEP 2: UPDATE ROUTES
+
+Edit:
+
+routes/trips.js
+
+Add routes:
+
+POST /trips/:id/add-expense
+
+Validation:
+
+Trip must be Open
+Expense type required
+Amount > 0
+Date required
+
+Insert expense.
+
+Redirect back to trip detail page.
+
+POST /trips/expense/delete/:id
+
+Delete expense entry.
+
+🔷 STEP 3: UPDATE TRIP DETAIL PAGE
+
+Modify:
+
+views/trips/trip_detail.ejs
+
+Add new section:
+
+SECTION 4 – Add Expense Form
+
+Fields:
+
+Expense Type (dropdown from expense_types table)
+Amount
+Expense Date
+Notes
+Submit button
+SECTION 5 – Expense Table
+
+Columns:
+
+Date
+Expense Type
+Amount
+Notes
+Delete
+🔷 STEP 4: EXPENSE CALCULATION
+
+When loading trip detail page:
+
+Calculate:
+
+Total Trip Expense = SUM(amount) FROM trip_expenses WHERE trip_id = ?
+🔷 STEP 5: PROFIT ENGINE (VERY IMPORTANT)
+
+Trip Profit must be calculated as:
+
+Trip Profit = Trip Income – Total Trip Expense
+
+Income already calculated from Phase 4.
+
+Profit must be calculated in backend and sent to view.
+
+Never calculate profit in frontend.
+
+🔷 STEP 6: UPDATE TRIP SUMMARY SECTION
+
+Trip detail page must show:
+
+Income Summary:
+
+Total Income
+
+Expense Summary:
+
+Total Expenses
+
+Profit Summary:
+
+Net Profit (highlight)
+Green if positive
+Red if negative
+🔷 STEP 7: UPDATE TRIP LIST PAGE
+
+Add new columns:
+
+Income
+Expense
+Profit
+
+Use LEFT JOIN aggregated subqueries:
+
+Example structure:
+
+LEFT JOIN (
+   SELECT trip_id, SUM(amount) as total_expense
+   FROM trip_expenses
+   GROUP BY trip_id
+) exp_data ON t.id = exp_data.trip_id
+
+Calculate profit in backend after fetching.
+
+If no loads or expenses → treat as 0.
+
+🔷 STEP 8: LOCK RULES
+
+If trip status = Closed:
+
+Cannot add load
+Cannot delete load
+Cannot add expense
+Cannot delete expense
+Cannot edit trip
+
+Only viewing allowed.
+
+🔷 STEP 9: FILTERING UPDATE
+
+On Trip List page add:
+
+Profit > 0 filter
+Profit < 0 filter
+
+Use query parameter:
+
+/trips?profit=positive
+/trips?profit=negative
+
+Apply condition after profit calculation in backend.
+
+🔷 STEP 10: VALIDATION RULES
+Amount must be numeric
+Prevent SQL injection
+Use parameterized queries
+Handle errors gracefully
+Keep filtering intact
+No crash if no loads
+No crash if no expenses
+🔷 FINAL RESULT OF PHASE 5
+
+After completion:
+
+Trip expenses working
+Multiple expenses per trip
+Expense types linked
+Trip expense auto calculated
+Trip profit auto calculated
+Profit visible in detail page
+Profit visible in trip list
+Closed trips locked
+Filtering still working
+
+STOP after finishing Phase 5.
+
+After this phase your system core is 70% complete.
+
+Next Phase:
+
+🔥 Phase 6 – Customer Payments + Driver Payments + Cash Book
+(Complete financial control)

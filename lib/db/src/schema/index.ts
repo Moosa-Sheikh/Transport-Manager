@@ -6,3 +6,4 @@ export * from "./cities";
 export * from "./expense-types";
 export * from "./trips";
 export * from "./trip-loads";
+export * from "./trip-expenses";

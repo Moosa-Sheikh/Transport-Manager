@@ -21,4 +21,6 @@ export interface TripWithDetails {
   status: TripWithDetailsStatus;
   createdAt?: string;
   income: number;
+  expense: number;
+  profit: number;
 }
