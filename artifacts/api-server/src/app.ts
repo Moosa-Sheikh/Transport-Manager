@@ -9,10 +9,15 @@ import { logger } from "./lib/logger";
 
 const PgSession = ConnectPgSimple(session);
 
+const isProduction = process.env["NODE_ENV"] === "production";
 const sessionSecret = process.env["SESSION_SECRET"];
 if (!sessionSecret) {
-  throw new Error("SESSION_SECRET environment variable is required but was not provided.");
+  if (isProduction) {
+    throw new Error("SESSION_SECRET environment variable is required in production but was not provided.");
+  }
+  logger.warn("SESSION_SECRET is not set — using an insecure random secret for development only. Set SESSION_SECRET in your environment for production.");
 }
+const resolvedSessionSecret = sessionSecret ?? Math.random().toString(36).repeat(4);
 
 const app: Express = express();
 
@@ -67,7 +72,7 @@ app.use(
       tableName: "session",
       createTableIfMissing: true,
     }),
-    secret: sessionSecret,
+    secret: resolvedSessionSecret,
     resave: false,
     saveUninitialized: false,
     cookie: {
