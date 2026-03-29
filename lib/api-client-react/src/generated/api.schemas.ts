@@ -112,6 +112,37 @@ export interface ExpenseTypeInput {
   name: string;
 }
 
+export interface TripInput {
+  tripDate: string;
+  truckId: number;
+  driverId: number;
+  fromCityId: number;
+  toCityId: number;
+}
+
+export type TripWithDetailsStatus =
+  (typeof TripWithDetailsStatus)[keyof typeof TripWithDetailsStatus];
+
+export const TripWithDetailsStatus = {
+  Open: "Open",
+  Closed: "Closed",
+} as const;
+
+export interface TripWithDetails {
+  id: number;
+  tripDate: string;
+  truckId: number;
+  truckNumber: string;
+  driverId: number;
+  driverName: string;
+  fromCityId: number;
+  fromCityName: string;
+  toCityId: number;
+  toCityName: string;
+  status: TripWithDetailsStatus;
+  createdAt?: string;
+}
+
 export type ListCustomersParams = {
   search?: string;
 };
@@ -131,3 +162,19 @@ export type ListCitiesParams = {
 export type ListExpenseTypesParams = {
   search?: string;
 };
+
+export type ListTripsParams = {
+  date_from?: string;
+  date_to?: string;
+  truck_id?: number;
+  driver_id?: number;
+  status?: ListTripsStatus;
+};
+
+export type ListTripsStatus =
+  (typeof ListTripsStatus)[keyof typeof ListTripsStatus];
+
+export const ListTripsStatus = {
+  Open: "Open",
+  Closed: "Closed",
+} as const;

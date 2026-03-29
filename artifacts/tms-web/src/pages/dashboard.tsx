@@ -1,4 +1,4 @@
-import { Users, UserCog, Truck, MapPin, Receipt } from "lucide-react";
+import { Users, UserCog, Truck, MapPin, Receipt, Route } from "lucide-react";
 import { Link } from "wouter";
 import {
   useListCustomers,
@@ -6,6 +6,7 @@ import {
   useListTrucks,
   useListCities,
   useListExpenseTypes,
+  useListTrips,
 } from "@workspace/api-client-react";
 
 export default function DashboardPage() {
@@ -14,8 +15,18 @@ export default function DashboardPage() {
   const trucks = useListTrucks({});
   const cities = useListCities({});
   const expenseTypes = useListExpenseTypes({});
+  const trips = useListTrips({});
+
+  const openTrips = trips.data?.filter((t) => t.status === "Open").length ?? 0;
 
   const stats = [
+    {
+      label: "Open Trips",
+      count: openTrips,
+      icon: Route,
+      color: "bg-indigo-50 text-indigo-600",
+      href: "/trips",
+    },
     {
       label: "Customers",
       count: customers.data?.length ?? 0,
@@ -57,7 +68,7 @@ export default function DashboardPage() {
     <div>
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Dashboard</h2>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         {stats.map((stat) => (
           <Link
             key={stat.label}

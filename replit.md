@@ -121,8 +121,19 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 - Frontend pages at `/masters/customers`, `/masters/drivers`, `/masters/trucks`, `/masters/cities`, `/masters/expense-types`
 - API endpoints at `/api/masters/{entity}` (GET list, POST create), `/api/masters/{entity}/:id` (PUT update, DELETE)
 
+#### Phase 3 — Complete (Trip Core System)
+- **Trips table** with FKs to trucks, drivers, cities (from/to), ON DELETE RESTRICT
+- **Trip creation** at `/trips/create` with dropdowns for truck, driver, from city, to city
+- **Trip list** at `/trips` with JOIN query showing truck number, driver name, city names, status
+- **Filtering engine**: server-side filters by date range, truck, driver, status with dynamic WHERE clauses
+- **Close trip** action: changes status from Open → Closed, with confirmation dialog
+- **Validation**: from_city != to_city, all fields required
+- **Trip detail** page at `/trips/:id`
+- **Dashboard updated**: shows "Open Trips" count
+- **Sidebar updated**: Trips submenu (Trip List, Create Trip)
+- API endpoints: GET `/api/trips` (list+filters), POST `/api/trips`, GET `/api/trips/:id`, PUT `/api/trips/:id/close`
+
 #### Planned Tables (Future Phases — NOT YET BUILT)
-- **trips** — origin city, destination city, date, truck_id, driver_id, status
 - **loads** (trip lines) — trip_id, customer_id, bilty_number, weight/description, freight_rate, freight_amount
 - **trip_expenses** — trip_id, category (fuel/toll/etc), amount, notes
 - **customer_payments** — customer_id, trip_id (or load_id), amount, date, payment_type

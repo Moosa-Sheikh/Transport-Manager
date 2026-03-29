@@ -12,6 +12,9 @@ import {
   X,
   ChevronDown,
   ChevronRight,
+  Route,
+  Plus,
+  List,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -23,11 +26,17 @@ const mastersLinks = [
   { href: "/masters/expense-types", label: "Expense Types", icon: Receipt },
 ];
 
+const tripsLinks = [
+  { href: "/trips", label: "Trip List", icon: List },
+  { href: "/trips/create", label: "Create Trip", icon: Plus },
+];
+
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout, isLoggingOut } = useAuth();
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mastersOpen, setMastersOpen] = useState(location.startsWith("/masters"));
+  const [tripsOpen, setTripsOpen] = useState(location.startsWith("/trips"));
 
   const handleLogout = async () => {
     try {
@@ -100,6 +109,41 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             {mastersOpen && (
               <div className="ml-4 mt-1 space-y-0.5">
                 {mastersLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                      isActive(link.href)
+                        ? "bg-blue-50 text-blue-700 font-medium"
+                        : "text-gray-600 hover:bg-gray-100"
+                    }`}
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <link.icon className="w-4 h-4" />
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-2">
+            <button
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+              onClick={() => setTripsOpen(!tripsOpen)}
+            >
+              <Route className="w-5 h-5" />
+              Trips
+              {tripsOpen ? (
+                <ChevronDown className="w-4 h-4 ml-auto" />
+              ) : (
+                <ChevronRight className="w-4 h-4 ml-auto" />
+              )}
+            </button>
+
+            {tripsOpen && (
+              <div className="ml-4 mt-1 space-y-0.5">
+                {tripsLinks.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}

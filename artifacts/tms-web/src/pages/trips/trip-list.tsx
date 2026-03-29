@@ -1,0 +1,351 @@
+import { useState } from "react";
+import { Link } from "wouter";
+import {
+  Plus,
+  Filter,
+  X,
+  Lock,
+  Loader2,
+  ChevronRight,
+  Eye,
+} from "lucide-react";
+import {
+  useListTrips,
+  useCloseTrip,
+  useListTrucks,
+  useListDrivers,
+  getListTripsQueryKey,
+} from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+export default function TripListPage() {
+  const queryClient = useQueryClient();
+  const [filters, setFilters] = useState<{
+    date_from?: string;
+    date_to?: string;
+    truck_id?: number;
+    driver_id?: number;
+    status?: "Open" | "Closed";
+  }>({});
+  const [showFilters, setShowFilters] = useState(false);
+  const [successMsg, setSuccessMsg] = useState("");
+  const [closeConfirmId, setCloseConfirmId] = useState<number | null>(null);
+
+  const tripsQuery = useListTrips(filters);
+  const trucksQuery = useListTrucks({});
+  const driversQuery = useListDrivers({});
+
+  const closeMutation = useCloseTrip({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListTripsQueryKey(filters) });
+        setCloseConfirmId(null);
+        showSuccess("Trip closed successfully");
+      },
+    },
+  });
+
+  const showSuccess = (msg: string) => {
+    setSuccessMsg(msg);
+    setTimeout(() => setSuccessMsg(""), 3000);
+  };
+
+  const clearFilters = () => {
+    setFilters({});
+  };
+
+  const activeFilterCount = Object.values(filters).filter(Boolean).length;
+
+  return (
+      <div>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Trips</h2>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                activeFilterCount > 0
+                  ? "bg-blue-50 text-blue-700 border-blue-200"
+                  : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              <Filter className="w-4 h-4" />
+              Filters
+              {activeFilterCount > 0 && (
+                <span className="bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+            <Link
+              href="/trips/create"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Create Trip
+            </Link>
+          </div>
+        </div>
+
+        {successMsg && (
+          <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-lg border border-green-200 text-sm">
+            {successMsg}
+          </div>
+        )}
+
+        {showFilters && (
+          <div className="mb-6 bg-white border border-gray-200 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-medium text-gray-900">Filter Trips</h3>
+              {activeFilterCount > 0 && (
+                <button
+                  onClick={clearFilters}
+                  className="text-sm text-red-600 hover:text-red-700 flex items-center gap-1"
+                >
+                  <X className="w-3 h-3" />
+                  Clear all
+                </button>
+              )}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Date From
+                </label>
+                <input
+                  type="date"
+                  value={filters.date_from ?? ""}
+                  onChange={(e) =>
+                    setFilters((f) => ({
+                      ...f,
+                      date_from: e.target.value || undefined,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Date To
+                </label>
+                <input
+                  type="date"
+                  value={filters.date_to ?? ""}
+                  onChange={(e) =>
+                    setFilters((f) => ({
+                      ...f,
+                      date_to: e.target.value || undefined,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Truck
+                </label>
+                <select
+                  value={filters.truck_id ?? ""}
+                  onChange={(e) =>
+                    setFilters((f) => ({
+                      ...f,
+                      truck_id: e.target.value ? Number(e.target.value) : undefined,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">All Trucks</option>
+                  {trucksQuery.data?.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.truckNumber}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Driver
+                </label>
+                <select
+                  value={filters.driver_id ?? ""}
+                  onChange={(e) =>
+                    setFilters((f) => ({
+                      ...f,
+                      driver_id: e.target.value ? Number(e.target.value) : undefined,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">All Drivers</option>
+                  {driversQuery.data?.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Status
+                </label>
+                <select
+                  value={filters.status ?? ""}
+                  onChange={(e) =>
+                    setFilters((f) => ({
+                      ...f,
+                      status: (e.target.value || undefined) as "Open" | "Closed" | undefined,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">All Status</option>
+                  <option value="Open">Open</option>
+                  <option value="Closed">Closed</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {closeConfirmId !== null && (
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+            <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Close Trip
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Are you sure you want to close this trip? This action cannot be
+                undone.
+              </p>
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setCloseConfirmId(null)}
+                  className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => closeMutation.mutate({ id: closeConfirmId })}
+                  disabled={closeMutation.isPending}
+                  className="px-4 py-2 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {closeMutation.isPending && (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  )}
+                  Close Trip
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          {tripsQuery.isLoading ? (
+            <div className="p-8 text-center text-gray-500">
+              <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
+              Loading trips...
+            </div>
+          ) : !tripsQuery.data?.length ? (
+            <div className="p-8 text-center text-gray-500">
+              No trips found.{" "}
+              {activeFilterCount > 0
+                ? "Try adjusting your filters."
+                : "Create your first trip to get started."}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-200">
+                    <th className="text-left px-4 py-3 font-medium text-gray-600">
+                      ID
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-600">
+                      Date
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-600">
+                      Truck
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-600">
+                      Driver
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-600">
+                      Route
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium text-gray-600">
+                      Status
+                    </th>
+                    <th className="text-right px-4 py-3 font-medium text-gray-600">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tripsQuery.data.map((trip) => (
+                    <tr
+                      key={trip.id}
+                      className="border-b border-gray-100 hover:bg-gray-50"
+                    >
+                      <td className="px-4 py-3 font-medium text-gray-900">
+                        #{trip.id}
+                      </td>
+                      <td className="px-4 py-3 text-gray-700">
+                        {new Date(trip.tripDate + "T00:00:00").toLocaleDateString("en-PK", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </td>
+                      <td className="px-4 py-3 text-gray-700">
+                        {trip.truckNumber}
+                      </td>
+                      <td className="px-4 py-3 text-gray-700">
+                        {trip.driverName}
+                      </td>
+                      <td className="px-4 py-3 text-gray-700">
+                        <span className="flex items-center gap-1">
+                          {trip.fromCityName}
+                          <ChevronRight className="w-3 h-3 text-gray-400" />
+                          {trip.toCityName}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                            trip.status === "Open"
+                              ? "bg-green-100 text-green-700"
+                              : "bg-gray-100 text-gray-600"
+                          }`}
+                        >
+                          {trip.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Link
+                            href={`/trips/${trip.id}`}
+                            className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded"
+                            title="View"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Link>
+                          {trip.status === "Open" && (
+                            <button
+                              onClick={() => setCloseConfirmId(trip.id)}
+                              className="p-1.5 text-gray-500 hover:text-orange-600 hover:bg-orange-50 rounded"
+                              title="Close Trip"
+                            >
+                              <Lock className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+  );
+}

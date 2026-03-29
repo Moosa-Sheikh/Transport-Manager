@@ -22,6 +22,8 @@ tags:
     description: City management
   - name: expenseTypes
     description: Expense type management
+  - name: trips
+    description: Trip management
 paths:
   /healthz:
     get:
@@ -574,6 +576,122 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /trips:
+    get:
+      operationId: listTrips
+      tags: [trips]
+      summary: List trips with optional filters
+      parameters:
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: truck_id
+          in: query
+          schema:
+            type: integer
+        - name: driver_id
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [Open, Closed]
+      responses:
+        "200":
+          description: Trip list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TripWithDetails"
+    post:
+      operationId: createTrip
+      tags: [trips]
+      summary: Create a new trip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TripInput"
+      responses:
+        "201":
+          description: Trip created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TripWithDetails"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /trips/{id}:
+    get:
+      operationId: getTrip
+      tags: [trips]
+      summary: Get trip details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Trip details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TripWithDetails"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /trips/{id}/close:
+    put:
+      operationId: closeTrip
+      tags: [trips]
+      summary: Close an open trip
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Trip closed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TripWithDetails"
+        "400":
+          description: Trip already closed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -745,3 +863,49 @@ components:
           type: string
           minLength: 1
       required: [name]
+
+    TripInput:
+      type: object
+      properties:
+        tripDate:
+          type: string
+          format: date
+        truckId:
+          type: integer
+        driverId:
+          type: integer
+        fromCityId:
+          type: integer
+        toCityId:
+          type: integer
+      required: [tripDate, truckId, driverId, fromCityId, toCityId]
+
+    TripWithDetails:
+      type: object
+      properties:
+        id:
+          type: integer
+        tripDate:
+          type: string
+        truckId:
+          type: integer
+        truckNumber:
+          type: string
+        driverId:
+          type: integer
+        driverName:
+          type: string
+        fromCityId:
+          type: integer
+        fromCityName:
+          type: string
+        toCityId:
+          type: integer
+        toCityName:
+          type: string
+        status:
+          type: string
+          enum: [Open, Closed]
+        createdAt:
+          type: string
+      required: [id, tripDate, truckId, truckNumber, driverId, driverName, fromCityId, fromCityName, toCityId, toCityName, status]

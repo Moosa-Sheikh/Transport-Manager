@@ -7,6 +7,7 @@ import driversRouter from "./drivers";
 import trucksRouter from "./trucks";
 import citiesRouter from "./cities";
 import expenseTypesRouter from "./expense-types";
+import tripsRouter from "./trips";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,7 @@ router.use("/masters/drivers", requireAuth, driversRouter);
 router.use("/masters/trucks", requireAuth, trucksRouter);
 router.use("/masters/cities", requireAuth, citiesRouter);
 router.use("/masters/expense-types", requireAuth, expenseTypesRouter);
+
+router.use("/trips", requireAuth, tripsRouter);
 
 export default router;

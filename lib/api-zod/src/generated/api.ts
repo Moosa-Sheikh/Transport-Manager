@@ -323,3 +323,85 @@ export const DeleteExpenseTypeParams = zod.object({
 export const DeleteExpenseTypeResponse = zod.object({
   message: zod.string(),
 });
+
+/**
+ * @summary List trips with optional filters
+ */
+export const ListTripsQueryParams = zod.object({
+  date_from: zod.date().optional(),
+  date_to: zod.date().optional(),
+  truck_id: zod.coerce.number().optional(),
+  driver_id: zod.coerce.number().optional(),
+  status: zod.enum(["Open", "Closed"]).optional(),
+});
+
+export const ListTripsResponseItem = zod.object({
+  id: zod.number(),
+  tripDate: zod.string(),
+  truckId: zod.number(),
+  truckNumber: zod.string(),
+  driverId: zod.number(),
+  driverName: zod.string(),
+  fromCityId: zod.number(),
+  fromCityName: zod.string(),
+  toCityId: zod.number(),
+  toCityName: zod.string(),
+  status: zod.enum(["Open", "Closed"]),
+  createdAt: zod.string().optional(),
+});
+export const ListTripsResponse = zod.array(ListTripsResponseItem);
+
+/**
+ * @summary Create a new trip
+ */
+export const CreateTripBody = zod.object({
+  tripDate: zod.coerce.date(),
+  truckId: zod.number(),
+  driverId: zod.number(),
+  fromCityId: zod.number(),
+  toCityId: zod.number(),
+});
+
+/**
+ * @summary Get trip details
+ */
+export const GetTripParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetTripResponse = zod.object({
+  id: zod.number(),
+  tripDate: zod.string(),
+  truckId: zod.number(),
+  truckNumber: zod.string(),
+  driverId: zod.number(),
+  driverName: zod.string(),
+  fromCityId: zod.number(),
+  fromCityName: zod.string(),
+  toCityId: zod.number(),
+  toCityName: zod.string(),
+  status: zod.enum(["Open", "Closed"]),
+  createdAt: zod.string().optional(),
+});
+
+/**
+ * @summary Close an open trip
+ */
+export const CloseTripParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const CloseTripResponse = zod.object({
+  id: zod.number(),
+  tripDate: zod.string(),
+  truckId: zod.number(),
+  truckNumber: zod.string(),
+  driverId: zod.number(),
+  driverName: zod.string(),
+  fromCityId: zod.number(),
+  fromCityName: zod.string(),
+  toCityId: zod.number(),
+  toCityName: zod.string(),
+  status: zod.enum(["Open", "Closed"]),
+  createdAt: zod.string().optional(),
+});

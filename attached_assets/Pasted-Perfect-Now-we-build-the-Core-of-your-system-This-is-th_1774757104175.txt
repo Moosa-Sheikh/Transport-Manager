@@ -1,0 +1,223 @@
+Perfect.
+Now we build the Core of your system.
+
+This is the heart of your Transport Management System.
+
+We will now create:
+
+🚛 Phase 3 – Trip Core System
+
+(Without loads & expenses yet — only trip foundation + filtering engine)
+
+This phase creates:
+
+Trips table
+Create trip
+Trip list
+Status management
+Filtering system
+Proper foreign keys
+Clean structure
+
+Copy everything below into Replit Agent.
+
+🚀 PHASE 3 PROMPT FOR REPLIT AGENT
+
+(Trip Core System – PostgreSQL – TMS)
+
+🔷 CONTEXT
+
+Phase 1 and Phase 2 are complete:
+
+Authentication working
+Masters module working
+PostgreSQL connected
+Layout and navigation working
+
+Now implement the Trip Core System.
+
+Do NOT implement loads or expenses yet.
+Only trip foundation.
+
+🔷 STEP 1: UPDATE DATABASE SCHEMA
+
+Open database/schema.sql
+Add the following table:
+
+1️⃣ trips
+CREATE TABLE trips (
+    id SERIAL PRIMARY KEY,
+    trip_date DATE NOT NULL,
+    truck_id INTEGER NOT NULL REFERENCES trucks(id) ON DELETE RESTRICT,
+    driver_id INTEGER NOT NULL REFERENCES drivers(id) ON DELETE RESTRICT,
+    from_city_id INTEGER NOT NULL REFERENCES cities(id) ON DELETE RESTRICT,
+    to_city_id INTEGER NOT NULL REFERENCES cities(id) ON DELETE RESTRICT,
+    status VARCHAR(20) CHECK (status IN ('Open','Closed')) DEFAULT 'Open',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+Important:
+
+Use foreign keys
+Do not allow cascade delete
+Restrict delete if trip exists
+
+Run migration safely.
+
+🔷 STEP 2: CREATE ROUTE FILE
+
+Create:
+
+routes/trips.js
+
+Import into app.js:
+
+const tripsRoutes = require('./routes/trips');
+app.use('/trips', tripsRoutes);
+
+Protect routes with auth middleware.
+
+🔷 STEP 3: CREATE VIEWS
+
+Create inside views/trips/:
+
+trip_list.ejs
+create_trip.ejs
+🔷 STEP 4: CREATE TRIP FORM
+
+Route:
+GET /trips/create
+
+Form fields:
+
+Trip Date
+Truck (dropdown from trucks table)
+Driver (dropdown from drivers table)
+From City (dropdown from cities table)
+To City (dropdown from cities table)
+
+POST /trips/create
+
+Insert into trips table.
+
+After creation → redirect to trip list.
+
+Validation:
+
+No empty fields
+From city and To city cannot be same
+🔷 STEP 5: TRIP LIST PAGE
+
+Route:
+GET /trips
+
+Display table:
+
+Columns:
+
+Trip ID
+Date
+Truck Number
+Driver Name
+From City
+To City
+Status
+Actions
+
+Actions:
+
+View
+Close (if open)
+🔷 STEP 6: CLOSE TRIP
+
+Route:
+POST /trips/close/:id
+
+Logic:
+
+Update status to 'Closed'
+Redirect back
+
+Cannot close already closed trip.
+
+🔷 STEP 7: FILTERING ENGINE (Very Important)
+
+On Trip List page add filters:
+
+Filter fields:
+
+Date From
+Date To
+Truck
+Driver
+Status
+
+Use query parameters:
+
+Example:
+
+/trips?date_from=2026-01-01&date_to=2026-01-31&truck_id=2
+
+Build dynamic WHERE clause safely using parameterized queries.
+
+Example logic:
+
+If date_from exists → AND trip_date >= $x
+If date_to exists → AND trip_date <= $x
+If truck_id exists → AND truck_id = $x
+If driver_id exists → AND driver_id = $x
+If status exists → AND status = $x
+
+Filtering must be server-side.
+
+🔷 STEP 8: JOIN QUERY
+
+Trip list query must join:
+
+trucks
+drivers
+cities (from_city, to_city)
+
+Use aliases:
+
+FROM trips t
+JOIN trucks tr ON t.truck_id = tr.id
+JOIN drivers d ON t.driver_id = d.id
+JOIN cities c1 ON t.from_city_id = c1.id
+JOIN cities c2 ON t.to_city_id = c2.id
+
+Display readable names.
+
+🔷 STEP 9: DASHBOARD NAVIGATION UPDATE
+
+Add:
+
+Trips
+Create Trip
+Trip List
+
+Keep UI consistent.
+
+🔷 STEP 10: UX RULES
+Confirm before closing trip
+Show success messages
+Keep search filters after submission
+Clean professional layout
+No page crashes
+🔷 FINAL RESULT OF PHASE 3
+
+After completion:
+
+Trips table working
+Trip creation working
+Trip list working
+Close trip working
+Filtering engine working
+Proper joins
+Authentication intact
+
+STOP after finishing Phase 3.
+
+Do NOT build loads or expenses yet.
+
+✅ End of Phase 3 Prompt
