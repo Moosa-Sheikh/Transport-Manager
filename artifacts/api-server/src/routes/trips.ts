@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
-import { tripsTable, trucksTable, driversTable, citiesTable } from "@workspace/db/schema";
+import { tripsTable, trucksTable, driversTable, citiesTable, tripLoadsTable, customersTable } from "@workspace/db/schema";
 import { eq, and, gte, lte, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { parseId } from "../lib/validate-id.js";
@@ -25,6 +25,10 @@ function buildTripQuery() {
       toCityName: toCities.name,
       status: tripsTable.status,
       createdAt: tripsTable.createdAt,
+      income: sql<number>`COALESCE((
+        SELECT SUM(COALESCE(freight, 0) + COALESCE(loading_charges, 0) + COALESCE(unloading_charges, 0) - COALESCE(broker_commission, 0))
+        FROM trip_loads WHERE trip_loads.trip_id = ${tripsTable.id}
+      ), 0)::double precision`.as("income"),
     })
     .from(tripsTable)
     .innerJoin(trucksTable, eq(tripsTable.truckId, trucksTable.id))
@@ -158,6 +162,230 @@ router.put("/:id/close", async (req: Request, res: Response) => {
     res.json(row);
   } catch (err) {
     req.log.error({ err }, "Close trip error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+function calcNetLoadIncome(load: {
+  freight: string | null;
+  loadingCharges: string | null;
+  unloadingCharges: string | null;
+  brokerCommission: string | null;
+}): number {
+  return (
+    Number(load.freight ?? 0) +
+    Number(load.loadingCharges ?? 0) +
+    Number(load.unloadingCharges ?? 0) -
+    Number(load.brokerCommission ?? 0)
+  );
+}
+
+router.get("/:id/loads", async (req: Request, res: Response) => {
+  try {
+    const id = parseId(req, res);
+    if (id === null) return;
+
+    const [trip] = await db.select({ id: tripsTable.id }).from(tripsTable).where(eq(tripsTable.id, id));
+    if (!trip) {
+      res.status(404).json({ error: "Trip not found" });
+      return;
+    }
+
+    const rows = await db
+      .select({
+        id: tripLoadsTable.id,
+        tripId: tripLoadsTable.tripId,
+        biltyNumber: tripLoadsTable.biltyNumber,
+        customerId: tripLoadsTable.customerId,
+        customerName: customersTable.name,
+        itemDescription: tripLoadsTable.itemDescription,
+        weight: tripLoadsTable.weight,
+        freight: tripLoadsTable.freight,
+        loadingCharges: tripLoadsTable.loadingCharges,
+        unloadingCharges: tripLoadsTable.unloadingCharges,
+        brokerCommission: tripLoadsTable.brokerCommission,
+        createdAt: tripLoadsTable.createdAt,
+      })
+      .from(tripLoadsTable)
+      .innerJoin(customersTable, eq(tripLoadsTable.customerId, customersTable.id))
+      .where(eq(tripLoadsTable.tripId, id))
+      .orderBy(tripLoadsTable.id);
+
+    const loads = rows.map((r) => ({
+      ...r,
+      netLoadIncome: calcNetLoadIncome(r),
+    }));
+
+    let totalFreight = 0;
+    let totalLoadingCharges = 0;
+    let totalUnloadingCharges = 0;
+    let totalBrokerCommission = 0;
+    for (const l of rows) {
+      totalFreight += Number(l.freight ?? 0);
+      totalLoadingCharges += Number(l.loadingCharges ?? 0);
+      totalUnloadingCharges += Number(l.unloadingCharges ?? 0);
+      totalBrokerCommission += Number(l.brokerCommission ?? 0);
+    }
+
+    res.json({
+      loads,
+      summary: {
+        totalFreight,
+        totalLoadingCharges,
+        totalUnloadingCharges,
+        totalBrokerCommission,
+        tripIncome: totalFreight + totalLoadingCharges + totalUnloadingCharges - totalBrokerCommission,
+      },
+    });
+  } catch (err) {
+    req.log.error({ err }, "List trip loads error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/:id/loads", async (req: Request, res: Response) => {
+  try {
+    const id = parseId(req, res);
+    if (id === null) return;
+
+    const [trip] = await db.select().from(tripsTable).where(eq(tripsTable.id, id));
+    if (!trip) {
+      res.status(404).json({ error: "Trip not found" });
+      return;
+    }
+    if (trip.status === "Closed") {
+      res.status(400).json({ error: "Cannot add load to a closed trip" });
+      return;
+    }
+
+    const { biltyNumber, customerId, itemDescription, weight, freight, loadingCharges, unloadingCharges, brokerCommission } = req.body;
+
+    if (!biltyNumber || typeof biltyNumber !== "string" || !biltyNumber.trim()) {
+      res.status(400).json({ error: "Bilty number is required" });
+      return;
+    }
+    const numCustomerId = Number(customerId);
+    if (!Number.isInteger(numCustomerId) || numCustomerId <= 0) {
+      res.status(400).json({ error: "Valid customer is required" });
+      return;
+    }
+
+    function parseOptionalNumeric(val: unknown, fieldName: string): string {
+      if (val === undefined || val === null || val === "") return "0";
+      const n = Number(val);
+      if (!Number.isFinite(n) || n < 0) {
+        throw new Error(`${fieldName} must be a valid non-negative number`);
+      }
+      return String(val);
+    }
+
+    let parsedWeight: string | null = null;
+    let parsedFreight: string;
+    let parsedLoading: string;
+    let parsedUnloading: string;
+    let parsedCommission: string;
+
+    try {
+      if (weight !== undefined && weight !== null && weight !== "") {
+        const w = Number(weight);
+        if (!Number.isFinite(w) || w < 0) {
+          res.status(400).json({ error: "Weight must be a valid non-negative number" });
+          return;
+        }
+        parsedWeight = String(weight);
+      }
+      parsedFreight = parseOptionalNumeric(freight, "Freight");
+      parsedLoading = parseOptionalNumeric(loadingCharges, "Loading charges");
+      parsedUnloading = parseOptionalNumeric(unloadingCharges, "Unloading charges");
+      parsedCommission = parseOptionalNumeric(brokerCommission, "Broker commission");
+    } catch (validationErr: unknown) {
+      res.status(400).json({ error: (validationErr as Error).message });
+      return;
+    }
+
+    const [inserted] = await db
+      .insert(tripLoadsTable)
+      .values({
+        tripId: id,
+        biltyNumber: biltyNumber.trim(),
+        customerId: numCustomerId,
+        itemDescription: itemDescription ? String(itemDescription) : null,
+        weight: parsedWeight,
+        freight: parsedFreight,
+        loadingCharges: parsedLoading,
+        unloadingCharges: parsedUnloading,
+        brokerCommission: parsedCommission,
+      })
+      .returning();
+
+    const [row] = await db
+      .select({
+        id: tripLoadsTable.id,
+        tripId: tripLoadsTable.tripId,
+        biltyNumber: tripLoadsTable.biltyNumber,
+        customerId: tripLoadsTable.customerId,
+        customerName: customersTable.name,
+        itemDescription: tripLoadsTable.itemDescription,
+        weight: tripLoadsTable.weight,
+        freight: tripLoadsTable.freight,
+        loadingCharges: tripLoadsTable.loadingCharges,
+        unloadingCharges: tripLoadsTable.unloadingCharges,
+        brokerCommission: tripLoadsTable.brokerCommission,
+        createdAt: tripLoadsTable.createdAt,
+      })
+      .from(tripLoadsTable)
+      .innerJoin(customersTable, eq(tripLoadsTable.customerId, customersTable.id))
+      .where(eq(tripLoadsTable.id, inserted.id));
+
+    res.status(201).json({
+      ...row,
+      netLoadIncome: calcNetLoadIncome(row),
+    });
+  } catch (err: unknown) {
+    const pgErr = err as { code?: string };
+    if (pgErr.code === "23505") {
+      res.status(400).json({ error: "Duplicate bilty number in this trip" });
+      return;
+    }
+    req.log.error({ err }, "Add trip load error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.delete("/:id/loads/:loadId", async (req: Request, res: Response) => {
+  try {
+    const id = parseId(req, res);
+    if (id === null) return;
+
+    const loadIdRaw = Number(req.params["loadId"]);
+    if (!Number.isFinite(loadIdRaw) || loadIdRaw <= 0 || !Number.isInteger(loadIdRaw)) {
+      res.status(400).json({ error: "Invalid load ID" });
+      return;
+    }
+
+    const [trip] = await db.select().from(tripsTable).where(eq(tripsTable.id, id));
+    if (!trip) {
+      res.status(404).json({ error: "Trip not found" });
+      return;
+    }
+    if (trip.status === "Closed") {
+      res.status(400).json({ error: "Cannot delete load from a closed trip" });
+      return;
+    }
+
+    const [deleted] = await db
+      .delete(tripLoadsTable)
+      .where(and(eq(tripLoadsTable.id, loadIdRaw), eq(tripLoadsTable.tripId, id)))
+      .returning();
+
+    if (!deleted) {
+      res.status(404).json({ error: "Load not found" });
+      return;
+    }
+
+    res.json({ message: "Load deleted successfully" });
+  } catch (err) {
+    req.log.error({ err }, "Delete trip load error");
     res.status(500).json({ error: "Internal server error" });
   }
 });

@@ -348,6 +348,7 @@ export const ListTripsResponseItem = zod.object({
   toCityName: zod.string(),
   status: zod.enum(["Open", "Closed"]),
   createdAt: zod.string().optional(),
+  income: zod.number(),
 });
 export const ListTripsResponse = zod.array(ListTripsResponseItem);
 
@@ -382,6 +383,7 @@ export const GetTripResponse = zod.object({
   toCityName: zod.string(),
   status: zod.enum(["Open", "Closed"]),
   createdAt: zod.string().optional(),
+  income: zod.number(),
 });
 
 /**
@@ -404,4 +406,69 @@ export const CloseTripResponse = zod.object({
   toCityName: zod.string(),
   status: zod.enum(["Open", "Closed"]),
   createdAt: zod.string().optional(),
+  income: zod.number(),
+});
+
+/**
+ * @summary List loads for a trip
+ */
+export const ListTripLoadsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListTripLoadsResponse = zod.object({
+  loads: zod.array(
+    zod.object({
+      id: zod.number(),
+      tripId: zod.number(),
+      biltyNumber: zod.string(),
+      customerId: zod.number(),
+      customerName: zod.string(),
+      itemDescription: zod.string().nullish(),
+      weight: zod.string().nullish(),
+      freight: zod.string(),
+      loadingCharges: zod.string(),
+      unloadingCharges: zod.string(),
+      brokerCommission: zod.string(),
+      netLoadIncome: zod.number(),
+      createdAt: zod.string().optional(),
+    }),
+  ),
+  summary: zod.object({
+    totalFreight: zod.number(),
+    totalLoadingCharges: zod.number(),
+    totalUnloadingCharges: zod.number(),
+    totalBrokerCommission: zod.number(),
+    tripIncome: zod.number(),
+  }),
+});
+
+/**
+ * @summary Add a load to a trip
+ */
+export const AddTripLoadParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AddTripLoadBody = zod.object({
+  biltyNumber: zod.string().min(1),
+  customerId: zod.number(),
+  itemDescription: zod.string().optional(),
+  weight: zod.string().optional(),
+  freight: zod.string().optional(),
+  loadingCharges: zod.string().optional(),
+  unloadingCharges: zod.string().optional(),
+  brokerCommission: zod.string().optional(),
+});
+
+/**
+ * @summary Delete a load from a trip
+ */
+export const DeleteTripLoadParams = zod.object({
+  id: zod.coerce.number(),
+  loadId: zod.coerce.number(),
+});
+
+export const DeleteTripLoadResponse = zod.object({
+  message: zod.string(),
 });

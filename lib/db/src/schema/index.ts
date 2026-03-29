@@ -5,3 +5,4 @@ export * from "./trucks";
 export * from "./cities";
 export * from "./expense-types";
 export * from "./trips";
+export * from "./trip-loads";

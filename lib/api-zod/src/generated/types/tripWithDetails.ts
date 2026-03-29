@@ -20,4 +20,5 @@ export interface TripWithDetails {
   toCityName: string;
   status: TripWithDetailsStatus;
   createdAt?: string;
+  income: number;
 }

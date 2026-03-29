@@ -275,6 +275,9 @@ export default function TripListPage() {
                       Status
                     </th>
                     <th className="text-right px-4 py-3 font-medium text-gray-600">
+                      Income
+                    </th>
+                    <th className="text-right px-4 py-3 font-medium text-gray-600">
                       Actions
                     </th>
                   </tr>
@@ -318,6 +321,9 @@ export default function TripListPage() {
                         >
                           {trip.status}
                         </span>
+                      </td>
+                      <td className="px-4 py-3 text-right font-medium text-green-700">
+                        {new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(trip.income)}
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">

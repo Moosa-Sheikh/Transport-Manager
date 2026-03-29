@@ -1,0 +1,228 @@
+Now we build the Income Engine of your system.
+
+This is where your real logistics logic starts.
+
+We will now implement:
+
+🚛 Phase 4 – Multi Load System (Trip Income Engine)
+
+This phase will:
+
+Allow multiple loads per trip
+Store Bilty Number
+Store freight + loading + unloading
+Store broker commission
+Automatically calculate Trip Income
+Show income summary inside trip
+Prepare foundation for profit calculation (Phase 5)
+
+No expenses yet.
+
+Copy everything below into Replit Agent.
+
+🚀 PHASE 4 PROMPT FOR REPLIT AGENT
+
+(Multi Load System – Income Engine – PostgreSQL)
+
+🔷 CONTEXT
+
+Phase 3 completed:
+
+Trips working
+Filtering working
+Status working
+
+Now implement Trip Loads System.
+
+Each trip can have multiple loads.
+
+Each load belongs to exactly one trip.
+
+🔷 STEP 1: UPDATE DATABASE SCHEMA
+
+Open database/schema.sql
+Add:
+
+1️⃣ trip_loads
+CREATE TABLE trip_loads (
+    id SERIAL PRIMARY KEY,
+    trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+    bilty_number VARCHAR(100) NOT NULL,
+    customer_id INTEGER NOT NULL REFERENCES customers(id) ON DELETE RESTRICT,
+    item_description VARCHAR(150),
+    weight NUMERIC(12,2),
+    freight NUMERIC(12,2) DEFAULT 0,
+    loading_charges NUMERIC(12,2) DEFAULT 0,
+    unloading_charges NUMERIC(12,2) DEFAULT 0,
+    broker_commission NUMERIC(12,2) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+Important:
+
+One trip → many loads
+If trip deleted → loads auto delete (CASCADE allowed here)
+🔷 STEP 2: UPDATE ROUTES
+
+Edit:
+
+routes/trips.js
+
+Add routes:
+
+GET /trips/:id
+
+Purpose:
+View single trip details
+
+Show:
+
+Trip main info
+List of loads
+Trip Income Summary
+POST /trips/:id/add-load
+
+Add load to trip.
+
+Validation:
+
+Bilty number required
+Customer required
+Freight must be numeric
+Trip must be Open (cannot add load to closed trip)
+POST /trips/load/delete/:id
+
+Delete specific load.
+
+Redirect back to trip detail page.
+
+🔷 STEP 3: TRIP DETAIL PAGE
+
+Create:
+
+views/trips/trip_detail.ejs
+
+This page must show:
+
+Section 1 – Trip Information
+Trip ID
+Date
+Truck
+Driver
+Route
+Status
+Section 2 – Add Load Form
+
+Fields:
+
+Bilty Number
+Customer (dropdown)
+Item Description
+Weight
+Freight
+Loading Charges
+Unloading Charges
+Broker Commission
+
+Submit button.
+
+Section 3 – Loads Table
+
+Columns:
+
+Bilty Number
+Customer
+Freight
+Loading
+Unloading
+Broker Commission
+Net Load Income
+Delete
+🔷 STEP 4: LOAD INCOME CALCULATION
+
+For each load:
+
+Net Load Income =
+Freight
++ Loading Charges
++ Unloading Charges
+- Broker Commission
+
+Do calculation in backend (not EJS).
+
+🔷 STEP 5: TRIP INCOME CALCULATION
+
+When loading trip detail page:
+
+Calculate:
+
+Trip Income =
+SUM(Freight)
++ SUM(Loading Charges)
++ SUM(Unloading Charges)
+- SUM(Broker Commission)
+
+Use SQL aggregation query.
+
+Display:
+
+Total Freight
+Total Charges
+Total Commission
+Trip Income
+
+Show clearly in summary box.
+
+🔷 STEP 6: UPDATE TRIP LIST PAGE
+
+Add new column:
+
+Trip Income
+
+Use LEFT JOIN with aggregated subquery:
+
+Example structure:
+
+LEFT JOIN (
+    SELECT trip_id,
+           SUM(freight + loading_charges + unloading_charges - broker_commission) AS income
+    FROM trip_loads
+    GROUP BY trip_id
+) income_data ON t.id = income_data.trip_id
+
+If no loads → income = 0
+
+🔷 STEP 7: RULES
+Cannot add load if trip is Closed
+Cannot edit closed trip
+Keep filtering intact
+Use parameterized queries
+Use try/catch everywhere
+Prevent duplicate bilty number within same trip (optional but recommended)
+🔷 STEP 8: UI REQUIREMENTS
+Clean layout
+Income summary highlighted
+Confirm before deleting load
+Keep professional look
+Maintain navigation
+🔷 FINAL RESULT OF PHASE 4
+
+After completion:
+
+Multi-load per trip working
+Bilty number stored
+Customer linked
+Load-level income calculated
+Trip income auto calculated
+Income visible in trip list
+Trip detail view working
+Filtering still working
+
+STOP after completing Phase 4.
+
+Do NOT implement expenses yet.
+
+Next Phase:
+
+🔥 Phase 5 – Expense System + Profit Engine
+(This will complete trip profit calculation.)

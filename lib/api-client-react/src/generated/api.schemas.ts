@@ -141,6 +141,48 @@ export interface TripWithDetails {
   toCityName: string;
   status: TripWithDetailsStatus;
   createdAt?: string;
+  income: number;
+}
+
+export interface TripLoadInput {
+  /** @minLength 1 */
+  biltyNumber: string;
+  customerId: number;
+  itemDescription?: string;
+  weight?: string;
+  freight?: string;
+  loadingCharges?: string;
+  unloadingCharges?: string;
+  brokerCommission?: string;
+}
+
+export interface TripLoadWithIncome {
+  id: number;
+  tripId: number;
+  biltyNumber: string;
+  customerId: number;
+  customerName: string;
+  itemDescription?: string | null;
+  weight?: string | null;
+  freight: string;
+  loadingCharges: string;
+  unloadingCharges: string;
+  brokerCommission: string;
+  netLoadIncome: number;
+  createdAt?: string;
+}
+
+export interface TripIncomeSummary {
+  totalFreight: number;
+  totalLoadingCharges: number;
+  totalUnloadingCharges: number;
+  totalBrokerCommission: number;
+  tripIncome: number;
+}
+
+export interface TripLoadsResponse {
+  loads: TripLoadWithIncome[];
+  summary: TripIncomeSummary;
 }
 
 export type ListCustomersParams = {

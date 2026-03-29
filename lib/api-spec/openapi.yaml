@@ -692,6 +692,101 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /trips/{id}/loads:
+    get:
+      operationId: listTripLoads
+      tags: [trips]
+      summary: List loads for a trip
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Load list with income summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TripLoadsResponse"
+        "404":
+          description: Trip not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: addTripLoad
+      tags: [trips]
+      summary: Add a load to a trip
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TripLoadInput"
+      responses:
+        "201":
+          description: Load added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TripLoadWithIncome"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Trip not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /trips/{id}/loads/{loadId}:
+    delete:
+      operationId: deleteTripLoad
+      tags: [trips]
+      summary: Delete a load from a trip
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: loadId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Load deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Trip is closed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -908,4 +1003,87 @@ components:
           enum: [Open, Closed]
         createdAt:
           type: string
-      required: [id, tripDate, truckId, truckNumber, driverId, driverName, fromCityId, fromCityName, toCityId, toCityName, status]
+        income:
+          type: number
+      required: [id, tripDate, truckId, truckNumber, driverId, driverName, fromCityId, fromCityName, toCityId, toCityName, status, income]
+
+    TripLoadInput:
+      type: object
+      properties:
+        biltyNumber:
+          type: string
+          minLength: 1
+        customerId:
+          type: integer
+        itemDescription:
+          type: string
+        weight:
+          type: string
+        freight:
+          type: string
+        loadingCharges:
+          type: string
+        unloadingCharges:
+          type: string
+        brokerCommission:
+          type: string
+      required: [biltyNumber, customerId]
+
+    TripLoadWithIncome:
+      type: object
+      properties:
+        id:
+          type: integer
+        tripId:
+          type: integer
+        biltyNumber:
+          type: string
+        customerId:
+          type: integer
+        customerName:
+          type: string
+        itemDescription:
+          type: string
+          nullable: true
+        weight:
+          type: string
+          nullable: true
+        freight:
+          type: string
+        loadingCharges:
+          type: string
+        unloadingCharges:
+          type: string
+        brokerCommission:
+          type: string
+        netLoadIncome:
+          type: number
+        createdAt:
+          type: string
+      required: [id, tripId, biltyNumber, customerId, customerName, freight, loadingCharges, unloadingCharges, brokerCommission, netLoadIncome]
+
+    TripIncomeSummary:
+      type: object
+      properties:
+        totalFreight:
+          type: number
+        totalLoadingCharges:
+          type: number
+        totalUnloadingCharges:
+          type: number
+        totalBrokerCommission:
+          type: number
+        tripIncome:
+          type: number
+      required: [totalFreight, totalLoadingCharges, totalUnloadingCharges, totalBrokerCommission, tripIncome]
+
+    TripLoadsResponse:
+      type: object
+      properties:
+        loads:
+          type: array
+          items:
+            $ref: "#/components/schemas/TripLoadWithIncome"
+        summary:
+          $ref: "#/components/schemas/TripIncomeSummary"
+      required: [loads, summary]

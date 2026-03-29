@@ -133,8 +133,22 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 - **Sidebar updated**: Trips submenu (Trip List, Create Trip)
 - API endpoints: GET `/api/trips` (list+filters), POST `/api/trips`, GET `/api/trips/:id`, PUT `/api/trips/:id/close`
 
+#### Phase 4 — Complete (Multi Load System / Trip Income Engine)
+- **trip_loads table**: FK to trips (CASCADE), FK to customers (RESTRICT), unique(trip_id, bilty_number)
+- **Fields**: bilty_number, customer_id, item_description, weight, freight, loading_charges, unloading_charges, broker_commission
+- **Income calculation** (backend): Net Load Income = freight + loading + unloading - broker_commission
+- **Trip Income**: SQL subquery aggregation (SUM across all loads), cast to double precision
+- **Trip detail page** at `/trips/:id` enhanced with:
+  - Trip info section with income display
+  - Income Summary box (total freight, loading, unloading, commission, trip income)
+  - Add Load form (only shown when trip is Open)
+  - Loads table with per-load net income, delete button (only when Open)
+- **Trip list** updated with Income column showing aggregated trip income
+- **Validation**: bilty number + customer required, all numeric fields validated non-negative, duplicate bilty prevention (DB unique constraint)
+- **API endpoints**: GET `/api/trips/:id/loads`, POST `/api/trips/:id/loads`, DELETE `/api/trips/:id/loads/:loadId`
+- Cannot add/delete loads on closed trips
+
 #### Planned Tables (Future Phases — NOT YET BUILT)
-- **loads** (trip lines) — trip_id, customer_id, bilty_number, weight/description, freight_rate, freight_amount
 - **trip_expenses** — trip_id, category (fuel/toll/etc), amount, notes
 - **customer_payments** — customer_id, trip_id (or load_id), amount, date, payment_type
 - **driver_payments** — driver_id, trip_id (optional), type (salary/commission/advance), amount, date
