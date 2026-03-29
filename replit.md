@@ -102,16 +102,26 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 
 #### Phase 1 — Complete
 - Login page at `/` with username/password form (default admin: admin / admin123)
-- Protected dashboard at `/dashboard` showing logged-in username + logout
+- Protected dashboard at `/dashboard` with sidebar navigation
 - Session-based authentication stored in PostgreSQL via `connect-pg-simple`
 - Automatic admin seed: if no users exist, `admin/admin123` is created on startup
 
-#### Planned Schema (Future Phases — NOT YET BUILT)
-The database will need these tables (keep them simple and practical):
+#### Phase 2 — Complete (Masters Module)
+- **Sidebar layout**: Collapsible sidebar with Dashboard, Masters submenu (Customers, Drivers, Trucks, Cities, Expense Types), and logout
+- **5 master tables** with full CRUD (Create, Read, Update, Delete):
+  - `customers` — name, company_name, phone
+  - `drivers` — name, phone, salary, trip_commission
+  - `trucks` — truck_number (unique), owner_type (Owned/Rented), model
+  - `cities` — name (unique)
+  - `expense_types` — name (unique)
+- **Search/filter**: Server-side ILIKE search on each master list
+- **Validation**: Unique constraints enforced (trucks, cities, expense types), empty name prevention
+- **UX**: Delete confirmation dialog, success messages after add/update/delete
+- All routes protected by `requireAuth` middleware
+- Frontend pages at `/masters/customers`, `/masters/drivers`, `/masters/trucks`, `/masters/cities`, `/masters/expense-types`
+- API endpoints at `/api/masters/{entity}` (GET list, POST create), `/api/masters/{entity}/:id` (PUT update, DELETE)
 
-- **trucks** — plate number, make/model, status
-- **drivers** — name, phone, license, salary
-- **customers** — name, contact info
+#### Planned Tables (Future Phases — NOT YET BUILT)
 - **trips** — origin city, destination city, date, truck_id, driver_id, status
 - **loads** (trip lines) — trip_id, customer_id, bilty_number, weight/description, freight_rate, freight_amount
 - **trip_expenses** — trip_id, category (fuel/toll/etc), amount, notes

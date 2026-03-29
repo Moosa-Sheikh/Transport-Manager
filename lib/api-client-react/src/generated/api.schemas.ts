@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * API specification
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 export interface HealthStatus {
   status: string;
@@ -26,3 +26,108 @@ export interface ErrorResponse {
 export interface MessageResponse {
   message: string;
 }
+
+export interface Customer {
+  id: number;
+  name: string;
+  companyName?: string | null;
+  phone?: string | null;
+  createdAt?: string;
+}
+
+export interface CustomerInput {
+  /** @minLength 1 */
+  name: string;
+  companyName?: string | null;
+  phone?: string | null;
+}
+
+export interface Driver {
+  id: number;
+  name: string;
+  phone?: string | null;
+  salary?: string;
+  tripCommission?: string;
+  createdAt?: string;
+}
+
+export interface DriverInput {
+  /** @minLength 1 */
+  name: string;
+  phone?: string | null;
+  salary?: string;
+  tripCommission?: string;
+}
+
+export type TruckOwnerType =
+  (typeof TruckOwnerType)[keyof typeof TruckOwnerType];
+
+export const TruckOwnerType = {
+  Owned: "Owned",
+  Rented: "Rented",
+} as const;
+
+export interface Truck {
+  id: number;
+  truckNumber: string;
+  ownerType: TruckOwnerType;
+  model?: string | null;
+  createdAt?: string;
+}
+
+export type TruckInputOwnerType =
+  (typeof TruckInputOwnerType)[keyof typeof TruckInputOwnerType];
+
+export const TruckInputOwnerType = {
+  Owned: "Owned",
+  Rented: "Rented",
+} as const;
+
+export interface TruckInput {
+  /** @minLength 1 */
+  truckNumber: string;
+  ownerType: TruckInputOwnerType;
+  model?: string | null;
+}
+
+export interface City {
+  id: number;
+  name: string;
+  createdAt?: string;
+}
+
+export interface CityInput {
+  /** @minLength 1 */
+  name: string;
+}
+
+export interface ExpenseType {
+  id: number;
+  name: string;
+  createdAt?: string;
+}
+
+export interface ExpenseTypeInput {
+  /** @minLength 1 */
+  name: string;
+}
+
+export type ListCustomersParams = {
+  search?: string;
+};
+
+export type ListDriversParams = {
+  search?: string;
+};
+
+export type ListTrucksParams = {
+  search?: string;
+};
+
+export type ListCitiesParams = {
+  search?: string;
+};
+
+export type ListExpenseTypesParams = {
+  search?: string;
+};

@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * API specification
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import * as zod from "zod";
 
@@ -44,4 +44,282 @@ export const LogoutResponse = zod.object({
 export const GetMeResponse = zod.object({
   id: zod.number(),
   username: zod.string(),
+});
+
+/**
+ * @summary List customers
+ */
+export const ListCustomersQueryParams = zod.object({
+  search: zod.coerce.string().optional(),
+});
+
+export const ListCustomersResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  companyName: zod.string().nullish(),
+  phone: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+});
+export const ListCustomersResponse = zod.array(ListCustomersResponseItem);
+
+/**
+ * @summary Create customer
+ */
+
+export const CreateCustomerBody = zod.object({
+  name: zod.string().min(1),
+  companyName: zod.string().nullish(),
+  phone: zod.string().nullish(),
+});
+
+/**
+ * @summary Update customer
+ */
+export const UpdateCustomerParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateCustomerBody = zod.object({
+  name: zod.string().min(1),
+  companyName: zod.string().nullish(),
+  phone: zod.string().nullish(),
+});
+
+export const UpdateCustomerResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  companyName: zod.string().nullish(),
+  phone: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+});
+
+/**
+ * @summary Delete customer
+ */
+export const DeleteCustomerParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteCustomerResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary List drivers
+ */
+export const ListDriversQueryParams = zod.object({
+  search: zod.coerce.string().optional(),
+});
+
+export const ListDriversResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  phone: zod.string().nullish(),
+  salary: zod.string().optional(),
+  tripCommission: zod.string().optional(),
+  createdAt: zod.string().optional(),
+});
+export const ListDriversResponse = zod.array(ListDriversResponseItem);
+
+/**
+ * @summary Create driver
+ */
+
+export const CreateDriverBody = zod.object({
+  name: zod.string().min(1),
+  phone: zod.string().nullish(),
+  salary: zod.string().optional(),
+  tripCommission: zod.string().optional(),
+});
+
+/**
+ * @summary Update driver
+ */
+export const UpdateDriverParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateDriverBody = zod.object({
+  name: zod.string().min(1),
+  phone: zod.string().nullish(),
+  salary: zod.string().optional(),
+  tripCommission: zod.string().optional(),
+});
+
+export const UpdateDriverResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  phone: zod.string().nullish(),
+  salary: zod.string().optional(),
+  tripCommission: zod.string().optional(),
+  createdAt: zod.string().optional(),
+});
+
+/**
+ * @summary Delete driver
+ */
+export const DeleteDriverParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteDriverResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary List trucks
+ */
+export const ListTrucksQueryParams = zod.object({
+  search: zod.coerce.string().optional(),
+});
+
+export const ListTrucksResponseItem = zod.object({
+  id: zod.number(),
+  truckNumber: zod.string(),
+  ownerType: zod.enum(["Owned", "Rented"]),
+  model: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+});
+export const ListTrucksResponse = zod.array(ListTrucksResponseItem);
+
+/**
+ * @summary Create truck
+ */
+
+export const CreateTruckBody = zod.object({
+  truckNumber: zod.string().min(1),
+  ownerType: zod.enum(["Owned", "Rented"]),
+  model: zod.string().nullish(),
+});
+
+/**
+ * @summary Update truck
+ */
+export const UpdateTruckParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateTruckBody = zod.object({
+  truckNumber: zod.string().min(1),
+  ownerType: zod.enum(["Owned", "Rented"]),
+  model: zod.string().nullish(),
+});
+
+export const UpdateTruckResponse = zod.object({
+  id: zod.number(),
+  truckNumber: zod.string(),
+  ownerType: zod.enum(["Owned", "Rented"]),
+  model: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+});
+
+/**
+ * @summary Delete truck
+ */
+export const DeleteTruckParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteTruckResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary List cities
+ */
+export const ListCitiesQueryParams = zod.object({
+  search: zod.coerce.string().optional(),
+});
+
+export const ListCitiesResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  createdAt: zod.string().optional(),
+});
+export const ListCitiesResponse = zod.array(ListCitiesResponseItem);
+
+/**
+ * @summary Create city
+ */
+
+export const CreateCityBody = zod.object({
+  name: zod.string().min(1),
+});
+
+/**
+ * @summary Update city
+ */
+export const UpdateCityParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateCityBody = zod.object({
+  name: zod.string().min(1),
+});
+
+export const UpdateCityResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  createdAt: zod.string().optional(),
+});
+
+/**
+ * @summary Delete city
+ */
+export const DeleteCityParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteCityResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary List expense types
+ */
+export const ListExpenseTypesQueryParams = zod.object({
+  search: zod.coerce.string().optional(),
+});
+
+export const ListExpenseTypesResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  createdAt: zod.string().optional(),
+});
+export const ListExpenseTypesResponse = zod.array(ListExpenseTypesResponseItem);
+
+/**
+ * @summary Create expense type
+ */
+
+export const CreateExpenseTypeBody = zod.object({
+  name: zod.string().min(1),
+});
+
+/**
+ * @summary Update expense type
+ */
+export const UpdateExpenseTypeParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateExpenseTypeBody = zod.object({
+  name: zod.string().min(1),
+});
+
+export const UpdateExpenseTypeResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  createdAt: zod.string().optional(),
+});
+
+/**
+ * @summary Delete expense type
+ */
+export const DeleteExpenseTypeParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteExpenseTypeResponse = zod.object({
+  message: zod.string(),
 });

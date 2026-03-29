@@ -6,6 +6,9 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface ErrorResponse {
-  error: string;
+export interface CustomerInput {
+  /** @minLength 1 */
+  name: string;
+  companyName?: string | null;
+  phone?: string | null;
 }

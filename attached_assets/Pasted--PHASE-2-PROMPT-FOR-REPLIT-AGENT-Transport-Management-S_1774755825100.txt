@@ -1,0 +1,193 @@
+🚀 PHASE 2 PROMPT FOR REPLIT AGENT
+
+(Transport Management System – Masters Module – PostgreSQL)
+
+🔷 CONTEXT
+
+Phase 1 is complete:
+
+Express server running
+PostgreSQL connected
+Login system working
+Session protected dashboard working
+
+Now implement Masters Module.
+
+This module will manage:
+
+Customers
+Drivers
+Trucks
+Cities
+Expense Types
+
+All CRUD operations required.
+
+Follow clean structure and do not break Phase 1 functionality.
+
+🔷 STEP 1: UPDATE DATABASE SCHEMA
+
+Open database/schema.sql
+Add the following tables:
+
+1️⃣ customers
+CREATE TABLE customers (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    company_name VARCHAR(150),
+    phone VARCHAR(20),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+2️⃣ drivers
+CREATE TABLE drivers (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    phone VARCHAR(20),
+    salary NUMERIC(12,2) DEFAULT 0,
+    trip_commission NUMERIC(12,2) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+3️⃣ trucks
+CREATE TABLE trucks (
+    id SERIAL PRIMARY KEY,
+    truck_number VARCHAR(50) UNIQUE NOT NULL,
+    owner_type VARCHAR(20) CHECK (owner_type IN ('Owned', 'Rented')) NOT NULL,
+    model VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+4️⃣ cities
+CREATE TABLE cities (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) UNIQUE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+5️⃣ expense_types
+CREATE TABLE expense_types (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) UNIQUE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+After updating schema, ensure tables are created in PostgreSQL.
+
+Do NOT drop existing tables.
+
+🔷 STEP 2: CREATE ROUTE FILE
+
+Create new file:
+
+routes/masters.js
+
+Import it in app.js:
+
+const mastersRoutes = require('./routes/masters');
+app.use('/masters', mastersRoutes);
+
+Protect all masters routes with authentication middleware.
+
+🔷 STEP 3: CREATE VIEWS STRUCTURE
+
+Inside views/masters/ create:
+
+customers.ejs
+drivers.ejs
+trucks.ejs
+cities.ejs
+expense_types.ejs
+
+Each page should:
+
+Show table of records
+Add new form at top
+Edit button
+Delete button
+Success / error message display
+Filter by name (search input)
+
+Use Tailwind CDN styling.
+Keep clean professional admin look.
+
+🔷 STEP 4: IMPLEMENT CRUD ROUTES
+
+For each entity:
+
+ROUTES REQUIRED
+
+Example for customers:
+
+GET /masters/customers
+POST /masters/customers/add
+POST /masters/customers/update/:id
+POST /masters/customers/delete/:id
+
+Repeat similar structure for:
+
+drivers
+trucks
+cities
+expense-types
+🔷 STEP 5: VALIDATION RULES
+No empty names
+Truck number must be unique
+Expense type must be unique
+Cities must be unique
+Use try/catch in all DB operations
+Use prepared statements ($1, $2…)
+🔷 STEP 6: DASHBOARD NAVIGATION UPDATE
+
+Update views/dashboard.ejs
+
+Add navigation menu:
+
+Dashboard
+Masters
+Customers
+Drivers
+Trucks
+Cities
+Expense Types
+Logout
+
+Use simple sidebar layout.
+
+Do not overdesign.
+
+🔷 STEP 7: SEARCH FILTER
+
+On each master list page:
+
+Add search input:
+
+Example:
+
+GET /masters/customers?search=abc
+
+If search exists:
+Filter with:
+
+WHERE name ILIKE '%search%'
+
+Make filtering server-side.
+
+🔷 STEP 8: UX REQUIREMENTS
+Confirm before delete
+Show success message after add/update/delete
+Redirect back to list page after operation
+Keep consistent layout.ejs usage
+🔷 FINAL RESULT OF PHASE 2
+
+After completion:
+
+All master tables exist
+CRUD working
+Search filter working
+Dashboard navigation updated
+Authentication still working
+Clean admin UI
+No broken routes
+
+Stop after finishing Phase 2.
+
+Do NOT start trips module.
+
+✅ End of Phase 2 Prompt

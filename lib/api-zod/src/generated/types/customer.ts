@@ -6,7 +6,10 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface AuthUser {
+export interface Customer {
   id: number;
-  username: string;
+  name: string;
+  companyName?: string | null;
+  phone?: string | null;
+  createdAt?: string;
 }

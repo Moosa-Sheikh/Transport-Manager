@@ -6,7 +6,11 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface AuthUser {
+export interface Driver {
   id: number;
-  username: string;
+  name: string;
+  phone?: string | null;
+  salary?: string;
+  tripCommission?: string;
+  createdAt?: string;
 }

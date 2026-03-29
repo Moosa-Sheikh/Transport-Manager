@@ -3,11 +3,28 @@
  * Do not edit manually.
  * Api
  * API specification
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 
 export * from "./authUser";
+export * from "./city";
+export * from "./cityInput";
+export * from "./customer";
+export * from "./customerInput";
+export * from "./driver";
+export * from "./driverInput";
 export * from "./errorResponse";
+export * from "./expenseType";
+export * from "./expenseTypeInput";
 export * from "./healthStatus";
+export * from "./listCitiesParams";
+export * from "./listCustomersParams";
+export * from "./listDriversParams";
+export * from "./listExpenseTypesParams";
+export * from "./listTrucksParams";
 export * from "./loginRequest";
 export * from "./messageResponse";
+export * from "./truck";
+export * from "./truckInput";
+export * from "./truckInputOwnerType";
+export * from "./truckOwnerType";
