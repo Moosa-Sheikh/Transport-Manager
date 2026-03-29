@@ -1,0 +1,208 @@
+🚀 PHASE 1 PROMPT FOR REPLIT AGENT
+
+(Transport Management System – Local Web App – PostgreSQL)
+
+🔷 PROJECT CONTEXT
+
+You are building a Transport Management System (TMS) web application.
+
+Requirements:
+
+Local web-based system (runs on PC, accessed via browser)
+Backend: Node.js + Express
+Database: PostgreSQL
+View Engine: EJS
+Styling: Tailwind CSS (CDN)
+Authentication: Simple session-based login
+Password hashing: bcrypt
+Session management: express-session
+Environment variables: dotenv
+Database library: pg
+No frontend frameworks (no React, no Vue)
+
+Use clean MVC-like structure.
+
+🔷 STEP 1: INITIAL PROJECT SETUP
+
+Create package.json with dependencies:
+
+express
+pg
+dotenv
+bcrypt
+express-session
+ejs
+connect-pg-simple
+
+Then install dependencies.
+
+🔷 STEP 2: FOLDER STRUCTURE
+
+Create this exact structure:
+
+project-root/
+│
+├── app.js
+├── package.json
+├── .env
+│
+├── config/
+│   └── db.js
+│
+├── routes/
+│   └── auth.js
+│
+├── views/
+│   ├── layout.ejs
+│   ├── login.ejs
+│   └── dashboard.ejs
+│
+├── public/
+│
+└── database/
+    └── schema.sql
+
+Do not skip any folder.
+
+🔷 STEP 3: ENVIRONMENT CONFIG
+
+Create .env file with:
+
+PORT=3000
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=yourpassword
+DB_NAME=tms_db
+SESSION_SECRET=supersecretkey
+
+Do not hardcode DB credentials in code.
+
+🔷 STEP 4: DATABASE CONNECTION
+
+Create config/db.js:
+
+Use pg Pool
+Read values from process.env
+Export pool
+Add connection test on startup
+Log success or error
+🔷 STEP 5: DATABASE SCHEMA
+
+Inside database/schema.sql, create tables:
+
+1. users
+id SERIAL PRIMARY KEY
+username VARCHAR(50) UNIQUE NOT NULL
+password VARCHAR(255) NOT NULL
+created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+2. sessions (required for connect-pg-simple)
+
+Use standard session table structure compatible with connect-pg-simple.
+
+Do not skip sessions table.
+
+🔷 STEP 6: EXPRESS SERVER SETUP
+
+Create app.js:
+
+Requirements:
+
+Import express
+Import dotenv
+Import session
+Import connect-pg-simple
+Import db pool
+Set view engine to EJS
+Use express.urlencoded({ extended: true })
+Serve static files from public folder
+Setup session store using PostgreSQL
+Use SESSION_SECRET from env
+Use auth routes
+Create middleware to protect dashboard route
+
+Routes required:
+
+GET / → redirect to /login
+GET /login → show login page
+POST /login → authenticate user
+GET /dashboard → protected route
+GET /logout → destroy session
+
+Server should listen on PORT from env.
+
+🔷 STEP 7: AUTH ROUTE
+
+Create routes/auth.js.
+
+Implement:
+
+POST /login
+
+Logic:
+
+Get username + password
+Find user from DB
+Compare password using bcrypt
+If valid → store user id in session
+Redirect to /dashboard
+If invalid → reload login with error
+🔷 STEP 8: LOGIN PAGE (views/login.ejs)
+
+Create simple clean UI using Tailwind CDN.
+
+Must include:
+
+Username field
+Password field
+Login button
+Error message section (if any)
+
+Design:
+
+Centered card
+Clean minimal professional look
+Title: "Transport Management System"
+🔷 STEP 9: DASHBOARD PAGE (views/dashboard.ejs)
+
+Simple page for now:
+
+Show "Welcome to Transport Management System"
+Show logged in username
+Logout button
+Basic layout template usage
+🔷 STEP 10: PASSWORD SEED SCRIPT
+
+Inside app.js or separate script:
+
+If no users exist
+Automatically create default admin user:
+Username: admin
+Password: admin123 (hash it with bcrypt)
+
+Only create if table empty.
+
+🔷 IMPORTANT RULES
+Use async/await
+Use try/catch for all DB operations
+Do not skip error handling
+Do not mix SQL inside view
+Keep routes clean
+Use prepared statements
+Use EJS layout structure
+🔷 FINAL RESULT OF PHASE 1
+
+After completion:
+
+PostgreSQL connected
+Login system working
+Sessions stored in PostgreSQL
+Default admin created
+Protected dashboard accessible
+Clean UI
+
+Once Phase 1 is complete and running successfully, stop.
+
+Do NOT start building other modules yet.
+
+✅ End of Phase 1 Prompt
