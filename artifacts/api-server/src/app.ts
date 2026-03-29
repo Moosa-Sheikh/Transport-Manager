@@ -9,6 +9,11 @@ import { logger } from "./lib/logger";
 
 const PgSession = ConnectPgSimple(session);
 
+const sessionSecret = process.env["SESSION_SECRET"];
+if (!sessionSecret) {
+  throw new Error("SESSION_SECRET environment variable is required but was not provided.");
+}
+
 const app: Express = express();
 
 app.use(
@@ -45,7 +50,7 @@ app.use(
       tableName: "session",
       createTableIfMissing: true,
     }),
-    secret: process.env["SESSION_SECRET"] ?? "tms-dev-secret-change-in-prod",
+    secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
     cookie: {
