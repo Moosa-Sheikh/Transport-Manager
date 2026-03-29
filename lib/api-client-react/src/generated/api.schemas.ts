@@ -317,6 +317,63 @@ export interface DashboardSummary {
   totalTrips: number;
 }
 
+export interface TripReportRow {
+  tripId: number;
+  tripDate: string;
+  driverName: string;
+  truckNumber: string;
+  fromCity: string;
+  toCity: string;
+  status: string;
+  totalIncome: number;
+  totalExpenses: number;
+  totalAdvances: number;
+  expectedProfit: number;
+  actualProfit: number;
+  totalReceived: number;
+  outstanding: number;
+}
+
+export interface DriverReportRow {
+  driverId: number;
+  driverName: string;
+  totalTrips: number;
+  totalIncome: number;
+  totalExpenses: number;
+  totalAdvances: number;
+  totalSalary: number;
+  netPaid: number;
+  profitGenerated: number;
+}
+
+export interface TruckReportRow {
+  truckId: number;
+  truckNumber: string;
+  totalTrips: number;
+  totalIncome: number;
+  totalExpenses: number;
+  profit: number;
+}
+
+export interface CashFlowReportRow {
+  date: string;
+  totalIn: number;
+  totalOut: number;
+  net: number;
+  runningBalance: number;
+}
+
+export interface ProfitReportSummary {
+  totalIncome: number;
+  totalExpenses: number;
+  totalAdvances: number;
+  totalSalary: number;
+  expectedProfit: number;
+  actualProfit: number;
+  totalReceived: number;
+  outstanding: number;
+}
+
 export type ListCustomersParams = {
   search?: string;
 };
@@ -380,4 +437,68 @@ export type ListCashBookEntryType =
 export const ListCashBookEntryType = {
   IN: "IN",
   OUT: "OUT",
+} as const;
+
+export type GetTripReportParams = {
+  date_from?: string;
+  date_to?: string;
+  driver_id?: number;
+  truck_id?: number;
+  status?: GetTripReportStatus;
+};
+
+export type GetTripReportStatus =
+  (typeof GetTripReportStatus)[keyof typeof GetTripReportStatus];
+
+export const GetTripReportStatus = {
+  Open: "Open",
+  Closed: "Closed",
+} as const;
+
+export type GetDriverReportParams = {
+  date_from?: string;
+  date_to?: string;
+};
+
+export type GetTruckReportParams = {
+  date_from?: string;
+  date_to?: string;
+};
+
+export type GetCashFlowReportParams = {
+  date_from?: string;
+  date_to?: string;
+};
+
+export type GetProfitReportParams = {
+  date_from?: string;
+  date_to?: string;
+};
+
+export type ExportReportCsvParams = {
+  type: ExportReportCsvType;
+  date_from?: string;
+  date_to?: string;
+  driver_id?: number;
+  truck_id?: number;
+  status?: ExportReportCsvStatus;
+};
+
+export type ExportReportCsvType =
+  (typeof ExportReportCsvType)[keyof typeof ExportReportCsvType];
+
+export const ExportReportCsvType = {
+  trips: "trips",
+  drivers: "drivers",
+  trucks: "trucks",
+  cashflow: "cashflow",
+  profit: "profit",
+} as const;
+
+export type ExportReportCsvStatus =
+  (typeof ExportReportCsvStatus)[keyof typeof ExportReportCsvStatus];
+
+export const ExportReportCsvStatus = {
+  Open: "Open",
+  Closed: "Closed",
 } as const;

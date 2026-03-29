@@ -15,6 +15,12 @@ import CreateTripPage from "@/pages/trips/create-trip";
 import TripDetailPage from "@/pages/trips/trip-detail";
 import CashBookPage from "@/pages/cash-book";
 import DriverSalariesPage from "@/pages/payments/driver-salaries";
+import ReportsIndexPage from "@/pages/reports/index";
+import TripReportPage from "@/pages/reports/trip-report";
+import DriverReportPage from "@/pages/reports/driver-report";
+import TruckReportPage from "@/pages/reports/truck-report";
+import CashFlowReportPage from "@/pages/reports/cashflow-report";
+import ProfitReportPage from "@/pages/reports/profit-report";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -69,6 +75,24 @@ function Router() {
       </Route>
       <Route path="/payments/driver-salaries">
         <ProtectedRoute component={DriverSalariesPage} />
+      </Route>
+      <Route path="/reports/trips">
+        <ProtectedRoute component={TripReportPage} />
+      </Route>
+      <Route path="/reports/drivers">
+        <ProtectedRoute component={DriverReportPage} />
+      </Route>
+      <Route path="/reports/trucks">
+        <ProtectedRoute component={TruckReportPage} />
+      </Route>
+      <Route path="/reports/cashflow">
+        <ProtectedRoute component={CashFlowReportPage} />
+      </Route>
+      <Route path="/reports/profit">
+        <ProtectedRoute component={ProfitReportPage} />
+      </Route>
+      <Route path="/reports">
+        <ProtectedRoute component={ReportsIndexPage} />
       </Route>
       <Route component={NotFound} />
     </Switch>

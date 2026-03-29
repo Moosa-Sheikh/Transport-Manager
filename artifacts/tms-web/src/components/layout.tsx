@@ -18,6 +18,7 @@ import {
   BookOpen,
   Wallet,
   Banknote,
+  BarChart3,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -39,6 +40,13 @@ const financeLinks = [
   { href: "/payments/driver-salaries", label: "Driver Salaries", icon: Banknote },
 ];
 
+const reportsLinks = [
+  { href: "/reports", label: "All Reports", icon: BarChart3 },
+  { href: "/reports/trips", label: "Trip Report", icon: Route },
+  { href: "/reports/drivers", label: "Driver Report", icon: UserCog },
+  { href: "/reports/trucks", label: "Truck Report", icon: Truck },
+];
+
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout, isLoggingOut } = useAuth();
   const [location] = useLocation();
@@ -46,6 +54,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [mastersOpen, setMastersOpen] = useState(location.startsWith("/masters"));
   const [tripsOpen, setTripsOpen] = useState(location.startsWith("/trips"));
   const [financeOpen, setFinanceOpen] = useState(location.startsWith("/cash-book") || location.startsWith("/payments"));
+  const [reportsOpen, setReportsOpen] = useState(location.startsWith("/reports"));
 
   const handleLogout = async () => {
     try {
@@ -188,6 +197,41 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             {financeOpen && (
               <div className="ml-4 mt-1 space-y-0.5">
                 {financeLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                      isActive(link.href)
+                        ? "bg-blue-50 text-blue-700 font-medium"
+                        : "text-gray-600 hover:bg-gray-100"
+                    }`}
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <link.icon className="w-4 h-4" />
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-2">
+            <button
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+              onClick={() => setReportsOpen(!reportsOpen)}
+            >
+              <BarChart3 className="w-5 h-5" />
+              Reports
+              {reportsOpen ? (
+                <ChevronDown className="w-4 h-4 ml-auto" />
+              ) : (
+                <ChevronRight className="w-4 h-4 ml-auto" />
+              )}
+            </button>
+
+            {reportsOpen && (
+              <div className="ml-4 mt-1 space-y-0.5">
+                {reportsLinks.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}

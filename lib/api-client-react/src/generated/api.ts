@@ -19,6 +19,7 @@ import type {
 import type {
   AuthUser,
   CashBookResponse,
+  CashFlowReportRow,
   City,
   CityInput,
   Customer,
@@ -32,11 +33,18 @@ import type {
   DriverAdvanceInput,
   DriverAdvancesResponse,
   DriverInput,
+  DriverReportRow,
   DriverSalaryInput,
   DriverSalaryWithName,
   ErrorResponse,
   ExpenseType,
   ExpenseTypeInput,
+  ExportReportCsvParams,
+  GetCashFlowReportParams,
+  GetDriverReportParams,
+  GetProfitReportParams,
+  GetTripReportParams,
+  GetTruckReportParams,
   HealthStatus,
   ListCashBookParams,
   ListCitiesParams,
@@ -48,6 +56,7 @@ import type {
   ListTrucksParams,
   LoginRequest,
   MessageResponse,
+  ProfitReportSummary,
   TripExpenseInput,
   TripExpenseWithType,
   TripExpensesResponse,
@@ -55,9 +64,11 @@ import type {
   TripLoadInput,
   TripLoadWithIncome,
   TripLoadsResponse,
+  TripReportRow,
   TripWithDetails,
   Truck,
   TruckInput,
+  TruckReportRow,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -3621,6 +3632,573 @@ export function useListCashBook<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListCashBookQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Trip report with aggregated financials
+ */
+export const getGetTripReportUrl = (params?: GetTripReportParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/reports/trips?${stringifiedParams}`
+    : `/api/reports/trips`;
+};
+
+export const getTripReport = async (
+  params?: GetTripReportParams,
+  options?: RequestInit,
+): Promise<TripReportRow[]> => {
+  return customFetch<TripReportRow[]>(getGetTripReportUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetTripReportQueryKey = (params?: GetTripReportParams) => {
+  return [`/api/reports/trips`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetTripReportQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTripReport>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetTripReportParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTripReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetTripReportQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getTripReport>>> = ({
+    signal,
+  }) => getTripReport(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getTripReport>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetTripReportQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getTripReport>>
+>;
+export type GetTripReportQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Trip report with aggregated financials
+ */
+
+export function useGetTripReport<
+  TData = Awaited<ReturnType<typeof getTripReport>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetTripReportParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTripReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetTripReportQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Driver report grouped by driver
+ */
+export const getGetDriverReportUrl = (params?: GetDriverReportParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/reports/drivers?${stringifiedParams}`
+    : `/api/reports/drivers`;
+};
+
+export const getDriverReport = async (
+  params?: GetDriverReportParams,
+  options?: RequestInit,
+): Promise<DriverReportRow[]> => {
+  return customFetch<DriverReportRow[]>(getGetDriverReportUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDriverReportQueryKey = (params?: GetDriverReportParams) => {
+  return [`/api/reports/drivers`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetDriverReportQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDriverReport>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetDriverReportParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDriverReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDriverReportQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDriverReport>>> = ({
+    signal,
+  }) => getDriverReport(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDriverReport>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDriverReportQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDriverReport>>
+>;
+export type GetDriverReportQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Driver report grouped by driver
+ */
+
+export function useGetDriverReport<
+  TData = Awaited<ReturnType<typeof getDriverReport>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetDriverReportParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDriverReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDriverReportQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Truck report grouped by truck
+ */
+export const getGetTruckReportUrl = (params?: GetTruckReportParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/reports/trucks?${stringifiedParams}`
+    : `/api/reports/trucks`;
+};
+
+export const getTruckReport = async (
+  params?: GetTruckReportParams,
+  options?: RequestInit,
+): Promise<TruckReportRow[]> => {
+  return customFetch<TruckReportRow[]>(getGetTruckReportUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetTruckReportQueryKey = (params?: GetTruckReportParams) => {
+  return [`/api/reports/trucks`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetTruckReportQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTruckReport>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetTruckReportParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTruckReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetTruckReportQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getTruckReport>>> = ({
+    signal,
+  }) => getTruckReport(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getTruckReport>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetTruckReportQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getTruckReport>>
+>;
+export type GetTruckReportQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Truck report grouped by truck
+ */
+
+export function useGetTruckReport<
+  TData = Awaited<ReturnType<typeof getTruckReport>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetTruckReportParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTruckReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetTruckReportQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Daily cash flow report
+ */
+export const getGetCashFlowReportUrl = (params?: GetCashFlowReportParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/reports/cashflow?${stringifiedParams}`
+    : `/api/reports/cashflow`;
+};
+
+export const getCashFlowReport = async (
+  params?: GetCashFlowReportParams,
+  options?: RequestInit,
+): Promise<CashFlowReportRow[]> => {
+  return customFetch<CashFlowReportRow[]>(getGetCashFlowReportUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCashFlowReportQueryKey = (
+  params?: GetCashFlowReportParams,
+) => {
+  return [`/api/reports/cashflow`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetCashFlowReportQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCashFlowReport>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetCashFlowReportParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCashFlowReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetCashFlowReportQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getCashFlowReport>>
+  > = ({ signal }) => getCashFlowReport(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCashFlowReport>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCashFlowReportQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCashFlowReport>>
+>;
+export type GetCashFlowReportQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Daily cash flow report
+ */
+
+export function useGetCashFlowReport<
+  TData = Awaited<ReturnType<typeof getCashFlowReport>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetCashFlowReportParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCashFlowReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCashFlowReportQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Profit summary report
+ */
+export const getGetProfitReportUrl = (params?: GetProfitReportParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/reports/profit?${stringifiedParams}`
+    : `/api/reports/profit`;
+};
+
+export const getProfitReport = async (
+  params?: GetProfitReportParams,
+  options?: RequestInit,
+): Promise<ProfitReportSummary> => {
+  return customFetch<ProfitReportSummary>(getGetProfitReportUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetProfitReportQueryKey = (params?: GetProfitReportParams) => {
+  return [`/api/reports/profit`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetProfitReportQueryOptions = <
+  TData = Awaited<ReturnType<typeof getProfitReport>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetProfitReportParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getProfitReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetProfitReportQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getProfitReport>>> = ({
+    signal,
+  }) => getProfitReport(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getProfitReport>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetProfitReportQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getProfitReport>>
+>;
+export type GetProfitReportQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Profit summary report
+ */
+
+export function useGetProfitReport<
+  TData = Awaited<ReturnType<typeof getProfitReport>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetProfitReportParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getProfitReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetProfitReportQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Export report as CSV
+ */
+export const getExportReportCsvUrl = (params: ExportReportCsvParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/reports/export/csv?${stringifiedParams}`
+    : `/api/reports/export/csv`;
+};
+
+export const exportReportCsv = async (
+  params: ExportReportCsvParams,
+  options?: RequestInit,
+): Promise<string> => {
+  return customFetch<string>(getExportReportCsvUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getExportReportCsvQueryKey = (params?: ExportReportCsvParams) => {
+  return [`/api/reports/export/csv`, ...(params ? [params] : [])] as const;
+};
+
+export const getExportReportCsvQueryOptions = <
+  TData = Awaited<ReturnType<typeof exportReportCsv>>,
+  TError = ErrorType<unknown>,
+>(
+  params: ExportReportCsvParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof exportReportCsv>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getExportReportCsvQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof exportReportCsv>>> = ({
+    signal,
+  }) => exportReportCsv(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof exportReportCsv>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ExportReportCsvQueryResult = NonNullable<
+  Awaited<ReturnType<typeof exportReportCsv>>
+>;
+export type ExportReportCsvQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Export report as CSV
+ */
+
+export function useExportReportCsv<
+  TData = Awaited<ReturnType<typeof exportReportCsv>>,
+  TError = ErrorType<unknown>,
+>(
+  params: ExportReportCsvParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof exportReportCsv>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getExportReportCsvQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

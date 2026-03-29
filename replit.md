@@ -185,6 +185,21 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
   - GET `/api/cash-book` (with date_from, date_to, entry_type filters)
   - GET `/api/dashboard/summary`
 
+#### Phase 7 — Complete (Reports System)
+- **5 Report Types**: Trip, Driver, Truck, Cash Flow, Profit
+- **Reports Hub** at `/reports` with card links to each report
+- **Trip Report** at `/reports/trips`: per-trip aggregation with income, expenses, advances, expected/actual profit, received, outstanding; filters by date range, driver, truck, status; totals row
+- **Driver Report** at `/reports/drivers`: grouped by driver with trips, income, expenses, advances, salary, net paid, profit generated; date range filter
+- **Truck Report** at `/reports/trucks`: grouped by truck with trips, income, expenses, profit; date range filter
+- **Cash Flow Report** at `/reports/cashflow`: daily aggregation with total IN/OUT, net, running balance (with opening balance for filtered ranges)
+- **Profit Report** at `/reports/profit`: period summary with total income, expenses, expected/actual profit, advances, salary, received, outstanding
+- **CSV Export**: GET `/api/reports/export/csv?type=trips|drivers|trucks|cashflow|profit` with formula injection protection
+- **Print CSS**: `@media print` hides sidebar/nav/buttons, normalizes layout for clean printing
+- **Shared components**: `ReportFilterBar` (date range + entity filters), `ReportActions` (CSV download + print buttons)
+- **DB performance indexes** on: trips(trip_date, driver_id, truck_id, status), cash_book(entry_date, entry_type), trip_loads(trip_id), trip_expenses(trip_id), driver_advances(trip_id, driver_id), customer_payments(trip_id), driver_salaries(driver_id, payment_date)
+- **Sidebar** updated with Reports section (All Reports, Trip Report, Driver Report, Truck Report)
+- **Input validation**: driver_id/truck_id numeric validation (400 on invalid), date param regex validation, status enum enforcement
+
 ---
 
 ## Packages

@@ -1,0 +1,226 @@
+Excellent. Now we build the final core layer.
+
+This phase turns your system into a professional reporting system suitable for real business use.
+
+🚛 Phase 7 – Reports System (PDF + Export + Advanced Filters)
+
+After this phase you will have:
+
+Date-based reports
+Driver-wise reports
+Truck-wise reports
+Customer-wise reports
+Profit reports
+Cash flow reports
+CSV export
+Printable format
+
+This completes your core accounting cycle.
+
+🚀 PHASE 7 PROMPT FOR REPLIT AGENT
+
+(Local Web App – PostgreSQL – Reporting Engine)
+
+Copy everything below into Replit Agent.
+
+🔷 CONTEXT
+
+Phase 6 completed:
+
+Trip income working
+Expenses working
+Advances working
+Salary working
+Cashbook working
+Dashboard working
+Actual profit calculation working
+
+Now build reporting module.
+
+🔷 STEP 1: CREATE REPORT ROUTES
+
+Create new file:
+
+routes/reports.js
+
+Add routes:
+
+GET /reports
+GET /reports/trips
+GET /reports/drivers
+GET /reports/trucks
+GET /reports/cashflow
+GET /reports/profit
+GET /reports/export/csv
+🔷 STEP 2: MAIN REPORTS PAGE
+
+Create:
+
+views/reports/index.ejs
+
+Show report cards:
+
+Trip Report
+Driver Report
+Truck Report
+Cash Flow Report
+Profit Report
+
+Each should link with filters.
+
+🔷 STEP 3: COMMON FILTER SYSTEM
+
+All reports must support:
+
+Start Date
+End Date
+Driver (optional)
+Truck (optional)
+Status (optional)
+Payment Status (optional)
+
+Use query parameters:
+
+/reports/trips?start=2026-01-01&end=2026-03-01
+
+If no date given → show all.
+
+🔷 STEP 4: TRIP REPORT
+
+GET /reports/trips
+
+Show table:
+
+Columns:
+
+Trip ID
+Date
+Driver
+Truck
+Total Income
+Total Expense
+Total Advance
+Expected Profit
+Actual Profit
+Payment Received
+Outstanding
+
+Outstanding =
+Income – Payment Received
+
+Use proper LEFT JOIN + aggregation queries.
+
+🔷 STEP 5: DRIVER REPORT
+
+GET /reports/drivers
+
+Group by driver:
+
+Show:
+
+Total Trips
+Total Income
+Total Advances
+Total Salary
+Net Paid
+Profit Generated
+
+Net Paid =
+Advances + Salary
+
+🔷 STEP 6: TRUCK REPORT
+
+GET /reports/trucks
+
+Group by truck:
+
+Show:
+
+Total Trips
+Total Income
+Total Expenses
+Profit
+🔷 STEP 7: CASH FLOW REPORT
+
+GET /reports/cashflow
+
+Show:
+
+Date
+Total IN
+Total OUT
+Net
+Running Balance
+
+Grouped by day.
+
+🔷 STEP 8: PROFIT REPORT (DATE BASED)
+
+GET /reports/profit
+
+Show:
+
+Date range summary:
+Total Income
+Total Expense
+Total Advance
+Total Salary
+Expected Profit
+Actual Profit
+🔷 STEP 9: CSV EXPORT SYSTEM
+
+GET /reports/export/csv?type=trips&start=...
+
+Use:
+
+res.setHeader('Content-Type', 'text/csv');
+res.setHeader('Content-Disposition', 'attachment; filename=report.csv');
+
+Generate CSV dynamically.
+
+Supported export types:
+
+trips
+drivers
+trucks
+cashflow
+profit
+🔷 STEP 10: PRINT FRIENDLY VIEW
+
+Add button:
+
+“Print Report”
+
+Use:
+
+<button onclick="window.print()">Print</button>
+What is this?
+
+Add simple print CSS:
+
+Hide sidebar
+Hide buttons
+
+🔷 STEP 11: PERFORMANCE RULES
+Use aggregated SQL queries
+Avoid fetching unnecessary data
+Use indexes on:
+trips.date
+cash_book.entry_date
+driver_id
+truck_id
+🔷 STEP 12: VALIDATION
+Handle empty data
+No crash if no result
+Proper number formatting (2 decimals)
+Use backend profit calculations only
+🔷 AFTER PHASE 7 YOUR SYSTEM WILL HAVE:
+
+✅ Full trip tracking
+✅ Full financial tracking
+✅ Driver management
+✅ Cash control
+✅ Real accounting logic
+✅ Professional reports
+✅ CSV export
+✅ Printable reports

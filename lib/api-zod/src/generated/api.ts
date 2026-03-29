@@ -674,6 +674,124 @@ export const ListCashBookResponse = zod.object({
 });
 
 /**
+ * @summary Trip report with aggregated financials
+ */
+export const GetTripReportQueryParams = zod.object({
+  date_from: zod.coerce.string().optional(),
+  date_to: zod.coerce.string().optional(),
+  driver_id: zod.coerce.number().optional(),
+  truck_id: zod.coerce.number().optional(),
+  status: zod.enum(["Open", "Closed"]).optional(),
+});
+
+export const GetTripReportResponseItem = zod.object({
+  tripId: zod.number(),
+  tripDate: zod.string(),
+  driverName: zod.string(),
+  truckNumber: zod.string(),
+  fromCity: zod.string(),
+  toCity: zod.string(),
+  status: zod.string(),
+  totalIncome: zod.number(),
+  totalExpenses: zod.number(),
+  totalAdvances: zod.number(),
+  expectedProfit: zod.number(),
+  actualProfit: zod.number(),
+  totalReceived: zod.number(),
+  outstanding: zod.number(),
+});
+export const GetTripReportResponse = zod.array(GetTripReportResponseItem);
+
+/**
+ * @summary Driver report grouped by driver
+ */
+export const GetDriverReportQueryParams = zod.object({
+  date_from: zod.coerce.string().optional(),
+  date_to: zod.coerce.string().optional(),
+});
+
+export const GetDriverReportResponseItem = zod.object({
+  driverId: zod.number(),
+  driverName: zod.string(),
+  totalTrips: zod.number(),
+  totalIncome: zod.number(),
+  totalExpenses: zod.number(),
+  totalAdvances: zod.number(),
+  totalSalary: zod.number(),
+  netPaid: zod.number(),
+  profitGenerated: zod.number(),
+});
+export const GetDriverReportResponse = zod.array(GetDriverReportResponseItem);
+
+/**
+ * @summary Truck report grouped by truck
+ */
+export const GetTruckReportQueryParams = zod.object({
+  date_from: zod.coerce.string().optional(),
+  date_to: zod.coerce.string().optional(),
+});
+
+export const GetTruckReportResponseItem = zod.object({
+  truckId: zod.number(),
+  truckNumber: zod.string(),
+  totalTrips: zod.number(),
+  totalIncome: zod.number(),
+  totalExpenses: zod.number(),
+  profit: zod.number(),
+});
+export const GetTruckReportResponse = zod.array(GetTruckReportResponseItem);
+
+/**
+ * @summary Daily cash flow report
+ */
+export const GetCashFlowReportQueryParams = zod.object({
+  date_from: zod.coerce.string().optional(),
+  date_to: zod.coerce.string().optional(),
+});
+
+export const GetCashFlowReportResponseItem = zod.object({
+  date: zod.string(),
+  totalIn: zod.number(),
+  totalOut: zod.number(),
+  net: zod.number(),
+  runningBalance: zod.number(),
+});
+export const GetCashFlowReportResponse = zod.array(
+  GetCashFlowReportResponseItem,
+);
+
+/**
+ * @summary Profit summary report
+ */
+export const GetProfitReportQueryParams = zod.object({
+  date_from: zod.coerce.string().optional(),
+  date_to: zod.coerce.string().optional(),
+});
+
+export const GetProfitReportResponse = zod.object({
+  totalIncome: zod.number(),
+  totalExpenses: zod.number(),
+  totalAdvances: zod.number(),
+  totalSalary: zod.number(),
+  expectedProfit: zod.number(),
+  actualProfit: zod.number(),
+  totalReceived: zod.number(),
+  outstanding: zod.number(),
+});
+
+/**
+ * @summary Export report as CSV
+ */
+export const ExportReportCsvQueryParams = zod.object({
+  type: zod.enum(["trips", "drivers", "trucks", "cashflow", "profit"]),
+  date_from: zod.coerce.string().optional(),
+  date_to: zod.coerce.string().optional(),
+  driver_id: zod.coerce.number().optional(),
+  truck_id: zod.coerce.number().optional(),
+  status: zod.enum(["Open", "Closed"]).optional(),
+});
+
+/**
  * @summary Get financial dashboard summary
  */
 export const GetDashboardSummaryResponse = zod.object({
