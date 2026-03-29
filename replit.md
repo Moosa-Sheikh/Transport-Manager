@@ -51,15 +51,74 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 - `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
 - `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
 
+---
+
+## Business Context
+
+**Pakistan-based transport logistics business** operating ~30 trucks.
+
+### Deployment Context
+- Initially runs on a **single local computer** (local web app in browser, hosted locally)
+- Designed to support **2–3 users** in future without major rework
+- May later be migrated to an **online web-based application** — database/structure must support easy migration
+
+### Core Operations
+- Trips are **city-to-city** (origin → destination)
+- One trip can carry **multiple loads** (different customers on the same trip)
+- Drivers may **change trucks** (driver is not permanently tied to one truck)
+- **Bilty number** = a waybill/consignment note number, used as a key reference for loads
+
+### Driver Payments
+- Fixed salary
+- Fixed per-trip commission
+- Occasional advances
+
+### Customer Payments
+- Can be **delayed** or **monthly** (not always immediate)
+- Can be **partial** payments
+- Always linked to **specific trips**
+
+### Key System Priorities (IMPORTANT)
+1. **Expense tracking** — per trip, operational costs
+2. **Trip profit calculation** — revenue minus expenses per trip
+3. **Data filtering** — critical feature, must work on:
+   - Truck
+   - Driver
+   - Date range
+   - Customer
+   - Trip ID
+   - Bilty number
+
+### Design Principles
+- Keep it **simple and practical** — no unnecessary enterprise features
+- Clean, fast, reliable for **daily operational use**
+- Avoid over-engineering
+
+---
+
 ## Application
 
 ### Transport Management System (TMS)
 
-**Phase 1** is complete and includes:
+#### Phase 1 — Complete
 - Login page at `/` with username/password form (default admin: admin / admin123)
 - Protected dashboard at `/dashboard` showing logged-in username + logout
 - Session-based authentication stored in PostgreSQL via `connect-pg-simple`
 - Automatic admin seed: if no users exist, `admin/admin123` is created on startup
+
+#### Planned Schema (Future Phases — NOT YET BUILT)
+The database will need these tables (keep them simple and practical):
+
+- **trucks** — plate number, make/model, status
+- **drivers** — name, phone, license, salary
+- **customers** — name, contact info
+- **trips** — origin city, destination city, date, truck_id, driver_id, status
+- **loads** (trip lines) — trip_id, customer_id, bilty_number, weight/description, freight_rate, freight_amount
+- **trip_expenses** — trip_id, category (fuel/toll/etc), amount, notes
+- **customer_payments** — customer_id, trip_id (or load_id), amount, date, payment_type
+- **driver_payments** — driver_id, trip_id (optional), type (salary/commission/advance), amount, date
+
+---
 
 ## Packages
 
@@ -71,16 +130,18 @@ React + Vite TMS frontend served at `/`. Two pages: login and dashboard.
 - Forms: react-hook-form + zod
 - API: `@workspace/api-client-react` generated hooks (React Query)
 - Auth hook: `src/hooks/use-auth.ts`
+- UI primitives: card, polished-button, polished-input, toast, toaster, tooltip (minimal set)
 
 ### `artifacts/api-server` (`@workspace/api-server`)
 
 Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
 
-- Entry: `src/index.ts` — reads `PORT`, starts Express, runs admin seed
-- App setup: `src/app.ts` — mounts CORS, session middleware, JSON/urlencoded parsing, routes at `/api`
+- Entry: `src/index.ts` — reads `PORT`, seeds DB, then starts Express
+- App setup: `src/app.ts` — mounts CORS (localhost + REPLIT_DOMAINS), session middleware, JSON parsing, routes at `/api`
 - Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` and `src/routes/auth.ts`
 - Auth routes: `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`
-- Session: express-session + connect-pg-simple (PostgreSQL), 7-day cookie
+- Session: express-session + connect-pg-simple (PostgreSQL), 7-day cookie, httpOnly
+- SESSION_SECRET: required in production (fail-fast); dev falls back to random with warning
 - Depends on: `@workspace/db`, `@workspace/api-zod`
 - `pnpm --filter @workspace/api-server run dev` — run the dev server
 - `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.mjs`)
