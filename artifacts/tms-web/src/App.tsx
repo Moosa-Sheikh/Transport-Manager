@@ -13,6 +13,8 @@ import ExpenseTypesPage from "@/pages/masters/expense-types";
 import TripListPage from "@/pages/trips/trip-list";
 import CreateTripPage from "@/pages/trips/create-trip";
 import TripDetailPage from "@/pages/trips/trip-detail";
+import CashBookPage from "@/pages/cash-book";
+import DriverSalariesPage from "@/pages/payments/driver-salaries";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -61,6 +63,12 @@ function Router() {
       </Route>
       <Route path="/trips/:id">
         <ProtectedRoute component={TripDetailPage} />
+      </Route>
+      <Route path="/cash-book">
+        <ProtectedRoute component={CashBookPage} />
+      </Route>
+      <Route path="/payments/driver-salaries">
+        <ProtectedRoute component={DriverSalariesPage} />
       </Route>
       <Route component={NotFound} />
     </Switch>

@@ -352,6 +352,9 @@ export const ListTripsResponseItem = zod.object({
   income: zod.number(),
   expense: zod.number(),
   profit: zod.number(),
+  totalReceived: zod.number(),
+  totalAdvances: zod.number(),
+  actualProfit: zod.number(),
 });
 export const ListTripsResponse = zod.array(ListTripsResponseItem);
 
@@ -389,6 +392,9 @@ export const GetTripResponse = zod.object({
   income: zod.number(),
   expense: zod.number(),
   profit: zod.number(),
+  totalReceived: zod.number(),
+  totalAdvances: zod.number(),
+  actualProfit: zod.number(),
 });
 
 /**
@@ -414,6 +420,9 @@ export const CloseTripResponse = zod.object({
   income: zod.number(),
   expense: zod.number(),
   profit: zod.number(),
+  totalReceived: zod.number(),
+  totalAdvances: zod.number(),
+  actualProfit: zod.number(),
 });
 
 /**
@@ -527,4 +536,155 @@ export const DeleteTripExpenseParams = zod.object({
 
 export const DeleteTripExpenseResponse = zod.object({
   message: zod.string(),
+});
+
+/**
+ * @summary List customer payments for a trip
+ */
+export const ListTripCustomerPaymentsParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListTripCustomerPaymentsResponse = zod.object({
+  payments: zod.array(
+    zod.object({
+      id: zod.number(),
+      tripId: zod.number().nullish(),
+      amount: zod.string(),
+      paymentDate: zod.string(),
+      paymentMode: zod.string().nullish(),
+      notes: zod.string().nullish(),
+      createdAt: zod.string().optional(),
+    }),
+  ),
+  totalReceived: zod.number(),
+});
+
+/**
+ * @summary Add a customer payment for a trip
+ */
+export const AddTripCustomerPaymentParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AddTripCustomerPaymentBody = zod.object({
+  amount: zod.string(),
+  paymentDate: zod.coerce.date(),
+  paymentMode: zod.string().optional(),
+  notes: zod.string().optional(),
+});
+
+/**
+ * @summary List driver advances for a trip
+ */
+export const ListTripDriverAdvancesParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListTripDriverAdvancesResponse = zod.object({
+  advances: zod.array(
+    zod.object({
+      id: zod.number(),
+      driverId: zod.number(),
+      tripId: zod.number().nullish(),
+      amount: zod.string(),
+      advanceDate: zod.string(),
+      notes: zod.string().nullish(),
+      createdAt: zod.string().optional(),
+    }),
+  ),
+  totalAdvances: zod.number(),
+});
+
+/**
+ * @summary Add a driver advance for a trip
+ */
+export const AddTripDriverAdvanceParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AddTripDriverAdvanceBody = zod.object({
+  amount: zod.string(),
+  advanceDate: zod.coerce.date(),
+  notes: zod.string().optional(),
+});
+
+/**
+ * @summary List driver salary payments
+ */
+export const ListDriverSalariesQueryParams = zod.object({
+  driver_id: zod.coerce.number().optional(),
+  month: zod.coerce.string().optional(),
+  year: zod.coerce.number().optional(),
+});
+
+export const ListDriverSalariesResponseItem = zod.object({
+  id: zod.number(),
+  driverId: zod.number(),
+  driverName: zod.string(),
+  month: zod.string(),
+  year: zod.number(),
+  amount: zod.string(),
+  paymentDate: zod.string(),
+  notes: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+});
+export const ListDriverSalariesResponse = zod.array(
+  ListDriverSalariesResponseItem,
+);
+
+/**
+ * @summary Add a driver salary payment
+ */
+export const AddDriverSalaryBody = zod.object({
+  driverId: zod.number(),
+  month: zod.string(),
+  year: zod.number(),
+  amount: zod.string(),
+  paymentDate: zod.coerce.date(),
+  notes: zod.string().optional(),
+});
+
+/**
+ * @summary List cash book entries with running balance
+ */
+export const ListCashBookQueryParams = zod.object({
+  date_from: zod.date().optional(),
+  date_to: zod.date().optional(),
+  entry_type: zod.enum(["IN", "OUT"]).optional(),
+});
+
+export const ListCashBookResponse = zod.object({
+  entries: zod.array(
+    zod.object({
+      id: zod.number(),
+      entryType: zod.enum(["IN", "OUT"]),
+      referenceTable: zod.string().nullish(),
+      referenceId: zod.number().nullish(),
+      amount: zod.string(),
+      entryDate: zod.string(),
+      description: zod.string().nullish(),
+      runningBalance: zod.number(),
+      createdAt: zod.string().optional(),
+    }),
+  ),
+  totalIn: zod.number(),
+  totalOut: zod.number(),
+  balance: zod.number(),
+});
+
+/**
+ * @summary Get financial dashboard summary
+ */
+export const GetDashboardSummaryResponse = zod.object({
+  totalIncome: zod.number(),
+  totalExpenses: zod.number(),
+  totalAdvances: zod.number(),
+  totalSalaryPaid: zod.number(),
+  totalCashIn: zod.number(),
+  totalCashOut: zod.number(),
+  currentCashBalance: zod.number(),
+  openTrips: zod.number(),
+  closedTrips: zod.number(),
+  totalTrips: zod.number(),
 });

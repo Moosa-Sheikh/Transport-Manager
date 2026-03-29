@@ -1,0 +1,278 @@
+Excellent. Now we move to the most important financial control layer.
+
+This phase turns your system into a real accounting-aware trucking management system.
+
+🚛 Phase 6 – Payments + Driver Advances + Cash Book (Company Cash Control)
+
+This phase will add:
+
+Customer Payments (money received)
+Driver Advances (money given to driver before/after trip)
+Salary Payments
+Central Cash Book (company cash tracking)
+Actual Profit vs Expected Profit
+Financial Dashboard
+🚀 PHASE 6 PROMPT FOR REPLIT AGENT
+
+(Local Web App – PostgreSQL – Financial Engine)
+
+Copy everything below into Replit Agent.
+
+🔷 CONTEXT
+
+Phase 5 completed:
+
+Trips working
+Multi-load working
+Trip expenses working
+Profit calculation working
+Closed trips locked
+
+Now implement full financial layer.
+
+🔷 STEP 1: DATABASE UPDATES
+
+Open database/schema.sql
+
+Add the following tables.
+
+1️⃣ customer_payments
+CREATE TABLE customer_payments (
+    id SERIAL PRIMARY KEY,
+    trip_id INTEGER REFERENCES trips(id) ON DELETE SET NULL,
+    amount NUMERIC(12,2) NOT NULL,
+    payment_date DATE NOT NULL,
+    payment_mode VARCHAR(50),
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+Purpose:
+Track money received from factory/company.
+
+2️⃣ driver_advances
+CREATE TABLE driver_advances (
+    id SERIAL PRIMARY KEY,
+    driver_id INTEGER NOT NULL REFERENCES drivers(id) ON DELETE CASCADE,
+    trip_id INTEGER REFERENCES trips(id) ON DELETE SET NULL,
+    amount NUMERIC(12,2) NOT NULL,
+    advance_date DATE NOT NULL,
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+Purpose:
+Track money given to driver (advance per trip).
+
+3️⃣ driver_salaries
+CREATE TABLE driver_salaries (
+    id SERIAL PRIMARY KEY,
+    driver_id INTEGER NOT NULL REFERENCES drivers(id) ON DELETE CASCADE,
+    month VARCHAR(20) NOT NULL,
+    year INTEGER NOT NULL,
+    amount NUMERIC(12,2) NOT NULL,
+    payment_date DATE NOT NULL,
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+Purpose:
+Fixed monthly salary payment.
+
+4️⃣ cash_book (VERY IMPORTANT)
+CREATE TABLE cash_book (
+    id SERIAL PRIMARY KEY,
+    entry_type VARCHAR(20) NOT NULL, -- IN or OUT
+    reference_table VARCHAR(50),
+    reference_id INTEGER,
+    amount NUMERIC(12,2) NOT NULL,
+    entry_date DATE NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+This will act as:
+
+Company Cash Ledger
+
+Every IN or OUT must create entry here automatically.
+
+Run migration safely.
+
+🔷 STEP 2: PAYMENT ROUTES
+
+Create new route file:
+
+routes/payments.js
+A) Add Customer Payment
+
+POST /payments/customer/add
+
+Validation:
+
+amount > 0
+date required
+
+Insert into:
+customer_payments
+
+Then automatically insert into cash_book:
+
+entry_type = 'IN'
+reference_table = 'customer_payments'
+reference_id = inserted_id
+amount = same
+entry_date = payment_date
+
+B) Add Driver Advance
+
+POST /payments/driver-advance/add
+
+Insert into:
+driver_advances
+
+Then create cash_book entry:
+
+entry_type = 'OUT'
+reference_table = 'driver_advances'
+reference_id = inserted_id
+amount = same
+
+C) Add Driver Salary
+
+POST /payments/driver-salary/add
+
+Insert into:
+driver_salaries
+
+Then cash_book entry:
+
+entry_type = 'OUT'
+reference_table = 'driver_salaries'
+reference_id = inserted_id
+
+All must use database transaction (BEGIN / COMMIT).
+
+If cash_book insert fails → rollback.
+
+🔷 STEP 3: UPDATE TRIP DETAIL PAGE
+
+Add new sections:
+
+Customer Payments Section
+
+Show:
+
+Total Received for this trip
+List of payments
+Add payment form
+
+Calculate:
+
+Total Received = SUM(customer_payments.amount WHERE trip_id=?)
+
+Driver Advances Section
+
+Show:
+
+Total Advances for this trip
+List
+Add form
+🔷 STEP 4: ACTUAL PROFIT LOGIC
+
+Now update profit calculation:
+
+Expected Profit:
+Income – Trip Expenses
+
+Actual Profit:
+Income – Trip Expenses – Driver Advances – Driver Salary Portion (optional future)
+
+For now:
+
+Actual Profit =
+Income
+– Trip Expenses
+– Driver Advances
+
+Show both:
+
+Expected Profit
+Actual Profit
+
+🔷 STEP 5: DRIVER PROFILE PAGE UPDATE
+
+Add:
+
+Total Advances
+Total Salary Paid
+Outstanding Balance (optional future)
+🔷 STEP 6: CASH BOOK PAGE
+
+Create new page:
+
+GET /cashbook
+
+Show table:
+
+Columns:
+
+Date
+Entry Type (IN/OUT)
+Description
+Amount IN
+Amount OUT
+Running Balance
+
+Running balance must be calculated in backend.
+
+Order by date ascending.
+
+🔷 STEP 7: DASHBOARD PAGE
+
+Update /dashboard
+
+Show:
+
+Total Income
+Total Expenses
+Total Advances
+Total Salary Paid
+Total Cash IN
+Total Cash OUT
+Current Cash Balance
+
+All calculated via SUM queries.
+
+🔷 STEP 8: FILTERING
+
+Cashbook filter:
+
+Date range
+Entry type
+
+Trip filter:
+
+Payment received (Yes/No)
+Advance given (Yes/No)
+🔷 STEP 9: VALIDATION RULES
+Use parameterized queries
+All money numeric(12,2)
+Use transactions
+Handle errors
+Do not allow negative amounts
+Closed trip cannot be modified except payment allowed
+🔷 AFTER PHASE 6 YOU WILL HAVE:
+
+✅ Full trip accounting
+✅ Driver advance tracking
+✅ Salary tracking
+✅ Real company cash ledger
+✅ Actual vs Expected profit
+✅ Financial dashboard
+
+At this point your system becomes production-level for a small fleet.
+
+Next Phase (Final Core Phase):
+
+🔥 Phase 7 – Reports System (PDF + Export + Filters + Date-based Reporting)

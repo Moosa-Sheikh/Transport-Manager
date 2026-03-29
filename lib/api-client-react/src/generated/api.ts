@@ -18,18 +18,30 @@ import type {
 
 import type {
   AuthUser,
+  CashBookResponse,
   City,
   CityInput,
   Customer,
   CustomerInput,
+  CustomerPayment,
+  CustomerPaymentInput,
+  CustomerPaymentsResponse,
+  DashboardSummary,
   Driver,
+  DriverAdvance,
+  DriverAdvanceInput,
+  DriverAdvancesResponse,
   DriverInput,
+  DriverSalaryInput,
+  DriverSalaryWithName,
   ErrorResponse,
   ExpenseType,
   ExpenseTypeInput,
   HealthStatus,
+  ListCashBookParams,
   ListCitiesParams,
   ListCustomersParams,
+  ListDriverSalariesParams,
   ListDriversParams,
   ListExpenseTypesParams,
   ListTripsParams,
@@ -2982,3 +2994,712 @@ export const useDeleteTripExpense = <
 > => {
   return useMutation(getDeleteTripExpenseMutationOptions(options));
 };
+
+/**
+ * @summary List customer payments for a trip
+ */
+export const getListTripCustomerPaymentsUrl = (id: number) => {
+  return `/api/trips/${id}/customer-payments`;
+};
+
+export const listTripCustomerPayments = async (
+  id: number,
+  options?: RequestInit,
+): Promise<CustomerPaymentsResponse> => {
+  return customFetch<CustomerPaymentsResponse>(
+    getListTripCustomerPaymentsUrl(id),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListTripCustomerPaymentsQueryKey = (id: number) => {
+  return [`/api/trips/${id}/customer-payments`] as const;
+};
+
+export const getListTripCustomerPaymentsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listTripCustomerPayments>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTripCustomerPayments>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListTripCustomerPaymentsQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listTripCustomerPayments>>
+  > = ({ signal }) =>
+    listTripCustomerPayments(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listTripCustomerPayments>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListTripCustomerPaymentsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listTripCustomerPayments>>
+>;
+export type ListTripCustomerPaymentsQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary List customer payments for a trip
+ */
+
+export function useListTripCustomerPayments<
+  TData = Awaited<ReturnType<typeof listTripCustomerPayments>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTripCustomerPayments>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListTripCustomerPaymentsQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add a customer payment for a trip
+ */
+export const getAddTripCustomerPaymentUrl = (id: number) => {
+  return `/api/trips/${id}/customer-payments`;
+};
+
+export const addTripCustomerPayment = async (
+  id: number,
+  customerPaymentInput: CustomerPaymentInput,
+  options?: RequestInit,
+): Promise<CustomerPayment> => {
+  return customFetch<CustomerPayment>(getAddTripCustomerPaymentUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(customerPaymentInput),
+  });
+};
+
+export const getAddTripCustomerPaymentMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addTripCustomerPayment>>,
+    TError,
+    { id: number; data: BodyType<CustomerPaymentInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof addTripCustomerPayment>>,
+  TError,
+  { id: number; data: BodyType<CustomerPaymentInput> },
+  TContext
+> => {
+  const mutationKey = ["addTripCustomerPayment"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof addTripCustomerPayment>>,
+    { id: number; data: BodyType<CustomerPaymentInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return addTripCustomerPayment(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AddTripCustomerPaymentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof addTripCustomerPayment>>
+>;
+export type AddTripCustomerPaymentMutationBody = BodyType<CustomerPaymentInput>;
+export type AddTripCustomerPaymentMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Add a customer payment for a trip
+ */
+export const useAddTripCustomerPayment = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addTripCustomerPayment>>,
+    TError,
+    { id: number; data: BodyType<CustomerPaymentInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof addTripCustomerPayment>>,
+  TError,
+  { id: number; data: BodyType<CustomerPaymentInput> },
+  TContext
+> => {
+  return useMutation(getAddTripCustomerPaymentMutationOptions(options));
+};
+
+/**
+ * @summary List driver advances for a trip
+ */
+export const getListTripDriverAdvancesUrl = (id: number) => {
+  return `/api/trips/${id}/driver-advances`;
+};
+
+export const listTripDriverAdvances = async (
+  id: number,
+  options?: RequestInit,
+): Promise<DriverAdvancesResponse> => {
+  return customFetch<DriverAdvancesResponse>(getListTripDriverAdvancesUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListTripDriverAdvancesQueryKey = (id: number) => {
+  return [`/api/trips/${id}/driver-advances`] as const;
+};
+
+export const getListTripDriverAdvancesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listTripDriverAdvances>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTripDriverAdvances>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListTripDriverAdvancesQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listTripDriverAdvances>>
+  > = ({ signal }) => listTripDriverAdvances(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listTripDriverAdvances>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListTripDriverAdvancesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listTripDriverAdvances>>
+>;
+export type ListTripDriverAdvancesQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary List driver advances for a trip
+ */
+
+export function useListTripDriverAdvances<
+  TData = Awaited<ReturnType<typeof listTripDriverAdvances>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTripDriverAdvances>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListTripDriverAdvancesQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add a driver advance for a trip
+ */
+export const getAddTripDriverAdvanceUrl = (id: number) => {
+  return `/api/trips/${id}/driver-advances`;
+};
+
+export const addTripDriverAdvance = async (
+  id: number,
+  driverAdvanceInput: DriverAdvanceInput,
+  options?: RequestInit,
+): Promise<DriverAdvance> => {
+  return customFetch<DriverAdvance>(getAddTripDriverAdvanceUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(driverAdvanceInput),
+  });
+};
+
+export const getAddTripDriverAdvanceMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addTripDriverAdvance>>,
+    TError,
+    { id: number; data: BodyType<DriverAdvanceInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof addTripDriverAdvance>>,
+  TError,
+  { id: number; data: BodyType<DriverAdvanceInput> },
+  TContext
+> => {
+  const mutationKey = ["addTripDriverAdvance"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof addTripDriverAdvance>>,
+    { id: number; data: BodyType<DriverAdvanceInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return addTripDriverAdvance(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AddTripDriverAdvanceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof addTripDriverAdvance>>
+>;
+export type AddTripDriverAdvanceMutationBody = BodyType<DriverAdvanceInput>;
+export type AddTripDriverAdvanceMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Add a driver advance for a trip
+ */
+export const useAddTripDriverAdvance = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addTripDriverAdvance>>,
+    TError,
+    { id: number; data: BodyType<DriverAdvanceInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof addTripDriverAdvance>>,
+  TError,
+  { id: number; data: BodyType<DriverAdvanceInput> },
+  TContext
+> => {
+  return useMutation(getAddTripDriverAdvanceMutationOptions(options));
+};
+
+/**
+ * @summary List driver salary payments
+ */
+export const getListDriverSalariesUrl = (params?: ListDriverSalariesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/payments/driver-salaries?${stringifiedParams}`
+    : `/api/payments/driver-salaries`;
+};
+
+export const listDriverSalaries = async (
+  params?: ListDriverSalariesParams,
+  options?: RequestInit,
+): Promise<DriverSalaryWithName[]> => {
+  return customFetch<DriverSalaryWithName[]>(getListDriverSalariesUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListDriverSalariesQueryKey = (
+  params?: ListDriverSalariesParams,
+) => {
+  return [
+    `/api/payments/driver-salaries`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getListDriverSalariesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listDriverSalaries>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListDriverSalariesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listDriverSalaries>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListDriverSalariesQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listDriverSalaries>>
+  > = ({ signal }) => listDriverSalaries(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listDriverSalaries>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListDriverSalariesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listDriverSalaries>>
+>;
+export type ListDriverSalariesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List driver salary payments
+ */
+
+export function useListDriverSalaries<
+  TData = Awaited<ReturnType<typeof listDriverSalaries>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListDriverSalariesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listDriverSalaries>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListDriverSalariesQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add a driver salary payment
+ */
+export const getAddDriverSalaryUrl = () => {
+  return `/api/payments/driver-salaries`;
+};
+
+export const addDriverSalary = async (
+  driverSalaryInput: DriverSalaryInput,
+  options?: RequestInit,
+): Promise<DriverSalaryWithName> => {
+  return customFetch<DriverSalaryWithName>(getAddDriverSalaryUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(driverSalaryInput),
+  });
+};
+
+export const getAddDriverSalaryMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addDriverSalary>>,
+    TError,
+    { data: BodyType<DriverSalaryInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof addDriverSalary>>,
+  TError,
+  { data: BodyType<DriverSalaryInput> },
+  TContext
+> => {
+  const mutationKey = ["addDriverSalary"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof addDriverSalary>>,
+    { data: BodyType<DriverSalaryInput> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return addDriverSalary(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AddDriverSalaryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof addDriverSalary>>
+>;
+export type AddDriverSalaryMutationBody = BodyType<DriverSalaryInput>;
+export type AddDriverSalaryMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Add a driver salary payment
+ */
+export const useAddDriverSalary = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addDriverSalary>>,
+    TError,
+    { data: BodyType<DriverSalaryInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof addDriverSalary>>,
+  TError,
+  { data: BodyType<DriverSalaryInput> },
+  TContext
+> => {
+  return useMutation(getAddDriverSalaryMutationOptions(options));
+};
+
+/**
+ * @summary List cash book entries with running balance
+ */
+export const getListCashBookUrl = (params?: ListCashBookParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/cash-book?${stringifiedParams}`
+    : `/api/cash-book`;
+};
+
+export const listCashBook = async (
+  params?: ListCashBookParams,
+  options?: RequestInit,
+): Promise<CashBookResponse> => {
+  return customFetch<CashBookResponse>(getListCashBookUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListCashBookQueryKey = (params?: ListCashBookParams) => {
+  return [`/api/cash-book`, ...(params ? [params] : [])] as const;
+};
+
+export const getListCashBookQueryOptions = <
+  TData = Awaited<ReturnType<typeof listCashBook>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListCashBookParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCashBook>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListCashBookQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listCashBook>>> = ({
+    signal,
+  }) => listCashBook(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listCashBook>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListCashBookQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listCashBook>>
+>;
+export type ListCashBookQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List cash book entries with running balance
+ */
+
+export function useListCashBook<
+  TData = Awaited<ReturnType<typeof listCashBook>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListCashBookParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCashBook>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListCashBookQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get financial dashboard summary
+ */
+export const getGetDashboardSummaryUrl = () => {
+  return `/api/dashboard/summary`;
+};
+
+export const getDashboardSummary = async (
+  options?: RequestInit,
+): Promise<DashboardSummary> => {
+  return customFetch<DashboardSummary>(getGetDashboardSummaryUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDashboardSummaryQueryKey = () => {
+  return [`/api/dashboard/summary`] as const;
+};
+
+export const getGetDashboardSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDashboardSummary>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDashboardSummary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDashboardSummaryQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDashboardSummary>>
+  > = ({ signal }) => getDashboardSummary({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDashboardSummary>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDashboardSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDashboardSummary>>
+>;
+export type GetDashboardSummaryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get financial dashboard summary
+ */
+
+export function useGetDashboardSummary<
+  TData = Awaited<ReturnType<typeof getDashboardSummary>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDashboardSummary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDashboardSummaryQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}

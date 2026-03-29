@@ -15,6 +15,9 @@ import {
   Route,
   Plus,
   List,
+  BookOpen,
+  Wallet,
+  Banknote,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -31,12 +34,18 @@ const tripsLinks = [
   { href: "/trips/create", label: "Create Trip", icon: Plus },
 ];
 
+const financeLinks = [
+  { href: "/cash-book", label: "Cash Book", icon: BookOpen },
+  { href: "/payments/driver-salaries", label: "Driver Salaries", icon: Banknote },
+];
+
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, logout, isLoggingOut } = useAuth();
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mastersOpen, setMastersOpen] = useState(location.startsWith("/masters"));
   const [tripsOpen, setTripsOpen] = useState(location.startsWith("/trips"));
+  const [financeOpen, setFinanceOpen] = useState(location.startsWith("/cash-book") || location.startsWith("/payments"));
 
   const handleLogout = async () => {
     try {
@@ -144,6 +153,41 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             {tripsOpen && (
               <div className="ml-4 mt-1 space-y-0.5">
                 {tripsLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                      isActive(link.href)
+                        ? "bg-blue-50 text-blue-700 font-medium"
+                        : "text-gray-600 hover:bg-gray-100"
+                    }`}
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <link.icon className="w-4 h-4" />
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-2">
+            <button
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+              onClick={() => setFinanceOpen(!financeOpen)}
+            >
+              <Wallet className="w-5 h-5" />
+              Finance
+              {financeOpen ? (
+                <ChevronDown className="w-4 h-4 ml-auto" />
+              ) : (
+                <ChevronRight className="w-4 h-4 ml-auto" />
+              )}
+            </button>
+
+            {financeOpen && (
+              <div className="ml-4 mt-1 space-y-0.5">
+                {financeLinks.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}

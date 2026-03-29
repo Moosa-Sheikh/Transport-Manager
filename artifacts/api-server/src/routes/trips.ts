@@ -4,6 +4,7 @@ import {
   tripsTable, trucksTable, driversTable, citiesTable,
   tripLoadsTable, customersTable,
   tripExpensesTable, expenseTypesTable,
+  customerPaymentsTable, driverAdvancesTable, cashBookTable,
 } from "@workspace/db/schema";
 import { eq, and, gte, lte, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
@@ -24,6 +25,16 @@ const expenseSubquery = sql<number>`COALESCE((
   FROM trip_expenses WHERE trip_expenses.trip_id = ${tripsTable.id}
 ), 0)::double precision`;
 
+const totalReceivedSubquery = sql<number>`COALESCE((
+  SELECT SUM(COALESCE(amount, 0))
+  FROM customer_payments WHERE customer_payments.trip_id = ${tripsTable.id}
+), 0)::double precision`;
+
+const totalAdvancesSubquery = sql<number>`COALESCE((
+  SELECT SUM(COALESCE(amount, 0))
+  FROM driver_advances WHERE driver_advances.trip_id = ${tripsTable.id}
+), 0)::double precision`;
+
 function buildTripQuery() {
   return db
     .select({
@@ -42,6 +53,9 @@ function buildTripQuery() {
       income: incomeSubquery.as("income"),
       expense: expenseSubquery.as("expense"),
       profit: sql<number>`(${incomeSubquery} - ${expenseSubquery})::double precision`.as("profit"),
+      totalReceived: totalReceivedSubquery.as("total_received"),
+      totalAdvances: totalAdvancesSubquery.as("total_advances"),
+      actualProfit: sql<number>`(${incomeSubquery} - ${expenseSubquery} - ${totalAdvancesSubquery})::double precision`.as("actual_profit"),
     })
     .from(tripsTable)
     .innerJoin(trucksTable, eq(tripsTable.truckId, trucksTable.id))
@@ -567,6 +581,174 @@ router.delete("/:id/expenses/:expenseId", async (req: Request, res: Response) =>
     res.json({ message: "Expense deleted successfully" });
   } catch (err) {
     req.log.error({ err }, "Delete trip expense error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/:id/customer-payments", async (req: Request, res: Response) => {
+  try {
+    const id = parseId(req, res);
+    if (!id) return;
+
+    const [trip] = await db.select().from(tripsTable).where(eq(tripsTable.id, id));
+    if (!trip) { res.status(404).json({ error: "Trip not found" }); return; }
+
+    const payments = await db
+      .select()
+      .from(customerPaymentsTable)
+      .where(eq(customerPaymentsTable.tripId, id))
+      .orderBy(customerPaymentsTable.paymentDate);
+
+    const totalReceived = payments.reduce((sum, p) => sum + Number(p.amount), 0);
+
+    res.json({ payments, totalReceived });
+  } catch (err) {
+    req.log.error({ err }, "List customer payments error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/:id/customer-payments", async (req: Request, res: Response) => {
+  try {
+    const id = parseId(req, res);
+    if (!id) return;
+
+    const [trip] = await db.select().from(tripsTable).where(eq(tripsTable.id, id));
+    if (!trip) { res.status(404).json({ error: "Trip not found" }); return; }
+
+    const { amount, paymentDate, paymentMode, notes } = req.body;
+
+    const numAmount = Number(amount);
+    if (!Number.isFinite(numAmount) || numAmount <= 0) {
+      res.status(400).json({ error: "Amount must be greater than 0" });
+      return;
+    }
+
+    if (!paymentDate || typeof paymentDate !== "string") {
+      res.status(400).json({ error: "Payment date is required" });
+      return;
+    }
+
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(paymentDate) || isNaN(Date.parse(paymentDate))) {
+      res.status(400).json({ error: "Payment date must be valid (YYYY-MM-DD)" });
+      return;
+    }
+
+    const result = await db.transaction(async (tx) => {
+      const [payment] = await tx
+        .insert(customerPaymentsTable)
+        .values({
+          tripId: id,
+          amount: String(numAmount),
+          paymentDate,
+          paymentMode: paymentMode ? String(paymentMode) : null,
+          notes: notes ? String(notes) : null,
+        })
+        .returning();
+
+      await tx.insert(cashBookTable).values({
+        entryType: "IN",
+        referenceTable: "customer_payments",
+        referenceId: payment.id,
+        amount: String(numAmount),
+        entryDate: paymentDate,
+        description: `Customer payment for Trip #${id}${paymentMode ? ` (${paymentMode})` : ""}`,
+      });
+
+      return payment;
+    });
+
+    res.status(201).json(result);
+  } catch (err) {
+    req.log.error({ err }, "Add customer payment error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/:id/driver-advances", async (req: Request, res: Response) => {
+  try {
+    const id = parseId(req, res);
+    if (!id) return;
+
+    const [trip] = await db.select().from(tripsTable).where(eq(tripsTable.id, id));
+    if (!trip) { res.status(404).json({ error: "Trip not found" }); return; }
+
+    const advances = await db
+      .select()
+      .from(driverAdvancesTable)
+      .where(eq(driverAdvancesTable.tripId, id))
+      .orderBy(driverAdvancesTable.advanceDate);
+
+    const totalAdvances = advances.reduce((sum, a) => sum + Number(a.amount), 0);
+
+    res.json({ advances, totalAdvances });
+  } catch (err) {
+    req.log.error({ err }, "List driver advances error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/:id/driver-advances", async (req: Request, res: Response) => {
+  try {
+    const id = parseId(req, res);
+    if (!id) return;
+
+    const [trip] = await db.select({ id: tripsTable.id, driverId: tripsTable.driverId, status: tripsTable.status })
+      .from(tripsTable).where(eq(tripsTable.id, id));
+    if (!trip) { res.status(404).json({ error: "Trip not found" }); return; }
+
+    if (trip.status !== "Open") {
+      res.status(400).json({ error: "Driver advances can only be added to open trips" });
+      return;
+    }
+
+    const { amount, advanceDate, notes } = req.body;
+
+    const numAmount = Number(amount);
+    if (!Number.isFinite(numAmount) || numAmount <= 0) {
+      res.status(400).json({ error: "Amount must be greater than 0" });
+      return;
+    }
+
+    if (!advanceDate || typeof advanceDate !== "string") {
+      res.status(400).json({ error: "Advance date is required" });
+      return;
+    }
+
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(advanceDate) || isNaN(Date.parse(advanceDate))) {
+      res.status(400).json({ error: "Advance date must be valid (YYYY-MM-DD)" });
+      return;
+    }
+
+    const result = await db.transaction(async (tx) => {
+      const [advance] = await tx
+        .insert(driverAdvancesTable)
+        .values({
+          driverId: trip.driverId,
+          tripId: id,
+          amount: String(numAmount),
+          advanceDate,
+          notes: notes ? String(notes) : null,
+        })
+        .returning();
+
+      await tx.insert(cashBookTable).values({
+        entryType: "OUT",
+        referenceTable: "driver_advances",
+        referenceId: advance.id,
+        amount: String(numAmount),
+        entryDate: advanceDate,
+        description: `Driver advance for Trip #${id}`,
+      });
+
+      return advance;
+    });
+
+    res.status(201).json(result);
+  } catch (err) {
+    req.log.error({ err }, "Add driver advance error");
     res.status(500).json({ error: "Internal server error" });
   }
 });

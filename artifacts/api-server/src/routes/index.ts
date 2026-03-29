@@ -8,6 +8,9 @@ import trucksRouter from "./trucks";
 import citiesRouter from "./cities";
 import expenseTypesRouter from "./expense-types";
 import tripsRouter from "./trips";
+import paymentsRouter from "./payments";
+import cashBookRouter from "./cash-book";
+import dashboardRouter from "./dashboard";
 
 const router: IRouter = Router();
 
@@ -21,5 +24,8 @@ router.use("/masters/cities", requireAuth, citiesRouter);
 router.use("/masters/expense-types", requireAuth, expenseTypesRouter);
 
 router.use("/trips", requireAuth, tripsRouter);
+router.use("/payments", requireAuth, paymentsRouter);
+router.use("/cash-book", requireAuth, cashBookRouter);
+router.use("/dashboard", requireAuth, dashboardRouter);
 
 export default router;

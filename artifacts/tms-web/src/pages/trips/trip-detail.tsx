@@ -10,6 +10,10 @@ import {
   useListTripExpenses,
   useAddTripExpense,
   useDeleteTripExpense,
+  useListTripCustomerPayments,
+  useAddTripCustomerPayment,
+  useListTripDriverAdvances,
+  useAddTripDriverAdvance,
   useListCustomers,
   useListExpenseTypes,
   getGetTripQueryKey,
@@ -18,6 +22,10 @@ import {
   getListTripLoadsQueryOptions,
   getListTripExpensesQueryKey,
   getListTripExpensesQueryOptions,
+  getListTripCustomerPaymentsQueryKey,
+  getListTripCustomerPaymentsQueryOptions,
+  getListTripDriverAdvancesQueryKey,
+  getListTripDriverAdvancesQueryOptions,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -44,6 +52,14 @@ export default function TripDetailPage() {
     expenseTypeId: "", amount: "", expenseDate: "", notes: "",
   });
 
+  const [paymentForm, setPaymentForm] = useState({
+    amount: "", paymentDate: "", paymentMode: "", notes: "",
+  });
+
+  const [advanceForm, setAdvanceForm] = useState({
+    amount: "", advanceDate: "", notes: "",
+  });
+
   const tripDefaults = getGetTripQueryOptions(tripId);
   const tripQuery = useGetTrip(tripId, {
     query: { ...tripDefaults, enabled: Number.isFinite(tripId) && tripId > 0 },
@@ -59,6 +75,16 @@ export default function TripDetailPage() {
     query: { ...expensesDefaults, enabled: Number.isFinite(tripId) && tripId > 0 },
   });
 
+  const paymentsDefaults = getListTripCustomerPaymentsQueryOptions(tripId);
+  const paymentsQuery = useListTripCustomerPayments(tripId, {
+    query: { ...paymentsDefaults, enabled: Number.isFinite(tripId) && tripId > 0 },
+  });
+
+  const advancesDefaults = getListTripDriverAdvancesQueryOptions(tripId);
+  const advancesQuery = useListTripDriverAdvances(tripId, {
+    query: { ...advancesDefaults, enabled: Number.isFinite(tripId) && tripId > 0 },
+  });
+
   const customersQuery = useListCustomers({});
   const expenseTypesQuery = useListExpenseTypes({});
 
@@ -66,6 +92,8 @@ export default function TripDetailPage() {
     queryClient.invalidateQueries({ queryKey: getGetTripQueryKey(tripId) });
     queryClient.invalidateQueries({ queryKey: getListTripLoadsQueryKey(tripId) });
     queryClient.invalidateQueries({ queryKey: getListTripExpensesQueryKey(tripId) });
+    queryClient.invalidateQueries({ queryKey: getListTripCustomerPaymentsQueryKey(tripId) });
+    queryClient.invalidateQueries({ queryKey: getListTripDriverAdvancesQueryKey(tripId) });
   }
 
   const closeMutation = useCloseTrip({
@@ -126,6 +154,34 @@ export default function TripDetailPage() {
     },
   });
 
+  const addPaymentMutation = useAddTripCustomerPayment({
+    mutation: {
+      onSuccess: () => {
+        invalidateAll();
+        setPaymentForm({ amount: "", paymentDate: "", paymentMode: "", notes: "" });
+        showSuccess("Payment recorded successfully");
+      },
+      onError: (err: Error & { message?: string }) => {
+        setErrorMsg(err.message || "Failed to add payment");
+        setTimeout(() => setErrorMsg(""), 4000);
+      },
+    },
+  });
+
+  const addAdvanceMutation = useAddTripDriverAdvance({
+    mutation: {
+      onSuccess: () => {
+        invalidateAll();
+        setAdvanceForm({ amount: "", advanceDate: "", notes: "" });
+        showSuccess("Advance recorded successfully");
+      },
+      onError: (err: Error & { message?: string }) => {
+        setErrorMsg(err.message || "Failed to add advance");
+        setTimeout(() => setErrorMsg(""), 4000);
+      },
+    },
+  });
+
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);
     setTimeout(() => setSuccessMsg(""), 3000);
@@ -163,9 +219,38 @@ export default function TripDetailPage() {
     });
   };
 
+  const handleAddPayment = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!paymentForm.amount || !paymentForm.paymentDate) return;
+    addPaymentMutation.mutate({
+      id: tripId,
+      data: {
+        amount: paymentForm.amount,
+        paymentDate: paymentForm.paymentDate,
+        paymentMode: paymentForm.paymentMode || undefined,
+        notes: paymentForm.notes || undefined,
+      },
+    });
+  };
+
+  const handleAddAdvance = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!advanceForm.amount || !advanceForm.advanceDate) return;
+    addAdvanceMutation.mutate({
+      id: tripId,
+      data: {
+        amount: advanceForm.amount,
+        advanceDate: advanceForm.advanceDate,
+        notes: advanceForm.notes || undefined,
+      },
+    });
+  };
+
   const trip = tripQuery.data;
   const loadsData = loadsQuery.data;
   const expensesData = expensesQuery.data;
+  const paymentsData = paymentsQuery.data;
+  const advancesData = advancesQuery.data;
 
   return (
     <div className="max-w-5xl">
@@ -295,22 +380,38 @@ export default function TripDetailPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-            <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-4 text-center">
-              <div className="text-xs font-medium text-blue-600 uppercase mb-1">Total Income</div>
-              <div className="text-xl font-bold text-blue-800">{formatPKR(trip.income)}</div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+            <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-3 text-center">
+              <div className="text-[10px] font-medium text-blue-600 uppercase mb-1">Income</div>
+              <div className="text-lg font-bold text-blue-800">{formatPKR(trip.income)}</div>
             </div>
-            <div className="bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-4 text-center">
-              <div className="text-xs font-medium text-orange-600 uppercase mb-1">Total Expenses</div>
-              <div className="text-xl font-bold text-orange-800">{formatPKR(trip.expense)}</div>
+            <div className="bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-3 text-center">
+              <div className="text-[10px] font-medium text-orange-600 uppercase mb-1">Expenses</div>
+              <div className="text-lg font-bold text-orange-800">{formatPKR(trip.expense)}</div>
             </div>
-            <div className={`bg-gradient-to-r border rounded-lg p-4 text-center ${
+            <div className={`bg-gradient-to-r border rounded-lg p-3 text-center ${
               trip.profit >= 0
                 ? "from-green-50 to-green-100 border-green-200"
                 : "from-red-50 to-red-100 border-red-200"
             }`}>
-              <div className={`text-xs font-medium uppercase mb-1 ${trip.profit >= 0 ? "text-green-600" : "text-red-600"}`}>Net Profit</div>
-              <div className={`text-xl font-bold ${trip.profit >= 0 ? "text-green-800" : "text-red-800"}`}>{formatPKR(trip.profit)}</div>
+              <div className={`text-[10px] font-medium uppercase mb-1 ${trip.profit >= 0 ? "text-green-600" : "text-red-600"}`}>Expected Profit</div>
+              <div className={`text-lg font-bold ${trip.profit >= 0 ? "text-green-800" : "text-red-800"}`}>{formatPKR(trip.profit)}</div>
+            </div>
+            <div className="bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-3 text-center">
+              <div className="text-[10px] font-medium text-purple-600 uppercase mb-1">Advances</div>
+              <div className="text-lg font-bold text-purple-800">{formatPKR(trip.totalAdvances)}</div>
+            </div>
+            <div className={`bg-gradient-to-r border rounded-lg p-3 text-center ${
+              trip.actualProfit >= 0
+                ? "from-emerald-50 to-emerald-100 border-emerald-200"
+                : "from-red-50 to-red-100 border-red-200"
+            }`}>
+              <div className={`text-[10px] font-medium uppercase mb-1 ${trip.actualProfit >= 0 ? "text-emerald-600" : "text-red-600"}`}>Actual Profit</div>
+              <div className={`text-lg font-bold ${trip.actualProfit >= 0 ? "text-emerald-800" : "text-red-800"}`}>{formatPKR(trip.actualProfit)}</div>
+            </div>
+            <div className="bg-gradient-to-r from-teal-50 to-teal-100 border border-teal-200 rounded-lg p-3 text-center">
+              <div className="text-[10px] font-medium text-teal-600 uppercase mb-1">Received</div>
+              <div className="text-lg font-bold text-teal-800">{formatPKR(trip.totalReceived)}</div>
             </div>
           </div>
 
@@ -519,6 +620,138 @@ export default function TripDetailPage() {
                             </button>
                           </td>
                         )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6 bg-white border border-gray-200 rounded-lg p-6">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+              Customer Payments ({paymentsData?.payments.length ?? 0})
+              {paymentsData && (
+                <span className="ml-2 text-teal-700">— Total Received: {formatPKR(paymentsData.totalReceived)}</span>
+              )}
+            </h3>
+
+            <form onSubmit={handleAddPayment} className="mb-4 p-4 bg-teal-50 border border-teal-200 rounded-lg">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Amount *</label>
+                  <input type="number" step="0.01" min="0.01" value={paymentForm.amount} onChange={(e) => setPaymentForm((f) => ({ ...f, amount: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500" required />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Date *</label>
+                  <input type="date" value={paymentForm.paymentDate} onChange={(e) => setPaymentForm((f) => ({ ...f, paymentDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500" required />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Payment Mode</label>
+                  <select value={paymentForm.paymentMode} onChange={(e) => setPaymentForm((f) => ({ ...f, paymentMode: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
+                    <option value="">Select</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
+                    <option value="Cheque">Cheque</option>
+                    <option value="Online">Online</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+                  <input type="text" value={paymentForm.notes} onChange={(e) => setPaymentForm((f) => ({ ...f, notes: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500" />
+                </div>
+              </div>
+              <button type="submit" disabled={addPaymentMutation.isPending} className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 text-sm font-medium disabled:opacity-50">
+                {addPaymentMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                <Plus className="w-4 h-4" /> Record Payment
+              </button>
+            </form>
+
+            {paymentsQuery.isLoading ? (
+              <div className="p-4 text-center text-gray-500"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></div>
+            ) : !paymentsData?.payments.length ? (
+              <div className="p-4 text-center text-gray-500 text-sm">No payments recorded yet.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-200">
+                      <th className="text-left px-4 py-3 font-medium text-gray-600">Date</th>
+                      <th className="text-right px-4 py-3 font-medium text-gray-600">Amount</th>
+                      <th className="text-left px-4 py-3 font-medium text-gray-600">Mode</th>
+                      <th className="text-left px-4 py-3 font-medium text-gray-600">Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paymentsData.payments.map((p) => (
+                      <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="px-4 py-3 text-gray-700">
+                          {new Date(p.paymentDate + "T00:00:00").toLocaleDateString("en-PK", { day: "2-digit", month: "short", year: "numeric" })}
+                        </td>
+                        <td className="px-4 py-3 text-right text-teal-700 font-semibold">{formatPKR(Number(p.amount))}</td>
+                        <td className="px-4 py-3 text-gray-700">{p.paymentMode || "—"}</td>
+                        <td className="px-4 py-3 text-gray-500">{p.notes || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6 bg-white border border-gray-200 rounded-lg p-6">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+              Driver Advances ({advancesData?.advances.length ?? 0})
+              {advancesData && (
+                <span className="ml-2 text-purple-700">— Total: {formatPKR(advancesData.totalAdvances)}</span>
+              )}
+            </h3>
+
+            {trip.status === "Open" && (
+              <form onSubmit={handleAddAdvance} className="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Amount *</label>
+                    <input type="number" step="0.01" min="0.01" value={advanceForm.amount} onChange={(e) => setAdvanceForm((f) => ({ ...f, amount: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500" required />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Date *</label>
+                    <input type="date" value={advanceForm.advanceDate} onChange={(e) => setAdvanceForm((f) => ({ ...f, advanceDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500" required />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+                    <input type="text" value={advanceForm.notes} onChange={(e) => setAdvanceForm((f) => ({ ...f, notes: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500" />
+                  </div>
+                </div>
+                <button type="submit" disabled={addAdvanceMutation.isPending} className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium disabled:opacity-50">
+                  {addAdvanceMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <Plus className="w-4 h-4" /> Record Advance
+                </button>
+              </form>
+            )}
+
+            {advancesQuery.isLoading ? (
+              <div className="p-4 text-center text-gray-500"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></div>
+            ) : !advancesData?.advances.length ? (
+              <div className="p-4 text-center text-gray-500 text-sm">No advances recorded yet.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-200">
+                      <th className="text-left px-4 py-3 font-medium text-gray-600">Date</th>
+                      <th className="text-right px-4 py-3 font-medium text-gray-600">Amount</th>
+                      <th className="text-left px-4 py-3 font-medium text-gray-600">Notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {advancesData.advances.map((a) => (
+                      <tr key={a.id} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="px-4 py-3 text-gray-700">
+                          {new Date(a.advanceDate + "T00:00:00").toLocaleDateString("en-PK", { day: "2-digit", month: "short", year: "numeric" })}
+                        </td>
+                        <td className="px-4 py-3 text-right text-purple-700 font-semibold">{formatPKR(Number(a.amount))}</td>
+                        <td className="px-4 py-3 text-gray-500">{a.notes || "—"}</td>
                       </tr>
                     ))}
                   </tbody>

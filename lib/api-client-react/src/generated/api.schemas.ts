@@ -144,6 +144,9 @@ export interface TripWithDetails {
   income: number;
   expense: number;
   profit: number;
+  totalReceived: number;
+  totalAdvances: number;
+  actualProfit: number;
 }
 
 export interface TripLoadInput {
@@ -210,6 +213,110 @@ export interface TripExpensesResponse {
   totalExpense: number;
 }
 
+export interface CustomerPaymentInput {
+  amount: string;
+  paymentDate: string;
+  paymentMode?: string;
+  notes?: string;
+}
+
+export interface CustomerPayment {
+  id: number;
+  tripId?: number | null;
+  amount: string;
+  paymentDate: string;
+  paymentMode?: string | null;
+  notes?: string | null;
+  createdAt?: string;
+}
+
+export interface CustomerPaymentsResponse {
+  payments: CustomerPayment[];
+  totalReceived: number;
+}
+
+export interface DriverAdvanceInput {
+  amount: string;
+  advanceDate: string;
+  notes?: string;
+}
+
+export interface DriverAdvance {
+  id: number;
+  driverId: number;
+  tripId?: number | null;
+  amount: string;
+  advanceDate: string;
+  notes?: string | null;
+  createdAt?: string;
+}
+
+export interface DriverAdvancesResponse {
+  advances: DriverAdvance[];
+  totalAdvances: number;
+}
+
+export interface DriverSalaryInput {
+  driverId: number;
+  month: string;
+  year: number;
+  amount: string;
+  paymentDate: string;
+  notes?: string;
+}
+
+export interface DriverSalaryWithName {
+  id: number;
+  driverId: number;
+  driverName: string;
+  month: string;
+  year: number;
+  amount: string;
+  paymentDate: string;
+  notes?: string | null;
+  createdAt?: string;
+}
+
+export type CashBookEntryEntryType =
+  (typeof CashBookEntryEntryType)[keyof typeof CashBookEntryEntryType];
+
+export const CashBookEntryEntryType = {
+  IN: "IN",
+  OUT: "OUT",
+} as const;
+
+export interface CashBookEntry {
+  id: number;
+  entryType: CashBookEntryEntryType;
+  referenceTable?: string | null;
+  referenceId?: number | null;
+  amount: string;
+  entryDate: string;
+  description?: string | null;
+  runningBalance: number;
+  createdAt?: string;
+}
+
+export interface CashBookResponse {
+  entries: CashBookEntry[];
+  totalIn: number;
+  totalOut: number;
+  balance: number;
+}
+
+export interface DashboardSummary {
+  totalIncome: number;
+  totalExpenses: number;
+  totalAdvances: number;
+  totalSalaryPaid: number;
+  totalCashIn: number;
+  totalCashOut: number;
+  currentCashBalance: number;
+  openTrips: number;
+  closedTrips: number;
+  totalTrips: number;
+}
+
 export type ListCustomersParams = {
   search?: string;
 };
@@ -253,4 +360,24 @@ export type ListTripsProfit =
 export const ListTripsProfit = {
   positive: "positive",
   negative: "negative",
+} as const;
+
+export type ListDriverSalariesParams = {
+  driver_id?: number;
+  month?: string;
+  year?: number;
+};
+
+export type ListCashBookParams = {
+  date_from?: string;
+  date_to?: string;
+  entry_type?: ListCashBookEntryType;
+};
+
+export type ListCashBookEntryType =
+  (typeof ListCashBookEntryType)[keyof typeof ListCashBookEntryType];
+
+export const ListCashBookEntryType = {
+  IN: "IN",
+  OUT: "OUT",
 } as const;

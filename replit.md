@@ -162,9 +162,28 @@ Every package extends `tsconfig.base.json` which sets `composite: true`. The roo
 - **Validation**: amount > 0, valid date format (YYYY-MM-DD), expense type existence check, closed trip lockout
 - **API endpoints**: GET `/api/trips/:id/expenses`, POST `/api/trips/:id/expenses`, DELETE `/api/trips/:id/expenses/:expenseId`
 
-#### Planned Tables (Future Phases — NOT YET BUILT)
-- **customer_payments** — customer_id, trip_id (or load_id), amount, date, payment_type
-- **driver_payments** — driver_id, trip_id (optional), type (salary/commission/advance), amount, date
+#### Phase 6 — Complete (Payments + Cash Book + Financial Dashboard)
+- **4 new tables**: `customer_payments`, `driver_advances`, `driver_salaries`, `cash_book`
+- **Customer Payments** on trip detail: form (amount, date, mode, notes) + table + total received
+  - Allowed on both Open AND Closed trips (business rule: payments often come after trip completion)
+  - Each payment creates a Cash Book "IN" entry via DB transaction
+- **Driver Advances** on trip detail: form (amount, date, notes) + table + total advances
+  - Only allowed on Open trips (enforced server-side + UI)
+  - Each advance creates a Cash Book "OUT" entry via DB transaction
+- **Driver Salaries** page at `/payments/driver-salaries`: record salary + filter by driver/month/year
+  - Each salary creates a Cash Book "OUT" entry via DB transaction
+- **Cash Book** page at `/cash-book`: running balance ledger with date range + entry type filters
+  - Opening balance computed from entries before date range for correct running balance under filters
+- **Dashboard enhanced** with Financial Summary: Total Income, Expenses, Advances, Salary Paid, Cash IN/OUT, Current Cash Balance
+- **Trip detail enhanced** with 6 stat cards: Income, Expenses, Expected Profit, Total Received, Total Advances, Actual Profit
+  - `actualProfit = income - expenses - advances` (different from `expectedProfit = income - expenses`)
+- **Sidebar** updated with Finance section (Cash Book, Driver Salaries)
+- **API endpoints**: 
+  - POST/GET `/api/trips/:id/customer-payments`
+  - POST/GET `/api/trips/:id/driver-advances`
+  - POST/GET `/api/payments/driver-salaries`
+  - GET `/api/cash-book` (with date_from, date_to, entry_type filters)
+  - GET `/api/dashboard/summary`
 
 ---
 

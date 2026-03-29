@@ -23,4 +23,7 @@ export interface TripWithDetails {
   income: number;
   expense: number;
   profit: number;
+  totalReceived: number;
+  totalAdvances: number;
+  actualProfit: number;
 }
