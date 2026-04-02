@@ -21,6 +21,10 @@ import DriverReportPage from "@/pages/reports/driver-report";
 import TruckReportPage from "@/pages/reports/truck-report";
 import CashFlowReportPage from "@/pages/reports/cashflow-report";
 import ProfitReportPage from "@/pages/reports/profit-report";
+import CustomerDuesPage from "@/pages/dues/customer-dues";
+import DriverLoansPage from "@/pages/dues/driver-loans";
+import OtherLoansPage from "@/pages/dues/other-loans";
+import OwnerLoansPage from "@/pages/dues/owner-loans";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -75,6 +79,18 @@ function Router() {
       </Route>
       <Route path="/payments/driver-salaries">
         <ProtectedRoute component={DriverSalariesPage} />
+      </Route>
+      <Route path="/dues/customers">
+        <ProtectedRoute component={CustomerDuesPage} />
+      </Route>
+      <Route path="/dues/driver-loans">
+        <ProtectedRoute component={DriverLoansPage} />
+      </Route>
+      <Route path="/dues/other-loans">
+        <ProtectedRoute component={OtherLoansPage} />
+      </Route>
+      <Route path="/dues/owner-loans">
+        <ProtectedRoute component={OwnerLoansPage} />
       </Route>
       <Route path="/reports/trips">
         <ProtectedRoute component={TripReportPage} />

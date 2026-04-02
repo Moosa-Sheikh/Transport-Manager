@@ -19,6 +19,10 @@ import {
   Wallet,
   Banknote,
   BarChart3,
+  HandCoins,
+  CircleDollarSign,
+  UserRound,
+  Building,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -40,6 +44,13 @@ const financeLinks = [
   { href: "/payments/driver-salaries", label: "Driver Salaries", icon: Banknote },
 ];
 
+const duesLinks = [
+  { href: "/dues/customers", label: "Customer Dues", icon: HandCoins },
+  { href: "/dues/driver-loans", label: "Driver Loans", icon: UserRound },
+  { href: "/dues/other-loans", label: "Other Loans", icon: CircleDollarSign },
+  { href: "/dues/owner-loans", label: "Owner Loans", icon: Building },
+];
+
 const reportsLinks = [
   { href: "/reports", label: "All Reports", icon: BarChart3 },
   { href: "/reports/trips", label: "Trip Report", icon: Route },
@@ -54,6 +65,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [mastersOpen, setMastersOpen] = useState(location.startsWith("/masters"));
   const [tripsOpen, setTripsOpen] = useState(location.startsWith("/trips"));
   const [financeOpen, setFinanceOpen] = useState(location.startsWith("/cash-book") || location.startsWith("/payments"));
+  const [duesOpen, setDuesOpen] = useState(location.startsWith("/dues"));
   const [reportsOpen, setReportsOpen] = useState(location.startsWith("/reports"));
 
   const handleLogout = async () => {
@@ -197,6 +209,41 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             {financeOpen && (
               <div className="ml-4 mt-1 space-y-0.5">
                 {financeLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                      isActive(link.href)
+                        ? "bg-blue-50 text-blue-700 font-medium"
+                        : "text-gray-600 hover:bg-gray-100"
+                    }`}
+                    onClick={() => setSidebarOpen(false)}
+                  >
+                    <link.icon className="w-4 h-4" />
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-2">
+            <button
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+              onClick={() => setDuesOpen(!duesOpen)}
+            >
+              <HandCoins className="w-5 h-5" />
+              Due Amounts
+              {duesOpen ? (
+                <ChevronDown className="w-4 h-4 ml-auto" />
+              ) : (
+                <ChevronRight className="w-4 h-4 ml-auto" />
+              )}
+            </button>
+
+            {duesOpen && (
+              <div className="ml-4 mt-1 space-y-0.5">
+                {duesLinks.map((link) => (
                   <Link
                     key={link.href}
                     href={link.href}

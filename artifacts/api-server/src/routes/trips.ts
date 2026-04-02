@@ -5,6 +5,7 @@ import {
   tripLoadsTable, customersTable,
   tripExpensesTable, expenseTypesTable,
   customerPaymentsTable, driverAdvancesTable, cashBookTable,
+  customerDuesTable,
 } from "@workspace/db/schema";
 import { eq, and, gte, lte, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
@@ -196,7 +197,73 @@ router.put("/:id/close", async (req: Request, res: Response) => {
       return;
     }
 
-    await db.update(tripsTable).set({ status: "Closed" }).where(eq(tripsTable.id, id));
+    await db.transaction(async (tx) => {
+      await tx.update(tripsTable).set({ status: "Closed" }).where(eq(tripsTable.id, id));
+
+      const loads = await tx
+        .select({
+          id: tripLoadsTable.id,
+          customerId: tripLoadsTable.customerId,
+          biltyNumber: tripLoadsTable.biltyNumber,
+          freight: tripLoadsTable.freight,
+          loadingCharges: tripLoadsTable.loadingCharges,
+          unloadingCharges: tripLoadsTable.unloadingCharges,
+          brokerCommission: tripLoadsTable.brokerCommission,
+        })
+        .from(tripLoadsTable)
+        .where(eq(tripLoadsTable.tripId, id));
+
+      const totalPayments = await tx
+        .select({
+          total: sql<number>`COALESCE(SUM(amount::numeric), 0)::double precision`,
+        })
+        .from(customerPaymentsTable)
+        .where(eq(customerPaymentsTable.tripId, id));
+
+      const totalReceived = totalPayments[0]?.total ?? 0;
+
+      let totalIncome = 0;
+      for (const load of loads) {
+        totalIncome += calcNetLoadIncome(load);
+      }
+
+      const outstanding = totalIncome - totalReceived;
+
+      if (outstanding > 0 && loads.length > 0) {
+        const customerTotals = new Map<number, { income: number; biltyNumbers: string[]; loadIds: number[] }>();
+
+        for (const load of loads) {
+          const loadIncome = calcNetLoadIncome(load);
+          const existing = customerTotals.get(load.customerId);
+          if (existing) {
+            existing.income += loadIncome;
+            existing.biltyNumbers.push(load.biltyNumber);
+            existing.loadIds.push(load.id);
+          } else {
+            customerTotals.set(load.customerId, {
+              income: loadIncome,
+              biltyNumbers: [load.biltyNumber],
+              loadIds: [load.id],
+            });
+          }
+        }
+
+        for (const [custId, data] of customerTotals) {
+          const custShare = totalIncome > 0 ? (data.income / totalIncome) * outstanding : 0;
+          if (custShare > 0.01) {
+            await tx.insert(customerDuesTable).values({
+              tripId: id,
+              loadId: data.loadIds[0],
+              customerId: custId,
+              biltyNumber: data.biltyNumbers.join(", "),
+              dueAmount: String(Math.round(custShare * 100) / 100),
+              dueDate: existing.tripDate,
+              notes: `Auto-generated on trip #${id} close`,
+            });
+          }
+        }
+      }
+    });
 
     const [row] = await buildTripQuery().where(eq(tripsTable.id, id));
     res.json(row);

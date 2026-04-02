@@ -839,4 +839,318 @@ export const GetDashboardSummaryResponse = zod.object({
   openTrips: zod.number(),
   closedTrips: zod.number(),
   totalTrips: zod.number(),
+  outstandingCustomerDues: zod.number(),
+  outstandingDriverLoans: zod.number(),
+  outstandingOtherLoans: zod.number(),
+  outstandingOwnerLoans: zod.number(),
+});
+
+/**
+ * @summary List customer dues with filters
+ */
+export const ListCustomerDuesQueryParams = zod.object({
+  customer_id: zod.coerce.number().optional(),
+  status: zod.enum(["Pending", "Partial", "Cleared"]).optional(),
+  date_from: zod.date().optional(),
+  date_to: zod.date().optional(),
+  bilty_number: zod.coerce.string().optional(),
+  amount_min: zod.coerce.number().optional(),
+  amount_max: zod.coerce.number().optional(),
+});
+
+export const ListCustomerDuesResponseItem = zod.object({
+  id: zod.number(),
+  tripId: zod.number().nullish(),
+  loadId: zod.number().nullish(),
+  customerId: zod.number(),
+  customerName: zod.string(),
+  biltyNumber: zod.string().nullish(),
+  dueAmount: zod.string(),
+  paidAmount: zod.string(),
+  balance: zod.number(),
+  dueDate: zod.string(),
+  status: zod.string(),
+  notes: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+});
+export const ListCustomerDuesResponse = zod.array(ListCustomerDuesResponseItem);
+
+/**
+ * @summary Manually create a customer due
+ */
+export const CreateCustomerDueBody = zod.object({
+  customerId: zod.number(),
+  biltyNumber: zod.string().optional(),
+  dueAmount: zod.string(),
+  dueDate: zod.coerce.date(),
+  notes: zod.string().optional(),
+});
+
+/**
+ * @summary Delete a customer due
+ */
+export const DeleteCustomerDueParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteCustomerDueResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Record a repayment against a customer due
+ */
+export const RepayCustomerDueParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const RepayCustomerDueBody = zod.object({
+  amount: zod.string(),
+  paymentDate: zod.coerce.date(),
+  notes: zod.string().optional(),
+});
+
+export const RepayCustomerDueResponse = zod.object({
+  id: zod.number(),
+  tripId: zod.number().nullish(),
+  loadId: zod.number().nullish(),
+  customerId: zod.number(),
+  customerName: zod.string(),
+  biltyNumber: zod.string().nullish(),
+  dueAmount: zod.string(),
+  paidAmount: zod.string(),
+  balance: zod.number(),
+  dueDate: zod.string(),
+  status: zod.string(),
+  notes: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+});
+
+/**
+ * @summary List driver loans with filters
+ */
+export const ListDriverLoansQueryParams = zod.object({
+  driver_id: zod.coerce.number().optional(),
+  status: zod.enum(["Outstanding", "Partial", "Cleared"]).optional(),
+  date_from: zod.date().optional(),
+  date_to: zod.date().optional(),
+  amount_min: zod.coerce.number().optional(),
+  amount_max: zod.coerce.number().optional(),
+});
+
+export const ListDriverLoansResponseItem = zod.object({
+  id: zod.number(),
+  driverId: zod.number(),
+  driverName: zod.string(),
+  amount: zod.string(),
+  amountReturned: zod.string(),
+  balance: zod.number(),
+  loanDate: zod.string(),
+  returnDate: zod.string().nullish(),
+  status: zod.string(),
+  notes: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+});
+export const ListDriverLoansResponse = zod.array(ListDriverLoansResponseItem);
+
+/**
+ * @summary Create a driver loan record
+ */
+export const CreateDriverLoanBody = zod.object({
+  driverId: zod.number(),
+  amount: zod.string(),
+  loanDate: zod.coerce.date(),
+  returnDate: zod.coerce.date().optional(),
+  notes: zod.string().optional(),
+});
+
+/**
+ * @summary Delete a driver loan
+ */
+export const DeleteDriverLoanParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteDriverLoanResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Record a repayment against a driver loan
+ */
+export const RepayDriverLoanParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const RepayDriverLoanBody = zod.object({
+  amount: zod.string(),
+  paymentDate: zod.coerce.date(),
+  notes: zod.string().optional(),
+});
+
+export const RepayDriverLoanResponse = zod.object({
+  id: zod.number(),
+  driverId: zod.number(),
+  driverName: zod.string(),
+  amount: zod.string(),
+  amountReturned: zod.string(),
+  balance: zod.number(),
+  loanDate: zod.string(),
+  returnDate: zod.string().nullish(),
+  status: zod.string(),
+  notes: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+});
+
+/**
+ * @summary List other loans with filters
+ */
+export const ListOtherLoansQueryParams = zod.object({
+  person_name: zod.coerce.string().optional(),
+  status: zod.enum(["Outstanding", "Partial", "Cleared"]).optional(),
+  date_from: zod.date().optional(),
+  date_to: zod.date().optional(),
+  amount_min: zod.coerce.number().optional(),
+  amount_max: zod.coerce.number().optional(),
+});
+
+export const ListOtherLoansResponseItem = zod.object({
+  id: zod.number(),
+  personName: zod.string(),
+  phone: zod.string().nullish(),
+  amount: zod.string(),
+  amountReturned: zod.string(),
+  balance: zod.number(),
+  loanDate: zod.string(),
+  returnDate: zod.string().nullish(),
+  status: zod.string(),
+  notes: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+});
+export const ListOtherLoansResponse = zod.array(ListOtherLoansResponseItem);
+
+/**
+ * @summary Create an other loan record
+ */
+
+export const CreateOtherLoanBody = zod.object({
+  personName: zod.string().min(1),
+  phone: zod.string().optional(),
+  amount: zod.string(),
+  loanDate: zod.coerce.date(),
+  returnDate: zod.coerce.date().optional(),
+  notes: zod.string().optional(),
+});
+
+/**
+ * @summary Delete an other loan
+ */
+export const DeleteOtherLoanParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteOtherLoanResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Record a repayment against an other loan
+ */
+export const RepayOtherLoanParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const RepayOtherLoanBody = zod.object({
+  amount: zod.string(),
+  paymentDate: zod.coerce.date(),
+  notes: zod.string().optional(),
+});
+
+export const RepayOtherLoanResponse = zod.object({
+  id: zod.number(),
+  personName: zod.string(),
+  phone: zod.string().nullish(),
+  amount: zod.string(),
+  amountReturned: zod.string(),
+  balance: zod.number(),
+  loanDate: zod.string(),
+  returnDate: zod.string().nullish(),
+  status: zod.string(),
+  notes: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+});
+
+/**
+ * @summary List owner loans with filters
+ */
+export const ListOwnerLoansQueryParams = zod.object({
+  borrowed_from: zod.coerce.string().optional(),
+  status: zod.enum(["Outstanding", "Partial", "Cleared"]).optional(),
+  date_from: zod.date().optional(),
+  date_to: zod.date().optional(),
+  amount_min: zod.coerce.number().optional(),
+  amount_max: zod.coerce.number().optional(),
+});
+
+export const ListOwnerLoansResponseItem = zod.object({
+  id: zod.number(),
+  borrowedFrom: zod.string(),
+  amount: zod.string(),
+  amountReturned: zod.string(),
+  balance: zod.number(),
+  loanDate: zod.string(),
+  returnDate: zod.string().nullish(),
+  status: zod.string(),
+  notes: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+});
+export const ListOwnerLoansResponse = zod.array(ListOwnerLoansResponseItem);
+
+/**
+ * @summary Create an owner loan record
+ */
+
+export const CreateOwnerLoanBody = zod.object({
+  borrowedFrom: zod.string().min(1),
+  amount: zod.string(),
+  loanDate: zod.coerce.date(),
+  returnDate: zod.coerce.date().optional(),
+  notes: zod.string().optional(),
+});
+
+/**
+ * @summary Delete an owner loan
+ */
+export const DeleteOwnerLoanParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteOwnerLoanResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Record a repayment against an owner loan
+ */
+export const RepayOwnerLoanParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const RepayOwnerLoanBody = zod.object({
+  amount: zod.string(),
+  paymentDate: zod.coerce.date(),
+  notes: zod.string().optional(),
+});
+
+export const RepayOwnerLoanResponse = zod.object({
+  id: zod.number(),
+  borrowedFrom: zod.string(),
+  amount: zod.string(),
+  amountReturned: zod.string(),
+  balance: zod.number(),
+  loanDate: zod.string(),
+  returnDate: zod.string().nullish(),
+  status: zod.string(),
+  notes: zod.string().nullish(),
+  createdAt: zod.string().optional(),
 });

@@ -1317,6 +1317,426 @@ paths:
               schema:
                 $ref: "#/components/schemas/DashboardSummary"
 
+  /dues/customers:
+    get:
+      operationId: listCustomerDues
+      tags: [dues]
+      summary: List customer dues with filters
+      parameters:
+        - name: customer_id
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [Pending, Partial, Cleared]
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: bilty_number
+          in: query
+          schema:
+            type: string
+        - name: amount_min
+          in: query
+          schema:
+            type: number
+        - name: amount_max
+          in: query
+          schema:
+            type: number
+      responses:
+        "200":
+          description: List of customer dues
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CustomerDue"
+    post:
+      operationId: createCustomerDue
+      tags: [dues]
+      summary: Manually create a customer due
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerDueInput"
+      responses:
+        "201":
+          description: Created customer due
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerDue"
+
+  /dues/customers/{id}:
+    delete:
+      operationId: deleteCustomerDue
+      tags: [dues]
+      summary: Delete a customer due
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /dues/customers/{id}/repay:
+    post:
+      operationId: repayCustomerDue
+      tags: [dues]
+      summary: Record a repayment against a customer due
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RepaymentInput"
+      responses:
+        "200":
+          description: Updated due after repayment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerDue"
+
+  /dues/drivers:
+    get:
+      operationId: listDriverLoans
+      tags: [dues]
+      summary: List driver loans with filters
+      parameters:
+        - name: driver_id
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [Outstanding, Partial, Cleared]
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: amount_min
+          in: query
+          schema:
+            type: number
+        - name: amount_max
+          in: query
+          schema:
+            type: number
+      responses:
+        "200":
+          description: List of driver loans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DriverLoan"
+    post:
+      operationId: createDriverLoan
+      tags: [dues]
+      summary: Create a driver loan record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DriverLoanInput"
+      responses:
+        "201":
+          description: Created driver loan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DriverLoan"
+
+  /dues/drivers/{id}:
+    delete:
+      operationId: deleteDriverLoan
+      tags: [dues]
+      summary: Delete a driver loan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /dues/drivers/{id}/repay:
+    post:
+      operationId: repayDriverLoan
+      tags: [dues]
+      summary: Record a repayment against a driver loan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RepaymentInput"
+      responses:
+        "200":
+          description: Updated loan after repayment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DriverLoan"
+
+  /dues/others:
+    get:
+      operationId: listOtherLoans
+      tags: [dues]
+      summary: List other loans with filters
+      parameters:
+        - name: person_name
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [Outstanding, Partial, Cleared]
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: amount_min
+          in: query
+          schema:
+            type: number
+        - name: amount_max
+          in: query
+          schema:
+            type: number
+      responses:
+        "200":
+          description: List of other loans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OtherLoan"
+    post:
+      operationId: createOtherLoan
+      tags: [dues]
+      summary: Create an other loan record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OtherLoanInput"
+      responses:
+        "201":
+          description: Created other loan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OtherLoan"
+
+  /dues/others/{id}:
+    delete:
+      operationId: deleteOtherLoan
+      tags: [dues]
+      summary: Delete an other loan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /dues/others/{id}/repay:
+    post:
+      operationId: repayOtherLoan
+      tags: [dues]
+      summary: Record a repayment against an other loan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RepaymentInput"
+      responses:
+        "200":
+          description: Updated loan after repayment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OtherLoan"
+
+  /dues/owner:
+    get:
+      operationId: listOwnerLoans
+      tags: [dues]
+      summary: List owner loans with filters
+      parameters:
+        - name: borrowed_from
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [Outstanding, Partial, Cleared]
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: amount_min
+          in: query
+          schema:
+            type: number
+        - name: amount_max
+          in: query
+          schema:
+            type: number
+      responses:
+        "200":
+          description: List of owner loans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OwnerLoan"
+    post:
+      operationId: createOwnerLoan
+      tags: [dues]
+      summary: Create an owner loan record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OwnerLoanInput"
+      responses:
+        "201":
+          description: Created owner loan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnerLoan"
+
+  /dues/owner/{id}:
+    delete:
+      operationId: deleteOwnerLoan
+      tags: [dues]
+      summary: Delete an owner loan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /dues/owner/{id}/repay:
+    post:
+      operationId: repayOwnerLoan
+      tags: [dues]
+      summary: Record a repayment against an owner loan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RepaymentInput"
+      responses:
+        "200":
+          description: Updated loan after repayment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnerLoan"
+
 components:
   schemas:
     HealthStatus:
@@ -1880,7 +2300,15 @@ components:
           type: integer
         totalTrips:
           type: integer
-      required: [totalIncome, totalExpenses, totalAdvances, totalSalaryPaid, totalCashIn, totalCashOut, currentCashBalance, openTrips, closedTrips, totalTrips]
+        outstandingCustomerDues:
+          type: number
+        outstandingDriverLoans:
+          type: number
+        outstandingOtherLoans:
+          type: number
+        outstandingOwnerLoans:
+          type: number
+      required: [totalIncome, totalExpenses, totalAdvances, totalSalaryPaid, totalCashIn, totalCashOut, currentCashBalance, openTrips, closedTrips, totalTrips, outstandingCustomerDues, outstandingDriverLoans, outstandingOtherLoans, outstandingOwnerLoans]
 
     TripReportRow:
       type: object
@@ -1992,3 +2420,207 @@ components:
         outstanding:
           type: number
       required: [totalIncome, totalExpenses, totalAdvances, totalSalary, expectedProfit, actualProfit, totalReceived, outstanding]
+
+    CustomerDue:
+      type: object
+      properties:
+        id:
+          type: integer
+        tripId:
+          type: integer
+          nullable: true
+        loadId:
+          type: integer
+          nullable: true
+        customerId:
+          type: integer
+        customerName:
+          type: string
+        biltyNumber:
+          type: string
+          nullable: true
+        dueAmount:
+          type: string
+        paidAmount:
+          type: string
+        balance:
+          type: number
+        dueDate:
+          type: string
+        status:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required: [id, customerId, customerName, dueAmount, paidAmount, balance, dueDate, status]
+
+    CustomerDueInput:
+      type: object
+      properties:
+        customerId:
+          type: integer
+        biltyNumber:
+          type: string
+        dueAmount:
+          type: string
+        dueDate:
+          type: string
+          format: date
+        notes:
+          type: string
+      required: [customerId, dueAmount, dueDate]
+
+    DriverLoan:
+      type: object
+      properties:
+        id:
+          type: integer
+        driverId:
+          type: integer
+        driverName:
+          type: string
+        amount:
+          type: string
+        amountReturned:
+          type: string
+        balance:
+          type: number
+        loanDate:
+          type: string
+        returnDate:
+          type: string
+          nullable: true
+        status:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required: [id, driverId, driverName, amount, amountReturned, balance, loanDate, status]
+
+    DriverLoanInput:
+      type: object
+      properties:
+        driverId:
+          type: integer
+        amount:
+          type: string
+        loanDate:
+          type: string
+          format: date
+        returnDate:
+          type: string
+          format: date
+        notes:
+          type: string
+      required: [driverId, amount, loanDate]
+
+    OtherLoan:
+      type: object
+      properties:
+        id:
+          type: integer
+        personName:
+          type: string
+        phone:
+          type: string
+          nullable: true
+        amount:
+          type: string
+        amountReturned:
+          type: string
+        balance:
+          type: number
+        loanDate:
+          type: string
+        returnDate:
+          type: string
+          nullable: true
+        status:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required: [id, personName, amount, amountReturned, balance, loanDate, status]
+
+    OtherLoanInput:
+      type: object
+      properties:
+        personName:
+          type: string
+          minLength: 1
+        phone:
+          type: string
+        amount:
+          type: string
+        loanDate:
+          type: string
+          format: date
+        returnDate:
+          type: string
+          format: date
+        notes:
+          type: string
+      required: [personName, amount, loanDate]
+
+    OwnerLoan:
+      type: object
+      properties:
+        id:
+          type: integer
+        borrowedFrom:
+          type: string
+        amount:
+          type: string
+        amountReturned:
+          type: string
+        balance:
+          type: number
+        loanDate:
+          type: string
+        returnDate:
+          type: string
+          nullable: true
+        status:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required: [id, borrowedFrom, amount, amountReturned, balance, loanDate, status]
+
+    OwnerLoanInput:
+      type: object
+      properties:
+        borrowedFrom:
+          type: string
+          minLength: 1
+        amount:
+          type: string
+        loanDate:
+          type: string
+          format: date
+        returnDate:
+          type: string
+          format: date
+        notes:
+          type: string
+      required: [borrowedFrom, amount, loanDate]
+
+    RepaymentInput:
+      type: object
+      properties:
+        amount:
+          type: string
+        paymentDate:
+          type: string
+          format: date
+        notes:
+          type: string
+      required: [amount, paymentDate]

@@ -17,4 +17,8 @@ export interface DashboardSummary {
   openTrips: number;
   closedTrips: number;
   totalTrips: number;
+  outstandingCustomerDues: number;
+  outstandingDriverLoans: number;
+  outstandingOtherLoans: number;
+  outstandingOwnerLoans: number;
 }

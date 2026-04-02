@@ -3,8 +3,9 @@ import { db } from "@workspace/db";
 import {
   tripsTable, tripLoadsTable, tripExpensesTable,
   driverAdvancesTable, driverSalariesTable, cashBookTable,
+  customerDuesTable, driverLoansTable, otherLoansTable, ownerLoansTable,
 } from "@workspace/db/schema";
-import { sql, eq } from "drizzle-orm";
+import { sql, eq, ne } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -59,6 +60,34 @@ router.get("/summary", async (req: Request, res: Response) => {
     const totalCashIn = cashInResult.total;
     const totalCashOut = cashOutResult.total;
 
+    const [custDues] = await db
+      .select({
+        total: sql<number>`COALESCE(SUM(due_amount::numeric - paid_amount::numeric), 0)::double precision`,
+      })
+      .from(customerDuesTable)
+      .where(ne(customerDuesTable.status, "Cleared"));
+
+    const [drvLoans] = await db
+      .select({
+        total: sql<number>`COALESCE(SUM(amount::numeric - amount_returned::numeric), 0)::double precision`,
+      })
+      .from(driverLoansTable)
+      .where(ne(driverLoansTable.status, "Cleared"));
+
+    const [othLoans] = await db
+      .select({
+        total: sql<number>`COALESCE(SUM(amount::numeric - amount_returned::numeric), 0)::double precision`,
+      })
+      .from(otherLoansTable)
+      .where(ne(otherLoansTable.status, "Cleared"));
+
+    const [ownLoans] = await db
+      .select({
+        total: sql<number>`COALESCE(SUM(amount::numeric - amount_returned::numeric), 0)::double precision`,
+      })
+      .from(ownerLoansTable)
+      .where(ne(ownerLoansTable.status, "Cleared"));
+
     res.json({
       totalIncome: incomeResult.total,
       totalExpenses: expenseResult.total,
@@ -70,6 +99,10 @@ router.get("/summary", async (req: Request, res: Response) => {
       openTrips: tripCounts.open,
       closedTrips: tripCounts.closed,
       totalTrips: tripCounts.total,
+      outstandingCustomerDues: custDues.total,
+      outstandingDriverLoans: drvLoans.total,
+      outstandingOtherLoans: othLoans.total,
+      outstandingOwnerLoans: ownLoans.total,
     });
   } catch (err) {
     req.log.error({ err }, "Dashboard summary error");

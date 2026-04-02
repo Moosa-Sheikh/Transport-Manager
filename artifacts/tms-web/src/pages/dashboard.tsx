@@ -1,4 +1,4 @@
-import { Users, UserCog, Truck, MapPin, Receipt, Route, TrendingUp, TrendingDown, ArrowDownCircle, ArrowUpCircle, Wallet, Banknote, Loader2 } from "lucide-react";
+import { Users, UserCog, Truck, MapPin, Receipt, Route, TrendingUp, TrendingDown, ArrowDownCircle, ArrowUpCircle, Wallet, Banknote, Loader2, HandCoins, CircleDollarSign, UserRound, Building } from "lucide-react";
 import { Link } from "wouter";
 import {
   useListCustomers,
@@ -173,6 +173,53 @@ export default function DashboardPage() {
           </div>
         </div>
       ) : null}
+
+      {summary && (
+        <>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 mt-8">Outstanding Dues & Loans</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Link href="/dues/customers" className="bg-white border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-yellow-50 text-yellow-600">
+                  <HandCoins className="w-5 h-5" />
+                </div>
+                <span className="text-sm font-medium text-gray-500">Customer Dues</span>
+              </div>
+              <div className="text-xl font-bold text-yellow-700">{formatPKR(summary.outstandingCustomerDues ?? 0)}</div>
+            </Link>
+
+            <Link href="/dues/driver-loans" className="bg-white border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-cyan-50 text-cyan-600">
+                  <UserRound className="w-5 h-5" />
+                </div>
+                <span className="text-sm font-medium text-gray-500">Driver Loans</span>
+              </div>
+              <div className="text-xl font-bold text-cyan-700">{formatPKR(summary.outstandingDriverLoans ?? 0)}</div>
+            </Link>
+
+            <Link href="/dues/other-loans" className="bg-white border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-pink-50 text-pink-600">
+                  <CircleDollarSign className="w-5 h-5" />
+                </div>
+                <span className="text-sm font-medium text-gray-500">Other Loans</span>
+              </div>
+              <div className="text-xl font-bold text-pink-700">{formatPKR(summary.outstandingOtherLoans ?? 0)}</div>
+            </Link>
+
+            <Link href="/dues/owner-loans" className="bg-white border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-amber-50 text-amber-600">
+                  <Building className="w-5 h-5" />
+                </div>
+                <span className="text-sm font-medium text-gray-500">Owner Loans</span>
+              </div>
+              <div className="text-xl font-bold text-amber-700">{formatPKR(summary.outstandingOwnerLoans ?? 0)}</div>
+            </Link>
+          </div>
+        </>
+      )}
     </div>
   );
 }

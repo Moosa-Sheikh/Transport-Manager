@@ -319,6 +319,10 @@ export interface DashboardSummary {
   openTrips: number;
   closedTrips: number;
   totalTrips: number;
+  outstandingCustomerDues: number;
+  outstandingDriverLoans: number;
+  outstandingOtherLoans: number;
+  outstandingOwnerLoans: number;
 }
 
 export interface TripReportRow {
@@ -377,6 +381,104 @@ export interface ProfitReportSummary {
   actualProfit: number;
   totalReceived: number;
   outstanding: number;
+}
+
+export interface CustomerDue {
+  id: number;
+  tripId?: number | null;
+  loadId?: number | null;
+  customerId: number;
+  customerName: string;
+  biltyNumber?: string | null;
+  dueAmount: string;
+  paidAmount: string;
+  balance: number;
+  dueDate: string;
+  status: string;
+  notes?: string | null;
+  createdAt?: string;
+}
+
+export interface CustomerDueInput {
+  customerId: number;
+  biltyNumber?: string;
+  dueAmount: string;
+  dueDate: string;
+  notes?: string;
+}
+
+export interface DriverLoan {
+  id: number;
+  driverId: number;
+  driverName: string;
+  amount: string;
+  amountReturned: string;
+  balance: number;
+  loanDate: string;
+  returnDate?: string | null;
+  status: string;
+  notes?: string | null;
+  createdAt?: string;
+}
+
+export interface DriverLoanInput {
+  driverId: number;
+  amount: string;
+  loanDate: string;
+  returnDate?: string;
+  notes?: string;
+}
+
+export interface OtherLoan {
+  id: number;
+  personName: string;
+  phone?: string | null;
+  amount: string;
+  amountReturned: string;
+  balance: number;
+  loanDate: string;
+  returnDate?: string | null;
+  status: string;
+  notes?: string | null;
+  createdAt?: string;
+}
+
+export interface OtherLoanInput {
+  /** @minLength 1 */
+  personName: string;
+  phone?: string;
+  amount: string;
+  loanDate: string;
+  returnDate?: string;
+  notes?: string;
+}
+
+export interface OwnerLoan {
+  id: number;
+  borrowedFrom: string;
+  amount: string;
+  amountReturned: string;
+  balance: number;
+  loanDate: string;
+  returnDate?: string | null;
+  status: string;
+  notes?: string | null;
+  createdAt?: string;
+}
+
+export interface OwnerLoanInput {
+  /** @minLength 1 */
+  borrowedFrom: string;
+  amount: string;
+  loanDate: string;
+  returnDate?: string;
+  notes?: string;
+}
+
+export interface RepaymentInput {
+  amount: string;
+  paymentDate: string;
+  notes?: string;
 }
 
 export type ListCustomersParams = {
@@ -506,4 +608,77 @@ export type ExportReportCsvStatus =
 export const ExportReportCsvStatus = {
   Open: "Open",
   Closed: "Closed",
+} as const;
+
+export type ListCustomerDuesParams = {
+  customer_id?: number;
+  status?: ListCustomerDuesStatus;
+  date_from?: string;
+  date_to?: string;
+  bilty_number?: string;
+  amount_min?: number;
+  amount_max?: number;
+};
+
+export type ListCustomerDuesStatus =
+  (typeof ListCustomerDuesStatus)[keyof typeof ListCustomerDuesStatus];
+
+export const ListCustomerDuesStatus = {
+  Pending: "Pending",
+  Partial: "Partial",
+  Cleared: "Cleared",
+} as const;
+
+export type ListDriverLoansParams = {
+  driver_id?: number;
+  status?: ListDriverLoansStatus;
+  date_from?: string;
+  date_to?: string;
+  amount_min?: number;
+  amount_max?: number;
+};
+
+export type ListDriverLoansStatus =
+  (typeof ListDriverLoansStatus)[keyof typeof ListDriverLoansStatus];
+
+export const ListDriverLoansStatus = {
+  Outstanding: "Outstanding",
+  Partial: "Partial",
+  Cleared: "Cleared",
+} as const;
+
+export type ListOtherLoansParams = {
+  person_name?: string;
+  status?: ListOtherLoansStatus;
+  date_from?: string;
+  date_to?: string;
+  amount_min?: number;
+  amount_max?: number;
+};
+
+export type ListOtherLoansStatus =
+  (typeof ListOtherLoansStatus)[keyof typeof ListOtherLoansStatus];
+
+export const ListOtherLoansStatus = {
+  Outstanding: "Outstanding",
+  Partial: "Partial",
+  Cleared: "Cleared",
+} as const;
+
+export type ListOwnerLoansParams = {
+  borrowed_from?: string;
+  status?: ListOwnerLoansStatus;
+  date_from?: string;
+  date_to?: string;
+  amount_min?: number;
+  amount_max?: number;
+};
+
+export type ListOwnerLoansStatus =
+  (typeof ListOwnerLoansStatus)[keyof typeof ListOwnerLoansStatus];
+
+export const ListOwnerLoansStatus = {
+  Outstanding: "Outstanding",
+  Partial: "Partial",
+  Cleared: "Cleared",
 } as const;

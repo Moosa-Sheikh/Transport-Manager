@@ -57,7 +57,7 @@ All packages use `composite: true` and project references for efficient type che
 -   **Routing**: `wouter` for client-side routing.
 -   **Forms**: `react-hook-form` integrated with Zod for validation.
 -   **Authentication**: Session-based authentication with a login page, protected dashboards, and PostgreSQL session storage.
--   **Layout**: Collapsible sidebar navigation for main modules (Dashboard, Masters, Trips, Payments, Reports).
+-   **Layout**: Collapsible sidebar navigation for main modules (Dashboard, Masters, Trips, Finance, Due Amounts, Reports).
 -   **Interactive Elements**: Delete confirmation dialogs, success messages, dynamic filtering interfaces.
 -   **Reporting**: Dedicated reports hub, CSV export functionality, and print-specific CSS for clean printed outputs.
 -   **Color Scheme**: Uses color-coded cards for financial summaries (e.g., green for profit, red for loss).
@@ -73,7 +73,8 @@ All packages use `composite: true` and project references for efficient type che
 -   **Profit Calculation**: Backend calculation of profit (`Income - Expenses`) and actual profit (`Income - Expenses - Advances`).
 -   **Payments**: Management of customer payments (partial/delayed), driver advances, and driver salaries. All payment transactions are recorded in a cash book.
 -   **Cash Book**: A running balance ledger with filters for date range and entry type, showing opening balance.
--   **Financial Dashboard**: Summary views of total income, expenses, advances, salary paid, cash flow, and current cash balance.
+-   **Due Amounts & Loans**: Four due/loan types — Customer Dues (auto-generated on trip close), Driver Loans, Other Loans, Owner Loans. Each supports CRUD + repayment with automatic Cash Book entries. Repayments create IN entries (customer/driver/other) or OUT entries (owner). Dashboard shows outstanding totals for all four types.
+-   **Financial Dashboard**: Summary views of total income, expenses, advances, salary paid, cash flow, current cash balance, plus outstanding dues/loans totals.
 -   **Reporting System**: Five types of reports (Trip, Driver, Truck, Cash Flow, Profit) with extensive filtering, aggregation, and CSV export.
 -   **API Design**: Express.js routes organized by domain, using generated Zod schemas for request/response validation.
 -   **Database Interactions**: Drizzle ORM for type-safe database access and migrations. `ON DELETE RESTRICT` and `ON DELETE CASCADE` are used for referential integrity.
