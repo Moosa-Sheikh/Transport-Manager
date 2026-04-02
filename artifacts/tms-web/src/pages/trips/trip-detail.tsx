@@ -14,6 +14,7 @@ import {
   useAddTripCustomerPayment,
   useListTripDriverAdvances,
   useAddTripDriverAdvance,
+  useUpdateTripCommission,
   useListCustomers,
   useListExpenseTypes,
   getGetTripQueryKey,
@@ -59,6 +60,9 @@ export default function TripDetailPage() {
   const [advanceForm, setAdvanceForm] = useState({
     amount: "", advanceDate: "", notes: "",
   });
+
+  const [commissionValue, setCommissionValue] = useState<string | null>(null);
+  const [editingCommission, setEditingCommission] = useState(false);
 
   const tripDefaults = getGetTripQueryOptions(tripId);
   const tripQuery = useGetTrip(tripId, {
@@ -177,6 +181,20 @@ export default function TripDetailPage() {
       },
       onError: (err: Error & { message?: string }) => {
         setErrorMsg(err.message || "Failed to add advance");
+        setTimeout(() => setErrorMsg(""), 4000);
+      },
+    },
+  });
+
+  const updateCommissionMutation = useUpdateTripCommission({
+    mutation: {
+      onSuccess: () => {
+        invalidateAll();
+        setEditingCommission(false);
+        showSuccess("Driver commission updated");
+      },
+      onError: (err: Error & { message?: string }) => {
+        setErrorMsg(err.message || "Failed to update commission");
         setTimeout(() => setErrorMsg(""), 4000);
       },
     },
@@ -376,6 +394,57 @@ export default function TripDetailPage() {
               <div>
                 <div className="text-xs font-medium text-gray-500 uppercase mb-1">Driver</div>
                 <div className="text-sm text-gray-900">{trip.driverName}</div>
+              </div>
+              <div>
+                <div className="text-xs font-medium text-gray-500 uppercase mb-1">Driver Commission</div>
+                {editingCommission && trip.status === "Open" ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={commissionValue ?? ""}
+                      onChange={(e) => setCommissionValue(e.target.value)}
+                      className="w-28 px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      autoFocus
+                    />
+                    <button
+                      onClick={() => {
+                        updateCommissionMutation.mutate({
+                          id: tripId,
+                          data: { driverCommission: commissionValue || "0" },
+                        });
+                      }}
+                      disabled={updateCommissionMutation.isPending}
+                      className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {updateCommissionMutation.isPending ? "..." : "Save"}
+                    </button>
+                    <button
+                      onClick={() => setEditingCommission(false)}
+                      className="px-2 py-1 text-xs text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-900 font-medium">
+                      {formatPKR(Number(trip.driverCommission ?? 0))}
+                    </span>
+                    {trip.status === "Open" && (
+                      <button
+                        onClick={() => {
+                          setCommissionValue(trip.driverCommission ?? "0");
+                          setEditingCommission(true);
+                        }}
+                        className="text-xs text-blue-600 hover:underline"
+                      >
+                        Edit
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>

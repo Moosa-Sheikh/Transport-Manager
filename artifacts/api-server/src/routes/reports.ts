@@ -46,6 +46,7 @@ async function buildTripReportData(filters: {
       fc.name AS "fromCity",
       tc.name AS "toCity",
       t.status,
+      COALESCE(t.driver_commission, 0)::double precision AS "driverCommission",
       COALESCE((
         SELECT SUM(COALESCE(freight, 0) + COALESCE(loading_charges, 0) + COALESCE(unloading_charges, 0) - COALESCE(broker_commission, 0))
         FROM trip_loads WHERE trip_id = t.id
@@ -76,6 +77,7 @@ async function buildTripReportData(filters: {
     const totalExpenses = Number(r.totalExpenses);
     const totalAdvances = Number(r.totalAdvances);
     const totalReceived = Number(r.totalReceived);
+    const driverCommission = Number(r.driverCommission);
     const expectedProfit = totalIncome - totalExpenses;
     const actualProfit = totalIncome - totalExpenses - totalAdvances;
     const outstanding = totalIncome - totalReceived;
@@ -87,6 +89,7 @@ async function buildTripReportData(filters: {
       fromCity: String(r.fromCity),
       toCity: String(r.toCity),
       status: String(r.status),
+      driverCommission,
       totalIncome,
       totalExpenses,
       totalAdvances,
@@ -391,9 +394,9 @@ router.get("/export/csv", async (req: Request, res: Response) => {
         const truckId = req.query.truck_id ? Number(req.query.truck_id) : undefined;
         const status = req.query.status === "Open" || req.query.status === "Closed" ? String(req.query.status) : undefined;
         const data = await buildTripReportData({ date_from: dateFrom, date_to: dateTo, driver_id: driverId, truck_id: truckId, status });
-        const header = ["Trip ID", "Date", "Driver", "Truck", "From", "To", "Status", "Income", "Expenses", "Advances", "Expected Profit", "Actual Profit", "Received", "Outstanding"];
+        const header = ["Trip ID", "Date", "Driver", "Truck", "From", "To", "Status", "Commission", "Income", "Expenses", "Advances", "Expected Profit", "Actual Profit", "Received", "Outstanding"];
         csvContent = toCsvRow(header) + "\n" + data.map((r) =>
-          toCsvRow([r.tripId, r.tripDate, r.driverName, r.truckNumber, r.fromCity, r.toCity, r.status, r.totalIncome, r.totalExpenses, r.totalAdvances, r.expectedProfit, r.actualProfit, r.totalReceived, r.outstanding])
+          toCsvRow([r.tripId, r.tripDate, r.driverName, r.truckNumber, r.fromCity, r.toCity, r.status, r.driverCommission, r.totalIncome, r.totalExpenses, r.totalAdvances, r.expectedProfit, r.actualProfit, r.totalReceived, r.outstanding])
         ).join("\n");
         filename = "trip-report.csv";
         break;

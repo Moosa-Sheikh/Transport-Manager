@@ -12,4 +12,5 @@ export interface TripInput {
   driverId: number;
   fromCityId: number;
   toCityId: number;
+  driverCommission?: string;
 }

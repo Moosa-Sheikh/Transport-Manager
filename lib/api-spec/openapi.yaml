@@ -705,6 +705,43 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /trips/{id}/commission:
+    put:
+      operationId: updateTripCommission
+      tags: [trips]
+      summary: Update driver commission for a trip
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TripCommissionInput"
+      responses:
+        "200":
+          description: Commission updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TripWithDetails"
+        "400":
+          description: Invalid commission value
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /trips/{id}/loads:
     get:
       operationId: listTripLoads
@@ -1366,8 +1403,6 @@ components:
           nullable: true
         salary:
           type: string
-        tripCommission:
-          type: string
         createdAt:
           type: string
       required: [id, name]
@@ -1381,8 +1416,6 @@ components:
           type: string
           nullable: true
         salary:
-          type: string
-        tripCommission:
           type: string
       required: [name]
 
@@ -1452,6 +1485,13 @@ components:
           minLength: 1
       required: [name]
 
+    TripCommissionInput:
+      type: object
+      properties:
+        driverCommission:
+          type: string
+      required: [driverCommission]
+
     TripInput:
       type: object
       properties:
@@ -1466,6 +1506,8 @@ components:
           type: integer
         toCityId:
           type: integer
+        driverCommission:
+          type: string
       required: [tripDate, truckId, driverId, fromCityId, toCityId]
 
     TripWithDetails:
@@ -1490,6 +1532,8 @@ components:
         toCityId:
           type: integer
         toCityName:
+          type: string
+        driverCommission:
           type: string
         status:
           type: string
@@ -1855,6 +1899,8 @@ components:
           type: string
         status:
           type: string
+        driverCommission:
+          type: number
         totalIncome:
           type: number
         totalExpenses:

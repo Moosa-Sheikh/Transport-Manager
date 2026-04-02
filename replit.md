@@ -1,262 +1,96 @@
-# Workspace
+# Overview
 
-## Overview
+This project is a pnpm monorepo using TypeScript, designed for a Pakistan-based transport logistics business. The primary goal is to provide a Transport Management System (TMS) that is simple, practical, fast, and reliable for daily operations.
 
-pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
+The system initially operates on a single local computer as a web application and is designed to scale to 2-3 users without significant rework. Future plans include migration to an online web-based application, requiring a flexible database and system structure.
 
-## Stack
+Core operations include managing city-to-city trips, accommodating multiple loads per trip, flexible driver-to-truck assignments, and using 'Bilty numbers' for load referencing. Key functionalities include comprehensive expense tracking, trip profit calculation, and robust data filtering capabilities across various dimensions like truck, driver, date, customer, trip ID, and Bilty number.
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (ESM bundle)
-- **Frontend**: React 19 + Vite + Tailwind CSS
-- **Auth**: express-session + connect-pg-simple (PostgreSQL session store) + bcrypt
+The project encompasses a complete TMS with features spanning authentication, master data management (customers, drivers, trucks, cities, expense types), trip management, multi-load handling, expense tracking per trip, profit calculation, payments, cash book management, and a suite of financial reports (Trip, Driver, Truck, Cash Flow, Profit).
 
-## Structure
+# User Preferences
 
-```text
-artifacts-monorepo/
-├── artifacts/              # Deployable applications
-│   ├── api-server/         # Express API server
-│   └── tms-web/            # TMS React + Vite frontend (served at /)
-├── lib/                    # Shared libraries
-│   ├── api-spec/           # OpenAPI spec + Orval codegen config
-│   ├── api-client-react/   # Generated React Query hooks
-│   ├── api-zod/            # Generated Zod schemas from OpenAPI
-│   └── db/                 # Drizzle ORM schema + DB connection
-├── scripts/                # Utility scripts (single workspace package)
-│   └── src/                # Individual .ts scripts, run via `pnpm --filter @workspace/scripts run <script>`
-├── pnpm-workspace.yaml     # pnpm workspace (artifacts/*, lib/*, lib/integrations/*, scripts)
-├── tsconfig.base.json      # Shared TS options (composite, bundler resolution, es2022)
-├── tsconfig.json           # Root TS project references
-└── package.json            # Root package with hoisted devDeps
-```
+I prefer iterative development.
+I want to be asked before you make any major changes to the codebase.
+I prefer to use simple language.
+I prefer detailed explanations for complex logic.
 
-## TypeScript & Composite Projects
+# System Architecture
 
-Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references. This means:
+The project is structured as a pnpm workspace monorepo.
 
-- **Always typecheck from the root** — run `pnpm run typecheck` (which runs `tsc --build --emitDeclarationOnly`). This builds the full dependency graph so that cross-package imports resolve correctly. Running `tsc` inside a single package will fail if its dependencies haven't been built yet.
-- **`emitDeclarationOnly`** — we only emit `.d.ts` files during typecheck; actual JS bundling is handled by esbuild/tsx/vite...etc, not `tsc`.
-- **Project references** — when package A depends on package B, A's `tsconfig.json` must list B in its `references` array. `tsc --build` uses this to determine build order and skip up-to-date packages.
+## Technology Stack
 
-## Root Scripts
+-   **Monorepo Tool**: pnpm workspaces
+-   **Node.js**: 24
+-   **Package Manager**: pnpm
+-   **TypeScript**: 5.9
+-   **API Framework**: Express 5
+-   **Database**: PostgreSQL with Drizzle ORM
+-   **Validation**: Zod (`zod/v4`), `drizzle-zod`
+-   **API Codegen**: Orval (from OpenAPI spec)
+-   **Build Tool**: esbuild (ESM bundle)
+-   **Frontend**: React 19 + Vite + Tailwind CSS
+-   **Authentication**: `express-session` + `connect-pg-simple` (PostgreSQL session store) + `bcrypt`
 
-- `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
-- `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
+## Monorepo Structure
 
----
+The monorepo is organized into `artifacts/` for deployable applications, `lib/` for shared libraries, and `scripts/` for utility scripts.
 
-## Business Context
+-   **`artifacts/api-server`**: Express API server.
+-   **`artifacts/tms-web`**: React + Vite frontend.
+-   **`lib/api-spec`**: OpenAPI specification and Orval codegen configuration.
+-   **`lib/api-client-react`**: Generated React Query hooks for API interaction.
+-   **`lib/api-zod`**: Generated Zod schemas for API validation.
+-   **`lib/db`**: Drizzle ORM schema and database connection.
+-   **`scripts/`**: Contains various utility scripts.
 
-**Pakistan-based transport logistics business** operating ~30 trucks.
+## TypeScript Configuration
 
-### Deployment Context
-- Initially runs on a **single local computer** (local web app in browser, hosted locally)
-- Designed to support **2–3 users** in future without major rework
-- May later be migrated to an **online web-based application** — database/structure must support easy migration
+All packages use `composite: true` and project references for efficient type checking and build management. `.d.ts` files are emitted only during type checking; actual JavaScript bundling is handled by esbuild/Vite.
 
-### Core Operations
-- Trips are **city-to-city** (origin → destination)
-- One trip can carry **multiple loads** (different customers on the same trip)
-- Drivers may **change trucks** (driver is not permanently tied to one truck)
-- **Bilty number** = a waybill/consignment note number, used as a key reference for loads
+## UI/UX Decisions
 
-### Driver Payments
-- Fixed salary
-- Fixed per-trip commission
-- Occasional advances
+-   **Frontend Framework**: React 19 with Vite.
+-   **Styling**: Tailwind CSS for utility-first styling.
+-   **UI Primitives**: Custom minimal set including card, polished-button, polished-input, toast, toaster, tooltip.
+-   **Routing**: `wouter` for client-side routing.
+-   **Forms**: `react-hook-form` integrated with Zod for validation.
+-   **Authentication**: Session-based authentication with a login page, protected dashboards, and PostgreSQL session storage.
+-   **Layout**: Collapsible sidebar navigation for main modules (Dashboard, Masters, Trips, Payments, Reports).
+-   **Interactive Elements**: Delete confirmation dialogs, success messages, dynamic filtering interfaces.
+-   **Reporting**: Dedicated reports hub, CSV export functionality, and print-specific CSS for clean printed outputs.
+-   **Color Scheme**: Uses color-coded cards for financial summaries (e.g., green for profit, red for loss).
 
-### Customer Payments
-- Can be **delayed** or **monthly** (not always immediate)
-- Can be **partial** payments
-- Always linked to **specific trips**
+## Technical Implementations & Features
 
-### Key System Priorities (IMPORTANT)
-1. **Expense tracking** — per trip, operational costs
-2. **Trip profit calculation** — revenue minus expenses per trip
-3. **Data filtering** — critical feature, must work on:
-   - Truck
-   - Driver
-   - Date range
-   - Customer
-   - Trip ID
-   - Bilty number
+-   **Authentication**: Username/password login, session-based authentication stored in PostgreSQL, automatic admin user seeding.
+-   **Master Data Management**: Full CRUD operations for Customers, Drivers, Trucks, Cities, and Expense Types, with server-side `ILIKE` search and unique constraint validation.
+-   **Trip Management**: Creation, listing, and detail views for trips, with filtering by date range, truck, driver, and status. Includes functionality to "close" trips.
+-   **Multi-Load Handling**: Association of multiple loads with a single trip, tracking `bilty_number`, customer, item details, freight, and charges. Calculates net load income and aggregated trip income.
+-   **Expense Tracking**: Per-trip expense recording by type, amount, date, and notes.
+-   **Driver Commission**: Per-trip commission (stored on trips table, not drivers), editable on open trips via inline edit in trip detail. Varies by route length.
+-   **Profit Calculation**: Backend calculation of profit (`Income - Expenses`) and actual profit (`Income - Expenses - Advances`).
+-   **Payments**: Management of customer payments (partial/delayed), driver advances, and driver salaries. All payment transactions are recorded in a cash book.
+-   **Cash Book**: A running balance ledger with filters for date range and entry type, showing opening balance.
+-   **Financial Dashboard**: Summary views of total income, expenses, advances, salary paid, cash flow, and current cash balance.
+-   **Reporting System**: Five types of reports (Trip, Driver, Truck, Cash Flow, Profit) with extensive filtering, aggregation, and CSV export.
+-   **API Design**: Express.js routes organized by domain, using generated Zod schemas for request/response validation.
+-   **Database Interactions**: Drizzle ORM for type-safe database access and migrations. `ON DELETE RESTRICT` and `ON DELETE CASCADE` are used for referential integrity.
+-   **Performance**: Database indexes applied to frequently queried columns (e.g., `trip_date`, `entry_date`).
 
-### Design Principles
-- Keep it **simple and practical** — no unnecessary enterprise features
-- Clean, fast, reliable for **daily operational use**
-- Avoid over-engineering
+# External Dependencies
 
----
-
-## Application
-
-### Transport Management System (TMS)
-
-#### Phase 1 — Complete
-- Login page at `/` with username/password form (default admin: admin / admin123)
-- Protected dashboard at `/dashboard` with sidebar navigation
-- Session-based authentication stored in PostgreSQL via `connect-pg-simple`
-- Automatic admin seed: if no users exist, `admin/admin123` is created on startup
-
-#### Phase 2 — Complete (Masters Module)
-- **Sidebar layout**: Collapsible sidebar with Dashboard, Masters submenu (Customers, Drivers, Trucks, Cities, Expense Types), and logout
-- **5 master tables** with full CRUD (Create, Read, Update, Delete):
-  - `customers` — name, company_name, phone
-  - `drivers` — name, phone, salary, trip_commission
-  - `trucks` — truck_number (unique), owner_type (Owned/Rented), model
-  - `cities` — name (unique)
-  - `expense_types` — name (unique)
-- **Search/filter**: Server-side ILIKE search on each master list
-- **Validation**: Unique constraints enforced (trucks, cities, expense types), empty name prevention
-- **UX**: Delete confirmation dialog, success messages after add/update/delete
-- All routes protected by `requireAuth` middleware
-- Frontend pages at `/masters/customers`, `/masters/drivers`, `/masters/trucks`, `/masters/cities`, `/masters/expense-types`
-- API endpoints at `/api/masters/{entity}` (GET list, POST create), `/api/masters/{entity}/:id` (PUT update, DELETE)
-
-#### Phase 3 — Complete (Trip Core System)
-- **Trips table** with FKs to trucks, drivers, cities (from/to), ON DELETE RESTRICT
-- **Trip creation** at `/trips/create` with dropdowns for truck, driver, from city, to city
-- **Trip list** at `/trips` with JOIN query showing truck number, driver name, city names, status
-- **Filtering engine**: server-side filters by date range, truck, driver, status with dynamic WHERE clauses
-- **Close trip** action: changes status from Open → Closed, with confirmation dialog
-- **Validation**: from_city != to_city, all fields required
-- **Trip detail** page at `/trips/:id`
-- **Dashboard updated**: shows "Open Trips" count
-- **Sidebar updated**: Trips submenu (Trip List, Create Trip)
-- API endpoints: GET `/api/trips` (list+filters), POST `/api/trips`, GET `/api/trips/:id`, PUT `/api/trips/:id/close`
-
-#### Phase 4 — Complete (Multi Load System / Trip Income Engine)
-- **trip_loads table**: FK to trips (CASCADE), FK to customers (RESTRICT), unique(trip_id, bilty_number)
-- **Fields**: bilty_number, customer_id, item_description, weight, freight, loading_charges, unloading_charges, broker_commission
-- **Income calculation** (backend): Net Load Income = freight + loading + unloading - broker_commission
-- **Trip Income**: SQL subquery aggregation (SUM across all loads), cast to double precision
-- **Trip detail page** at `/trips/:id` enhanced with:
-  - Trip info section with income display
-  - Income Summary box (total freight, loading, unloading, commission, trip income)
-  - Add Load form (only shown when trip is Open)
-  - Loads table with per-load net income, delete button (only when Open)
-- **Trip list** updated with Income column showing aggregated trip income
-- **Validation**: bilty number + customer required, all numeric fields validated non-negative, duplicate bilty prevention (DB unique constraint)
-- **API endpoints**: GET `/api/trips/:id/loads`, POST `/api/trips/:id/loads`, DELETE `/api/trips/:id/loads/:loadId`
-- Cannot add/delete loads on closed trips
-
-#### Phase 5 — Complete (Trip Expense System + Profit Calculation Engine)
-- **trip_expenses table**: FK to trips (CASCADE), FK to expense_types (RESTRICT)
-- **Fields**: expense_type_id, amount (numeric), expense_date, notes
-- **Expense CRUD**: Add/list/delete expenses per trip
-- **Profit calculation** (backend): Profit = Income - Expenses, computed via SQL subqueries
-- **Trip detail page** at `/trips/:id` enhanced with:
-  - Three summary stat cards: Total Income (blue), Total Expenses (orange), Net Profit (green if >= 0, red if < 0)
-  - Add Expense form (expense type dropdown, amount, date, notes) — only shown when trip is Open
-  - Expenses table with type, amount, date, notes, delete button — delete only when Open
-- **Trip list** updated with Expense and Profit columns (color-coded)
-- **Profit filter**: Filter panel has Profit dropdown (All Trips / Profitable / Loss-Making)
-- **Validation**: amount > 0, valid date format (YYYY-MM-DD), expense type existence check, closed trip lockout
-- **API endpoints**: GET `/api/trips/:id/expenses`, POST `/api/trips/:id/expenses`, DELETE `/api/trips/:id/expenses/:expenseId`
-
-#### Phase 6 — Complete (Payments + Cash Book + Financial Dashboard)
-- **4 new tables**: `customer_payments`, `driver_advances`, `driver_salaries`, `cash_book`
-- **Customer Payments** on trip detail: form (amount, date, mode, notes) + table + total received
-  - Allowed on both Open AND Closed trips (business rule: payments often come after trip completion)
-  - Each payment creates a Cash Book "IN" entry via DB transaction
-- **Driver Advances** on trip detail: form (amount, date, notes) + table + total advances
-  - Only allowed on Open trips (enforced server-side + UI)
-  - Each advance creates a Cash Book "OUT" entry via DB transaction
-- **Driver Salaries** page at `/payments/driver-salaries`: record salary + filter by driver/month/year
-  - Each salary creates a Cash Book "OUT" entry via DB transaction
-- **Cash Book** page at `/cash-book`: running balance ledger with date range + entry type filters
-  - Opening balance computed from entries before date range for correct running balance under filters
-- **Dashboard enhanced** with Financial Summary: Total Income, Expenses, Advances, Salary Paid, Cash IN/OUT, Current Cash Balance
-- **Trip detail enhanced** with 6 stat cards: Income, Expenses, Expected Profit, Total Received, Total Advances, Actual Profit
-  - `actualProfit = income - expenses - advances` (different from `expectedProfit = income - expenses`)
-- **Sidebar** updated with Finance section (Cash Book, Driver Salaries)
-- **API endpoints**: 
-  - POST/GET `/api/trips/:id/customer-payments`
-  - POST/GET `/api/trips/:id/driver-advances`
-  - POST/GET `/api/payments/driver-salaries`
-  - GET `/api/cash-book` (with date_from, date_to, entry_type filters)
-  - GET `/api/dashboard/summary`
-
-#### Phase 7 — Complete (Reports System)
-- **5 Report Types**: Trip, Driver, Truck, Cash Flow, Profit
-- **Reports Hub** at `/reports` with card links to each report
-- **Trip Report** at `/reports/trips`: per-trip aggregation with income, expenses, advances, expected/actual profit, received, outstanding; filters by date range, driver, truck, status; totals row
-- **Driver Report** at `/reports/drivers`: grouped by driver with trips, income, expenses, advances, salary, net paid, profit generated; date range filter
-- **Truck Report** at `/reports/trucks`: grouped by truck with trips, income, expenses, profit; date range filter
-- **Cash Flow Report** at `/reports/cashflow`: daily aggregation with total IN/OUT, net, running balance (with opening balance for filtered ranges)
-- **Profit Report** at `/reports/profit`: period summary with total income, expenses, expected/actual profit, advances, salary, received, outstanding
-- **CSV Export**: GET `/api/reports/export/csv?type=trips|drivers|trucks|cashflow|profit` with formula injection protection
-- **Print CSS**: `@media print` hides sidebar/nav/buttons, normalizes layout for clean printing
-- **Shared components**: `ReportFilterBar` (date range + entity filters), `ReportActions` (CSV download + print buttons)
-- **DB performance indexes** on: trips(trip_date, driver_id, truck_id, status), cash_book(entry_date, entry_type), trip_loads(trip_id), trip_expenses(trip_id), driver_advances(trip_id, driver_id), customer_payments(trip_id), driver_salaries(driver_id, payment_date)
-- **Sidebar** updated with Reports section (All Reports, Trip Report, Driver Report, Truck Report)
-- **Input validation**: driver_id/truck_id numeric validation (400 on invalid), date param regex validation, status enum enforcement
-
----
-
-## Packages
-
-### `artifacts/tms-web` (`@workspace/tms-web`)
-
-React + Vite TMS frontend served at `/`. Two pages: login and dashboard.
-
-- Routing: wouter
-- Forms: react-hook-form + zod
-- API: `@workspace/api-client-react` generated hooks (React Query)
-- Auth hook: `src/hooks/use-auth.ts`
-- UI primitives: card, polished-button, polished-input, toast, toaster, tooltip (minimal set)
-
-### `artifacts/api-server` (`@workspace/api-server`)
-
-Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
-
-- Entry: `src/index.ts` — reads `PORT`, seeds DB, then starts Express
-- App setup: `src/app.ts` — mounts CORS (localhost + REPLIT_DOMAINS), session middleware, JSON parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` and `src/routes/auth.ts`
-- Auth routes: `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`
-- Session: express-session + connect-pg-simple (PostgreSQL), 7-day cookie, httpOnly
-- SESSION_SECRET: required in production (fail-fast); dev falls back to random with warning
-- Depends on: `@workspace/db`, `@workspace/api-zod`
-- `pnpm --filter @workspace/api-server run dev` — run the dev server
-- `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.mjs`)
-
-### `lib/db` (`@workspace/db`)
-
-Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client instance and schema models.
-
-- `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
-- `src/schema/index.ts` — barrel re-export of all models
-- `src/schema/users.ts` — `usersTable` (id, username, password, created_at)
-- `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
-- Exports: `.` (pool, db, schema), `./schema` (schema only)
-
-Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
-
-### `lib/api-spec` (`@workspace/api-spec`)
-
-Owns the OpenAPI 3.1 spec (`openapi.yaml`) and the Orval config (`orval.config.ts`). Running codegen produces output into two sibling packages:
-
-1. `lib/api-client-react/src/generated/` — React Query hooks + fetch client
-2. `lib/api-zod/src/generated/` — Zod schemas
-
-Run codegen: `pnpm --filter @workspace/api-spec run codegen`
-
-### `lib/api-zod` (`@workspace/api-zod`)
-
-Generated Zod schemas from the OpenAPI spec. Used by `api-server` for response validation.
-
-### `lib/api-client-react` (`@workspace/api-client-react`)
-
-Generated React Query hooks and fetch client from the OpenAPI spec. The custom fetch in `src/custom-fetch.ts` sends `credentials: "include"` for session cookie support.
-
-### `scripts` (`@workspace/scripts`)
-
-Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+-   **PostgreSQL**: Primary database for application data and session storage.
+-   **Orval**: Used for generating API client code and Zod schemas from an OpenAPI specification.
+-   **React Query**: Frontend library for data fetching, caching, and state management.
+-   **`express-session`**: Middleware for managing user sessions in Express.
+-   **`connect-pg-simple`**: PostgreSQL store for `express-session`.
+-   **`bcrypt`**: For hashing user passwords securely.
+-   **`zod`**: Schema declaration and validation library.
+-   **`drizzle-zod`**: Integration between Drizzle ORM and Zod for schema validation.
+-   **`wouter`**: A minimalist React router for the frontend.
+-   **`react-hook-form`**: Library for building forms with React.
+-   **Tailwind CSS**: Utility-first CSS framework.
+-   **Vite**: Frontend build tool.
+-   **esbuild**: Used for bundling server-side JavaScript.

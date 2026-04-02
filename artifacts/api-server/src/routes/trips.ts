@@ -48,6 +48,7 @@ function buildTripQuery() {
       fromCityName: fromCities.name,
       toCityId: tripsTable.toCityId,
       toCityName: toCities.name,
+      driverCommission: tripsTable.driverCommission,
       status: tripsTable.status,
       createdAt: tripsTable.createdAt,
       income: incomeSubquery.as("income"),
@@ -113,7 +114,7 @@ router.get("/", async (req: Request, res: Response) => {
 
 router.post("/", async (req: Request, res: Response) => {
   try {
-    const { tripDate, truckId, driverId, fromCityId, toCityId } = req.body;
+    const { tripDate, truckId, driverId, fromCityId, toCityId, driverCommission } = req.body;
 
     if (!tripDate || !truckId || !driverId || !fromCityId || !toCityId) {
       res.status(400).json({ error: "All fields are required" });
@@ -140,6 +141,9 @@ router.post("/", async (req: Request, res: Response) => {
       return;
     }
 
+    const commissionVal = driverCommission !== undefined && driverCommission !== null && driverCommission !== ""
+      ? String(driverCommission) : "0";
+
     const [inserted] = await db
       .insert(tripsTable)
       .values({
@@ -148,6 +152,7 @@ router.post("/", async (req: Request, res: Response) => {
         driverId: numDriverId,
         fromCityId: numFromCityId,
         toCityId: numToCityId,
+        driverCommission: commissionVal,
       })
       .returning();
 
@@ -197,6 +202,38 @@ router.put("/:id/close", async (req: Request, res: Response) => {
     res.json(row);
   } catch (err) {
     req.log.error({ err }, "Close trip error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.put("/:id/commission", async (req: Request, res: Response) => {
+  try {
+    const id = parseId(req, res);
+    if (id === null) return;
+
+    const [existing] = await db.select().from(tripsTable).where(eq(tripsTable.id, id));
+    if (!existing) {
+      res.status(404).json({ error: "Trip not found" });
+      return;
+    }
+    if (existing.status === "Closed") {
+      res.status(400).json({ error: "Cannot update commission on a closed trip" });
+      return;
+    }
+
+    const { driverCommission } = req.body;
+    const numVal = Number(driverCommission);
+    if (!Number.isFinite(numVal) || numVal < 0) {
+      res.status(400).json({ error: "Driver commission must be a valid non-negative number" });
+      return;
+    }
+
+    await db.update(tripsTable).set({ driverCommission: String(numVal) }).where(eq(tripsTable.id, id));
+
+    const [row] = await buildTripQuery().where(eq(tripsTable.id, id));
+    res.json(row);
+  } catch (err) {
+    req.log.error({ err }, "Update trip commission error");
     res.status(500).json({ error: "Internal server error" });
   }
 });

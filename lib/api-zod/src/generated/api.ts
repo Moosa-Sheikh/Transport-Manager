@@ -116,7 +116,6 @@ export const ListDriversResponseItem = zod.object({
   name: zod.string(),
   phone: zod.string().nullish(),
   salary: zod.string().optional(),
-  tripCommission: zod.string().optional(),
   createdAt: zod.string().optional(),
 });
 export const ListDriversResponse = zod.array(ListDriversResponseItem);
@@ -129,7 +128,6 @@ export const CreateDriverBody = zod.object({
   name: zod.string().min(1),
   phone: zod.string().nullish(),
   salary: zod.string().optional(),
-  tripCommission: zod.string().optional(),
 });
 
 /**
@@ -143,7 +141,6 @@ export const UpdateDriverBody = zod.object({
   name: zod.string().min(1),
   phone: zod.string().nullish(),
   salary: zod.string().optional(),
-  tripCommission: zod.string().optional(),
 });
 
 export const UpdateDriverResponse = zod.object({
@@ -151,7 +148,6 @@ export const UpdateDriverResponse = zod.object({
   name: zod.string(),
   phone: zod.string().nullish(),
   salary: zod.string().optional(),
-  tripCommission: zod.string().optional(),
   createdAt: zod.string().optional(),
 });
 
@@ -347,6 +343,7 @@ export const ListTripsResponseItem = zod.object({
   fromCityName: zod.string(),
   toCityId: zod.number(),
   toCityName: zod.string(),
+  driverCommission: zod.string().optional(),
   status: zod.enum(["Open", "Closed"]),
   createdAt: zod.string().optional(),
   income: zod.number(),
@@ -367,6 +364,7 @@ export const CreateTripBody = zod.object({
   driverId: zod.number(),
   fromCityId: zod.number(),
   toCityId: zod.number(),
+  driverCommission: zod.string().optional(),
 });
 
 /**
@@ -387,6 +385,7 @@ export const GetTripResponse = zod.object({
   fromCityName: zod.string(),
   toCityId: zod.number(),
   toCityName: zod.string(),
+  driverCommission: zod.string().optional(),
   status: zod.enum(["Open", "Closed"]),
   createdAt: zod.string().optional(),
   income: zod.number(),
@@ -415,6 +414,40 @@ export const CloseTripResponse = zod.object({
   fromCityName: zod.string(),
   toCityId: zod.number(),
   toCityName: zod.string(),
+  driverCommission: zod.string().optional(),
+  status: zod.enum(["Open", "Closed"]),
+  createdAt: zod.string().optional(),
+  income: zod.number(),
+  expense: zod.number(),
+  profit: zod.number(),
+  totalReceived: zod.number(),
+  totalAdvances: zod.number(),
+  actualProfit: zod.number(),
+});
+
+/**
+ * @summary Update driver commission for a trip
+ */
+export const UpdateTripCommissionParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateTripCommissionBody = zod.object({
+  driverCommission: zod.string(),
+});
+
+export const UpdateTripCommissionResponse = zod.object({
+  id: zod.number(),
+  tripDate: zod.string(),
+  truckId: zod.number(),
+  truckNumber: zod.string(),
+  driverId: zod.number(),
+  driverName: zod.string(),
+  fromCityId: zod.number(),
+  fromCityName: zod.string(),
+  toCityId: zod.number(),
+  toCityName: zod.string(),
+  driverCommission: zod.string().optional(),
   status: zod.enum(["Open", "Closed"]),
   createdAt: zod.string().optional(),
   income: zod.number(),
@@ -692,6 +725,7 @@ export const GetTripReportResponseItem = zod.object({
   fromCity: zod.string(),
   toCity: zod.string(),
   status: zod.string(),
+  driverCommission: zod.number().optional(),
   totalIncome: zod.number(),
   totalExpenses: zod.number(),
   totalAdvances: zod.number(),

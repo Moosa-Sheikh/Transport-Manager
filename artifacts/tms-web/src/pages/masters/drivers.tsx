@@ -10,7 +10,7 @@ import {
 import MasterPage from "@/components/master-page";
 
 interface DriverFormProps {
-  editingItem: { id: number; name: string; phone?: string | null; salary?: string | null; tripCommission?: string | null } | null;
+  editingItem: { id: number; name: string; phone?: string | null; salary?: string | null } | null;
   onClose: () => void;
   onSubmitted: () => void;
 }
@@ -19,7 +19,6 @@ function DriverForm({ editingItem, onClose, onSubmitted }: DriverFormProps) {
   const [name, setName] = useState(editingItem?.name ?? "");
   const [phone, setPhone] = useState(editingItem?.phone ?? "");
   const [salary, setSalary] = useState(editingItem?.salary ?? "0");
-  const [tripCommission, setTripCommission] = useState(editingItem?.tripCommission ?? "0");
   const [error, setError] = useState("");
   const queryClient = useQueryClient();
 
@@ -52,7 +51,6 @@ function DriverForm({ editingItem, onClose, onSubmitted }: DriverFormProps) {
       name: name.trim(),
       phone: phone.trim() || null,
       salary: salary || "0",
-      tripCommission: tripCommission || "0",
     };
     try {
       if (editingItem) {
@@ -70,7 +68,7 @@ function DriverForm({ editingItem, onClose, onSubmitted }: DriverFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <div className="text-sm text-red-600">{error}</div>}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
           <input
@@ -97,16 +95,6 @@ function DriverForm({ editingItem, onClose, onSubmitted }: DriverFormProps) {
             step="0.01"
             value={salary}
             onChange={(e) => setSalary(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Per-Trip Commission</label>
-          <input
-            type="number"
-            step="0.01"
-            value={tripCommission}
-            onChange={(e) => setTripCommission(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
           />
         </div>
@@ -159,7 +147,6 @@ export default function DriversPage() {
         { key: "name", label: "Name" },
         { key: "phone", label: "Phone" },
         { key: "salary", label: "Salary", render: (row) => formatAmount(row.salary) },
-        { key: "tripCommission", label: "Trip Commission", render: (row) => formatAmount(row.tripCommission) },
       ]}
       renderForm={(opts) => <DriverForm {...opts} />}
       onDelete={async (id) => {

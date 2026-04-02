@@ -47,7 +47,6 @@ export interface Driver {
   name: string;
   phone?: string | null;
   salary?: string;
-  tripCommission?: string;
   createdAt?: string;
 }
 
@@ -56,7 +55,6 @@ export interface DriverInput {
   name: string;
   phone?: string | null;
   salary?: string;
-  tripCommission?: string;
 }
 
 export type TruckOwnerType =
@@ -112,12 +110,17 @@ export interface ExpenseTypeInput {
   name: string;
 }
 
+export interface TripCommissionInput {
+  driverCommission: string;
+}
+
 export interface TripInput {
   tripDate: string;
   truckId: number;
   driverId: number;
   fromCityId: number;
   toCityId: number;
+  driverCommission?: string;
 }
 
 export type TripWithDetailsStatus =
@@ -139,6 +142,7 @@ export interface TripWithDetails {
   fromCityName: string;
   toCityId: number;
   toCityName: string;
+  driverCommission?: string;
   status: TripWithDetailsStatus;
   createdAt?: string;
   income: number;
@@ -325,6 +329,7 @@ export interface TripReportRow {
   fromCity: string;
   toCity: string;
   status: string;
+  driverCommission?: number;
   totalIncome: number;
   totalExpenses: number;
   totalAdvances: number;

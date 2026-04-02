@@ -11,5 +11,4 @@ export interface DriverInput {
   name: string;
   phone?: string | null;
   salary?: string;
-  tripCommission?: string;
 }

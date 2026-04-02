@@ -6,10 +6,6 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface Driver {
-  id: number;
-  name: string;
-  phone?: string | null;
-  salary?: string;
-  createdAt?: string;
+export interface TripCommissionInput {
+  driverCommission: string;
 }

@@ -24,13 +24,14 @@ export default function TripReportPage() {
     (acc, r) => ({
       income: acc.income + r.totalIncome,
       expenses: acc.expenses + r.totalExpenses,
+      commission: acc.commission + (r.driverCommission ?? 0),
       advances: acc.advances + r.totalAdvances,
       expectedProfit: acc.expectedProfit + r.expectedProfit,
       actualProfit: acc.actualProfit + r.actualProfit,
       received: acc.received + r.totalReceived,
       outstanding: acc.outstanding + r.outstanding,
     }),
-    { income: 0, expenses: 0, advances: 0, expectedProfit: 0, actualProfit: 0, received: 0, outstanding: 0 }
+    { income: 0, expenses: 0, commission: 0, advances: 0, expectedProfit: 0, actualProfit: 0, received: 0, outstanding: 0 }
   );
 
   const csvParams = new URLSearchParams();
@@ -76,6 +77,7 @@ export default function TripReportPage() {
                   <th className="text-center px-3 py-3 font-medium text-gray-600">Status</th>
                   <th className="text-right px-3 py-3 font-medium text-blue-700">Income</th>
                   <th className="text-right px-3 py-3 font-medium text-orange-700">Expenses</th>
+                  <th className="text-right px-3 py-3 font-medium text-cyan-700">Commission</th>
                   <th className="text-right px-3 py-3 font-medium text-purple-700">Advances</th>
                   <th className="text-right px-3 py-3 font-medium text-gray-600">Exp. Profit</th>
                   <th className="text-right px-3 py-3 font-medium text-gray-600">Act. Profit</th>
@@ -96,6 +98,7 @@ export default function TripReportPage() {
                     </td>
                     <td className="px-3 py-2 text-right text-blue-700 font-medium">{formatPKR(r.totalIncome)}</td>
                     <td className="px-3 py-2 text-right text-orange-700">{formatPKR(r.totalExpenses)}</td>
+                    <td className="px-3 py-2 text-right text-cyan-700">{formatPKR(r.driverCommission ?? 0)}</td>
                     <td className="px-3 py-2 text-right text-purple-700">{formatPKR(r.totalAdvances)}</td>
                     <td className={`px-3 py-2 text-right font-medium ${r.expectedProfit >= 0 ? "text-green-700" : "text-red-700"}`}>{formatPKR(r.expectedProfit)}</td>
                     <td className={`px-3 py-2 text-right font-medium ${r.actualProfit >= 0 ? "text-green-700" : "text-red-700"}`}>{formatPKR(r.actualProfit)}</td>
@@ -109,6 +112,7 @@ export default function TripReportPage() {
                   <td colSpan={6} className="px-3 py-3 text-gray-700">Totals ({data.length} trips)</td>
                   <td className="px-3 py-3 text-right text-blue-800">{formatPKR(totals.income)}</td>
                   <td className="px-3 py-3 text-right text-orange-800">{formatPKR(totals.expenses)}</td>
+                  <td className="px-3 py-3 text-right text-cyan-800">{formatPKR(totals.commission)}</td>
                   <td className="px-3 py-3 text-right text-purple-800">{formatPKR(totals.advances)}</td>
                   <td className={`px-3 py-3 text-right ${totals.expectedProfit >= 0 ? "text-green-800" : "text-red-800"}`}>{formatPKR(totals.expectedProfit)}</td>
                   <td className={`px-3 py-3 text-right ${totals.actualProfit >= 0 ? "text-green-800" : "text-red-800"}`}>{formatPKR(totals.actualProfit)}</td>

@@ -14,6 +14,7 @@ export interface TripReportRow {
   fromCity: string;
   toCity: string;
   status: string;
+  driverCommission?: number;
   totalIncome: number;
   totalExpenses: number;
   totalAdvances: number;

@@ -57,6 +57,7 @@ import type {
   LoginRequest,
   MessageResponse,
   ProfitReportSummary,
+  TripCommissionInput,
   TripExpenseInput,
   TripExpenseWithType,
   TripExpensesResponse,
@@ -2486,6 +2487,93 @@ export const useCloseTrip = <
   TContext
 > => {
   return useMutation(getCloseTripMutationOptions(options));
+};
+
+/**
+ * @summary Update driver commission for a trip
+ */
+export const getUpdateTripCommissionUrl = (id: number) => {
+  return `/api/trips/${id}/commission`;
+};
+
+export const updateTripCommission = async (
+  id: number,
+  tripCommissionInput: TripCommissionInput,
+  options?: RequestInit,
+): Promise<TripWithDetails> => {
+  return customFetch<TripWithDetails>(getUpdateTripCommissionUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(tripCommissionInput),
+  });
+};
+
+export const getUpdateTripCommissionMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateTripCommission>>,
+    TError,
+    { id: number; data: BodyType<TripCommissionInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateTripCommission>>,
+  TError,
+  { id: number; data: BodyType<TripCommissionInput> },
+  TContext
+> => {
+  const mutationKey = ["updateTripCommission"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateTripCommission>>,
+    { id: number; data: BodyType<TripCommissionInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateTripCommission(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateTripCommissionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateTripCommission>>
+>;
+export type UpdateTripCommissionMutationBody = BodyType<TripCommissionInput>;
+export type UpdateTripCommissionMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Update driver commission for a trip
+ */
+export const useUpdateTripCommission = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateTripCommission>>,
+    TError,
+    { id: number; data: BodyType<TripCommissionInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateTripCommission>>,
+  TError,
+  { id: number; data: BodyType<TripCommissionInput> },
+  TContext
+> => {
+  return useMutation(getUpdateTripCommissionMutationOptions(options));
 };
 
 /**

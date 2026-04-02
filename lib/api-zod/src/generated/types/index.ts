@@ -54,6 +54,7 @@ export * from "./listTrucksParams";
 export * from "./loginRequest";
 export * from "./messageResponse";
 export * from "./profitReportSummary";
+export * from "./tripCommissionInput";
 export * from "./tripExpenseInput";
 export * from "./tripExpensesResponse";
 export * from "./tripExpenseWithType";

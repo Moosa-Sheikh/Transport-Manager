@@ -18,6 +18,7 @@ export interface TripWithDetails {
   fromCityName: string;
   toCityId: number;
   toCityName: string;
+  driverCommission?: string;
   status: TripWithDetailsStatus;
   createdAt?: string;
   income: number;
