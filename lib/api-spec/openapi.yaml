@@ -32,6 +32,8 @@ tags:
     description: Dashboard summary
   - name: reports
     description: Report generation and export
+  - name: dues
+    description: Due amounts and loan management
 paths:
   /healthz:
     get:
@@ -2202,6 +2204,8 @@ components:
         paymentDate:
           type: string
           format: date
+        customerId:
+          type: integer
         paymentMode:
           type: string
         notes:
@@ -2214,6 +2218,9 @@ components:
         id:
           type: integer
         tripId:
+          type: integer
+          nullable: true
+        customerId:
           type: integer
           nullable: true
         amount:

@@ -2,10 +2,12 @@ import { pgTable, serial, integer, numeric, date, varchar, text, timestamp } fro
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { tripsTable } from "./trips";
+import { customersTable } from "./customers";
 
 export const customerPaymentsTable = pgTable("customer_payments", {
   id: serial("id").primaryKey(),
   tripId: integer("trip_id").references(() => tripsTable.id, { onDelete: "set null" }),
+  customerId: integer("customer_id").references(() => customersTable.id, { onDelete: "set null" }),
   amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
   paymentDate: date("payment_date").notNull(),
   paymentMode: varchar("payment_mode", { length: 50 }),

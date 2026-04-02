@@ -213,34 +213,60 @@ router.put("/:id/close", async (req: Request, res: Response) => {
         .from(tripLoadsTable)
         .where(eq(tripLoadsTable.tripId, id));
 
-      const totalPayments = await tx
+      const payments = await tx
         .select({
+          customerId: customerPaymentsTable.customerId,
           total: sql<number>`COALESCE(SUM(amount::numeric), 0)::double precision`,
         })
         .from(customerPaymentsTable)
-        .where(eq(customerPaymentsTable.tripId, id));
+        .where(eq(customerPaymentsTable.tripId, id))
+        .groupBy(customerPaymentsTable.customerId);
 
-      const totalReceived = totalPayments[0]?.total ?? 0;
-
-      let totalIncome = 0;
-      for (const load of loads) {
-        totalIncome += calcNetLoadIncome(load);
+      const customerPaid = new Map<number | null, number>();
+      for (const p of payments) {
+        customerPaid.set(p.customerId, (customerPaid.get(p.customerId) ?? 0) + p.total);
       }
 
-      const outstanding = totalIncome - totalReceived;
+      const unattributedPaid = customerPaid.get(null) ?? 0;
 
-      if (outstanding > 0.01 && loads.length > 0) {
-        for (const load of loads) {
+      const customerLoadIncomes = new Map<number, { totalIncome: number; loads: typeof loads }>();
+      for (const load of loads) {
+        const loadIncome = calcNetLoadIncome(load);
+        const entry = customerLoadIncomes.get(load.customerId);
+        if (entry) {
+          entry.totalIncome += loadIncome;
+          entry.loads.push(load);
+        } else {
+          customerLoadIncomes.set(load.customerId, { totalIncome: loadIncome, loads: [load] });
+        }
+      }
+
+      let totalIncomeAll = 0;
+      for (const data of customerLoadIncomes.values()) {
+        totalIncomeAll += data.totalIncome;
+      }
+
+      for (const [custId, data] of customerLoadIncomes) {
+        const attributedPaid = customerPaid.get(custId) ?? 0;
+        const unattributedShare = totalIncomeAll > 0
+          ? (data.totalIncome / totalIncomeAll) * unattributedPaid
+          : 0;
+        const totalPaidForCustomer = attributedPaid + unattributedShare;
+        const customerOutstanding = data.totalIncome - totalPaidForCustomer;
+
+        if (customerOutstanding <= 0.01) continue;
+
+        for (const load of data.loads) {
           const loadIncome = calcNetLoadIncome(load);
-          const loadDue = totalIncome > 0
-            ? Math.round((loadIncome / totalIncome) * outstanding * 100) / 100
+          const loadDue = data.totalIncome > 0
+            ? Math.round((loadIncome / data.totalIncome) * customerOutstanding * 100) / 100
             : 0;
 
           if (loadDue > 0.01) {
             await tx.insert(customerDuesTable).values({
               tripId: id,
               loadId: load.id,
-              customerId: load.customerId,
+              customerId: custId,
               biltyNumber: load.biltyNumber,
               dueAmount: String(loadDue),
               dueDate: existing.tripDate,
@@ -706,7 +732,7 @@ router.post("/:id/customer-payments", async (req: Request, res: Response) => {
     const [trip] = await db.select().from(tripsTable).where(eq(tripsTable.id, id));
     if (!trip) { res.status(404).json({ error: "Trip not found" }); return; }
 
-    const { amount, paymentDate, paymentMode, notes } = req.body;
+    const { amount, paymentDate, paymentMode, notes, customerId } = req.body;
 
     const numAmount = Number(amount);
     if (!Number.isFinite(numAmount) || numAmount <= 0) {
@@ -725,11 +751,14 @@ router.post("/:id/customer-payments", async (req: Request, res: Response) => {
       return;
     }
 
+    const custId = customerId ? Number(customerId) : null;
+
     const result = await db.transaction(async (tx) => {
       const [payment] = await tx
         .insert(customerPaymentsTable)
         .values({
           tripId: id,
+          customerId: custId,
           amount: String(numAmount),
           paymentDate,
           paymentMode: paymentMode ? String(paymentMode) : null,
