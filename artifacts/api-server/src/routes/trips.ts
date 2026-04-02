@@ -213,54 +213,39 @@ router.put("/:id/close", async (req: Request, res: Response) => {
         .from(tripLoadsTable)
         .where(eq(tripLoadsTable.tripId, id));
 
-      const payments = await tx
+      const totalPayments = await tx
         .select({
-          customerId: customerPaymentsTable.customerId,
           total: sql<number>`COALESCE(SUM(amount::numeric), 0)::double precision`,
         })
         .from(customerPaymentsTable)
-        .where(eq(customerPaymentsTable.tripId, id))
-        .groupBy(customerPaymentsTable.customerId);
+        .where(eq(customerPaymentsTable.tripId, id));
 
-      const customerPaid = new Map<number, number>();
-      for (const p of payments) {
-        if (p.customerId) customerPaid.set(p.customerId, p.total);
-      }
+      const totalReceived = totalPayments[0]?.total ?? 0;
 
-      const customerLoadIncomes = new Map<number, { totalIncome: number; loads: typeof loads }>();
+      let totalIncome = 0;
       for (const load of loads) {
-        const loadIncome = calcNetLoadIncome(load);
-        const entry = customerLoadIncomes.get(load.customerId);
-        if (entry) {
-          entry.totalIncome += loadIncome;
-          entry.loads.push(load);
-        } else {
-          customerLoadIncomes.set(load.customerId, { totalIncome: loadIncome, loads: [load] });
-        }
+        totalIncome += calcNetLoadIncome(load);
       }
 
-      for (const [custId, data] of customerLoadIncomes) {
-        const paid = customerPaid.get(custId) ?? 0;
-        let remaining = data.totalIncome - paid;
+      const outstanding = totalIncome - totalReceived;
 
-        if (remaining <= 0.01) continue;
-
-        for (const load of data.loads) {
+      if (outstanding > 0.01 && loads.length > 0) {
+        for (const load of loads) {
           const loadIncome = calcNetLoadIncome(load);
-          const loadShare = data.totalIncome > 0 ? (loadIncome / data.totalIncome) * (data.totalIncome - paid) : 0;
-          const loadDue = Math.min(loadShare, remaining);
+          const loadDue = totalIncome > 0
+            ? Math.round((loadIncome / totalIncome) * outstanding * 100) / 100
+            : 0;
 
           if (loadDue > 0.01) {
             await tx.insert(customerDuesTable).values({
               tripId: id,
               loadId: load.id,
-              customerId: custId,
+              customerId: load.customerId,
               biltyNumber: load.biltyNumber,
-              dueAmount: String(Math.round(loadDue * 100) / 100),
+              dueAmount: String(loadDue),
               dueDate: existing.tripDate,
               notes: `Auto-generated on trip #${id} close`,
             });
-            remaining -= loadDue;
           }
         }
       }
