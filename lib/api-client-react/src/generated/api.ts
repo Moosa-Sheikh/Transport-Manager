@@ -25,6 +25,7 @@ import type {
   Customer,
   CustomerDue,
   CustomerDueInput,
+  CustomerDueUpdate,
   CustomerInput,
   CustomerPayment,
   CustomerPaymentInput,
@@ -37,6 +38,7 @@ import type {
   DriverInput,
   DriverLoan,
   DriverLoanInput,
+  DriverLoanUpdate,
   DriverReportRow,
   DriverSalaryInput,
   DriverSalaryWithName,
@@ -66,8 +68,10 @@ import type {
   MessageResponse,
   OtherLoan,
   OtherLoanInput,
+  OtherLoanUpdate,
   OwnerLoan,
   OwnerLoanInput,
+  OwnerLoanUpdate,
   ProfitReportSummary,
   RepaymentInput,
   TripCommissionInput,
@@ -4567,6 +4571,93 @@ export const useCreateCustomerDue = <
 };
 
 /**
+ * @summary Update a customer due
+ */
+export const getUpdateCustomerDueUrl = (id: number) => {
+  return `/api/dues/customers/${id}`;
+};
+
+export const updateCustomerDue = async (
+  id: number,
+  customerDueUpdate: CustomerDueUpdate,
+  options?: RequestInit,
+): Promise<CustomerDue> => {
+  return customFetch<CustomerDue>(getUpdateCustomerDueUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(customerDueUpdate),
+  });
+};
+
+export const getUpdateCustomerDueMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCustomerDue>>,
+    TError,
+    { id: number; data: BodyType<CustomerDueUpdate> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateCustomerDue>>,
+  TError,
+  { id: number; data: BodyType<CustomerDueUpdate> },
+  TContext
+> => {
+  const mutationKey = ["updateCustomerDue"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateCustomerDue>>,
+    { id: number; data: BodyType<CustomerDueUpdate> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateCustomerDue(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateCustomerDueMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateCustomerDue>>
+>;
+export type UpdateCustomerDueMutationBody = BodyType<CustomerDueUpdate>;
+export type UpdateCustomerDueMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a customer due
+ */
+export const useUpdateCustomerDue = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCustomerDue>>,
+    TError,
+    { id: number; data: BodyType<CustomerDueUpdate> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateCustomerDue>>,
+  TError,
+  { id: number; data: BodyType<CustomerDueUpdate> },
+  TContext
+> => {
+  return useMutation(getUpdateCustomerDueMutationOptions(options));
+};
+
+/**
  * @summary Delete a customer due
  */
 export const getDeleteCustomerDueUrl = (id: number) => {
@@ -4915,6 +5006,93 @@ export const useCreateDriverLoan = <
   TContext
 > => {
   return useMutation(getCreateDriverLoanMutationOptions(options));
+};
+
+/**
+ * @summary Update a driver loan
+ */
+export const getUpdateDriverLoanUrl = (id: number) => {
+  return `/api/dues/drivers/${id}`;
+};
+
+export const updateDriverLoan = async (
+  id: number,
+  driverLoanUpdate: DriverLoanUpdate,
+  options?: RequestInit,
+): Promise<DriverLoan> => {
+  return customFetch<DriverLoan>(getUpdateDriverLoanUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(driverLoanUpdate),
+  });
+};
+
+export const getUpdateDriverLoanMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateDriverLoan>>,
+    TError,
+    { id: number; data: BodyType<DriverLoanUpdate> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateDriverLoan>>,
+  TError,
+  { id: number; data: BodyType<DriverLoanUpdate> },
+  TContext
+> => {
+  const mutationKey = ["updateDriverLoan"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateDriverLoan>>,
+    { id: number; data: BodyType<DriverLoanUpdate> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateDriverLoan(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateDriverLoanMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateDriverLoan>>
+>;
+export type UpdateDriverLoanMutationBody = BodyType<DriverLoanUpdate>;
+export type UpdateDriverLoanMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a driver loan
+ */
+export const useUpdateDriverLoan = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateDriverLoan>>,
+    TError,
+    { id: number; data: BodyType<DriverLoanUpdate> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateDriverLoan>>,
+  TError,
+  { id: number; data: BodyType<DriverLoanUpdate> },
+  TContext
+> => {
+  return useMutation(getUpdateDriverLoanMutationOptions(options));
 };
 
 /**
@@ -5269,6 +5447,93 @@ export const useCreateOtherLoan = <
 };
 
 /**
+ * @summary Update an other loan
+ */
+export const getUpdateOtherLoanUrl = (id: number) => {
+  return `/api/dues/others/${id}`;
+};
+
+export const updateOtherLoan = async (
+  id: number,
+  otherLoanUpdate: OtherLoanUpdate,
+  options?: RequestInit,
+): Promise<OtherLoan> => {
+  return customFetch<OtherLoan>(getUpdateOtherLoanUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(otherLoanUpdate),
+  });
+};
+
+export const getUpdateOtherLoanMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateOtherLoan>>,
+    TError,
+    { id: number; data: BodyType<OtherLoanUpdate> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateOtherLoan>>,
+  TError,
+  { id: number; data: BodyType<OtherLoanUpdate> },
+  TContext
+> => {
+  const mutationKey = ["updateOtherLoan"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateOtherLoan>>,
+    { id: number; data: BodyType<OtherLoanUpdate> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateOtherLoan(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateOtherLoanMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateOtherLoan>>
+>;
+export type UpdateOtherLoanMutationBody = BodyType<OtherLoanUpdate>;
+export type UpdateOtherLoanMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update an other loan
+ */
+export const useUpdateOtherLoan = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateOtherLoan>>,
+    TError,
+    { id: number; data: BodyType<OtherLoanUpdate> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateOtherLoan>>,
+  TError,
+  { id: number; data: BodyType<OtherLoanUpdate> },
+  TContext
+> => {
+  return useMutation(getUpdateOtherLoanMutationOptions(options));
+};
+
+/**
  * @summary Delete an other loan
  */
 export const getDeleteOtherLoanUrl = (id: number) => {
@@ -5617,6 +5882,93 @@ export const useCreateOwnerLoan = <
   TContext
 > => {
   return useMutation(getCreateOwnerLoanMutationOptions(options));
+};
+
+/**
+ * @summary Update an owner loan
+ */
+export const getUpdateOwnerLoanUrl = (id: number) => {
+  return `/api/dues/owner/${id}`;
+};
+
+export const updateOwnerLoan = async (
+  id: number,
+  ownerLoanUpdate: OwnerLoanUpdate,
+  options?: RequestInit,
+): Promise<OwnerLoan> => {
+  return customFetch<OwnerLoan>(getUpdateOwnerLoanUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(ownerLoanUpdate),
+  });
+};
+
+export const getUpdateOwnerLoanMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateOwnerLoan>>,
+    TError,
+    { id: number; data: BodyType<OwnerLoanUpdate> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateOwnerLoan>>,
+  TError,
+  { id: number; data: BodyType<OwnerLoanUpdate> },
+  TContext
+> => {
+  const mutationKey = ["updateOwnerLoan"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateOwnerLoan>>,
+    { id: number; data: BodyType<OwnerLoanUpdate> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateOwnerLoan(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateOwnerLoanMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateOwnerLoan>>
+>;
+export type UpdateOwnerLoanMutationBody = BodyType<OwnerLoanUpdate>;
+export type UpdateOwnerLoanMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update an owner loan
+ */
+export const useUpdateOwnerLoan = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateOwnerLoan>>,
+    TError,
+    { id: number; data: BodyType<OwnerLoanUpdate> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateOwnerLoan>>,
+  TError,
+  { id: number; data: BodyType<OwnerLoanUpdate> },
+  TContext
+> => {
+  return useMutation(getUpdateOwnerLoanMutationOptions(options));
 };
 
 /**

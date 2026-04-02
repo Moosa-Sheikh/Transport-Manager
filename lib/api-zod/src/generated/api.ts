@@ -887,6 +887,36 @@ export const CreateCustomerDueBody = zod.object({
 });
 
 /**
+ * @summary Update a customer due
+ */
+export const UpdateCustomerDueParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateCustomerDueBody = zod.object({
+  dueAmount: zod.string().optional(),
+  dueDate: zod.coerce.date().optional(),
+  biltyNumber: zod.string().optional(),
+  notes: zod.string().optional(),
+});
+
+export const UpdateCustomerDueResponse = zod.object({
+  id: zod.number(),
+  tripId: zod.number().nullish(),
+  loadId: zod.number().nullish(),
+  customerId: zod.number(),
+  customerName: zod.string(),
+  biltyNumber: zod.string().nullish(),
+  dueAmount: zod.string(),
+  paidAmount: zod.string(),
+  balance: zod.number(),
+  dueDate: zod.string(),
+  status: zod.string(),
+  notes: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+});
+
+/**
  * @summary Delete a customer due
  */
 export const DeleteCustomerDueParams = zod.object({
@@ -962,6 +992,34 @@ export const CreateDriverLoanBody = zod.object({
   loanDate: zod.coerce.date(),
   returnDate: zod.coerce.date().optional(),
   notes: zod.string().optional(),
+});
+
+/**
+ * @summary Update a driver loan
+ */
+export const UpdateDriverLoanParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateDriverLoanBody = zod.object({
+  amount: zod.string().optional(),
+  loanDate: zod.coerce.date().optional(),
+  returnDate: zod.coerce.date().optional(),
+  notes: zod.string().optional(),
+});
+
+export const UpdateDriverLoanResponse = zod.object({
+  id: zod.number(),
+  driverId: zod.number(),
+  driverName: zod.string(),
+  amount: zod.string(),
+  amountReturned: zod.string(),
+  balance: zod.number(),
+  loanDate: zod.string(),
+  returnDate: zod.string().nullish(),
+  status: zod.string(),
+  notes: zod.string().nullish(),
+  createdAt: zod.string().optional(),
 });
 
 /**
@@ -1043,6 +1101,36 @@ export const CreateOtherLoanBody = zod.object({
 });
 
 /**
+ * @summary Update an other loan
+ */
+export const UpdateOtherLoanParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateOtherLoanBody = zod.object({
+  personName: zod.string().min(1).optional(),
+  phone: zod.string().optional(),
+  amount: zod.string().optional(),
+  loanDate: zod.coerce.date().optional(),
+  returnDate: zod.coerce.date().optional(),
+  notes: zod.string().optional(),
+});
+
+export const UpdateOtherLoanResponse = zod.object({
+  id: zod.number(),
+  personName: zod.string(),
+  phone: zod.string().nullish(),
+  amount: zod.string(),
+  amountReturned: zod.string(),
+  balance: zod.number(),
+  loanDate: zod.string(),
+  returnDate: zod.string().nullish(),
+  status: zod.string(),
+  notes: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+});
+
+/**
  * @summary Delete an other loan
  */
 export const DeleteOtherLoanParams = zod.object({
@@ -1116,6 +1204,34 @@ export const CreateOwnerLoanBody = zod.object({
   loanDate: zod.coerce.date(),
   returnDate: zod.coerce.date().optional(),
   notes: zod.string().optional(),
+});
+
+/**
+ * @summary Update an owner loan
+ */
+export const UpdateOwnerLoanParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateOwnerLoanBody = zod.object({
+  borrowedFrom: zod.string().min(1).optional(),
+  amount: zod.string().optional(),
+  loanDate: zod.coerce.date().optional(),
+  returnDate: zod.coerce.date().optional(),
+  notes: zod.string().optional(),
+});
+
+export const UpdateOwnerLoanResponse = zod.object({
+  id: zod.number(),
+  borrowedFrom: zod.string(),
+  amount: zod.string(),
+  amountReturned: zod.string(),
+  balance: zod.number(),
+  loanDate: zod.string(),
+  returnDate: zod.string().nullish(),
+  status: zod.string(),
+  notes: zod.string().nullish(),
+  createdAt: zod.string().optional(),
 });
 
 /**

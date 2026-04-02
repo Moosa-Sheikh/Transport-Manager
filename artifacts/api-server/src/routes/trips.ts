@@ -213,53 +213,54 @@ router.put("/:id/close", async (req: Request, res: Response) => {
         .from(tripLoadsTable)
         .where(eq(tripLoadsTable.tripId, id));
 
-      const totalPayments = await tx
+      const payments = await tx
         .select({
+          customerId: customerPaymentsTable.customerId,
           total: sql<number>`COALESCE(SUM(amount::numeric), 0)::double precision`,
         })
         .from(customerPaymentsTable)
-        .where(eq(customerPaymentsTable.tripId, id));
+        .where(eq(customerPaymentsTable.tripId, id))
+        .groupBy(customerPaymentsTable.customerId);
 
-      const totalReceived = totalPayments[0]?.total ?? 0;
-
-      let totalIncome = 0;
-      for (const load of loads) {
-        totalIncome += calcNetLoadIncome(load);
+      const customerPaid = new Map<number, number>();
+      for (const p of payments) {
+        if (p.customerId) customerPaid.set(p.customerId, p.total);
       }
 
-      const outstanding = totalIncome - totalReceived;
-
-      if (outstanding > 0 && loads.length > 0) {
-        const customerTotals = new Map<number, { income: number; biltyNumbers: string[]; loadIds: number[] }>();
-
-        for (const load of loads) {
-          const loadIncome = calcNetLoadIncome(load);
-          const existing = customerTotals.get(load.customerId);
-          if (existing) {
-            existing.income += loadIncome;
-            existing.biltyNumbers.push(load.biltyNumber);
-            existing.loadIds.push(load.id);
-          } else {
-            customerTotals.set(load.customerId, {
-              income: loadIncome,
-              biltyNumbers: [load.biltyNumber],
-              loadIds: [load.id],
-            });
-          }
+      const customerLoadIncomes = new Map<number, { totalIncome: number; loads: typeof loads }>();
+      for (const load of loads) {
+        const loadIncome = calcNetLoadIncome(load);
+        const entry = customerLoadIncomes.get(load.customerId);
+        if (entry) {
+          entry.totalIncome += loadIncome;
+          entry.loads.push(load);
+        } else {
+          customerLoadIncomes.set(load.customerId, { totalIncome: loadIncome, loads: [load] });
         }
+      }
 
-        for (const [custId, data] of customerTotals) {
-          const custShare = totalIncome > 0 ? (data.income / totalIncome) * outstanding : 0;
-          if (custShare > 0.01) {
+      for (const [custId, data] of customerLoadIncomes) {
+        const paid = customerPaid.get(custId) ?? 0;
+        let remaining = data.totalIncome - paid;
+
+        if (remaining <= 0.01) continue;
+
+        for (const load of data.loads) {
+          const loadIncome = calcNetLoadIncome(load);
+          const loadShare = data.totalIncome > 0 ? (loadIncome / data.totalIncome) * (data.totalIncome - paid) : 0;
+          const loadDue = Math.min(loadShare, remaining);
+
+          if (loadDue > 0.01) {
             await tx.insert(customerDuesTable).values({
               tripId: id,
-              loadId: data.loadIds[0],
+              loadId: load.id,
               customerId: custId,
-              biltyNumber: data.biltyNumbers.join(", "),
-              dueAmount: String(Math.round(custShare * 100) / 100),
+              biltyNumber: load.biltyNumber,
+              dueAmount: String(Math.round(loadDue * 100) / 100),
               dueDate: existing.tripDate,
               notes: `Auto-generated on trip #${id} close`,
             });
+            remaining -= loadDue;
           }
         }
       }

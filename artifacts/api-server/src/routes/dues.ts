@@ -124,6 +124,57 @@ router.post("/customers", async (req: Request, res: Response) => {
   }
 });
 
+router.put("/customers/:id", async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params["id"]);
+    if (!Number.isInteger(id) || id <= 0) {
+      res.status(400).json({ error: "Invalid ID" });
+      return;
+    }
+    const [existing] = await db.select().from(customerDuesTable).where(eq(customerDuesTable.id, id));
+    if (!existing) {
+      res.status(404).json({ error: "Customer due not found" });
+      return;
+    }
+
+    const { dueAmount, dueDate, biltyNumber, notes } = req.body;
+    const updates: Record<string, unknown> = {};
+
+    if (dueAmount !== undefined) {
+      const num = parsePositiveNum(dueAmount);
+      if (!num) { res.status(400).json({ error: "Due amount must be greater than 0" }); return; }
+      const paid = Number(existing.paidAmount);
+      if (num < paid) { res.status(400).json({ error: `Due amount cannot be less than already paid amount (${paid})` }); return; }
+      updates.dueAmount = String(num);
+      const newBalance = num - paid;
+      updates.status = newBalance <= 0 ? "Cleared" : paid > 0 ? "Partial" : "Pending";
+    }
+    if (dueDate !== undefined) {
+      if (!isValidDate(dueDate)) { res.status(400).json({ error: "Valid due date is required (YYYY-MM-DD)" }); return; }
+      updates.dueDate = dueDate;
+    }
+    if (biltyNumber !== undefined) updates.biltyNumber = biltyNumber || null;
+    if (notes !== undefined) updates.notes = notes || null;
+
+    if (Object.keys(updates).length === 0) {
+      res.status(400).json({ error: "No fields to update" });
+      return;
+    }
+
+    const [updated] = await db.update(customerDuesTable).set(updates).where(eq(customerDuesTable.id, id)).returning();
+    const [customer] = await db.select({ name: customersTable.name }).from(customersTable).where(eq(customersTable.id, updated.customerId));
+
+    res.json({
+      ...updated,
+      customerName: customer?.name ?? "Unknown",
+      balance: Number(updated.dueAmount) - Number(updated.paidAmount),
+    });
+  } catch (err) {
+    req.log.error({ err }, "Update customer due error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.delete("/customers/:id", async (req: Request, res: Response) => {
   try {
     const id = Number(req.params["id"]);
@@ -333,6 +384,72 @@ router.post("/drivers", async (req: Request, res: Response) => {
   }
 });
 
+router.put("/drivers/:id", async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params["id"]);
+    if (!Number.isInteger(id) || id <= 0) {
+      res.status(400).json({ error: "Invalid ID" });
+      return;
+    }
+    const [existing] = await db.select().from(driverLoansTable).where(eq(driverLoansTable.id, id));
+    if (!existing) {
+      res.status(404).json({ error: "Driver loan not found" });
+      return;
+    }
+
+    const { amount, loanDate, returnDate, notes } = req.body;
+    const updates: Record<string, unknown> = {};
+    let amountChanged = false;
+
+    if (amount !== undefined) {
+      const num = parsePositiveNum(amount);
+      if (!num) { res.status(400).json({ error: "Amount must be greater than 0" }); return; }
+      const returned = Number(existing.amountReturned);
+      if (num < returned) { res.status(400).json({ error: `Amount cannot be less than already returned amount (${returned})` }); return; }
+      updates.amount = String(num);
+      const newBalance = num - returned;
+      updates.status = newBalance <= 0 ? "Cleared" : returned > 0 ? "Partial" : "Outstanding";
+      amountChanged = true;
+    }
+    if (loanDate !== undefined) {
+      if (!isValidDate(loanDate)) { res.status(400).json({ error: "Valid loan date is required (YYYY-MM-DD)" }); return; }
+      updates.loanDate = loanDate;
+    }
+    if (returnDate !== undefined) updates.returnDate = isValidDate(returnDate) ? returnDate : null;
+    if (notes !== undefined) updates.notes = notes || null;
+
+    if (Object.keys(updates).length === 0) {
+      res.status(400).json({ error: "No fields to update" });
+      return;
+    }
+
+    const result = await db.transaction(async (tx) => {
+      const [upd] = await tx.update(driverLoansTable).set(updates).where(eq(driverLoansTable.id, id)).returning();
+
+      if (amountChanged) {
+        await tx.update(cashBookTable).set({
+          amount: updates.amount as string,
+        }).where(
+          sql`${cashBookTable.referenceTable} = 'driver_loans' AND ${cashBookTable.referenceId} = ${id} AND ${cashBookTable.entryType} = 'OUT'`
+        );
+      }
+
+      return upd;
+    });
+
+    const [driver] = await db.select({ name: driversTable.name }).from(driversTable).where(eq(driversTable.id, result.driverId));
+
+    res.json({
+      ...result,
+      driverName: driver?.name ?? "Unknown",
+      balance: Number(result.amount) - Number(result.amountReturned),
+    });
+  } catch (err) {
+    req.log.error({ err }, "Update driver loan error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.delete("/drivers/:id", async (req: Request, res: Response) => {
   try {
     const id = Number(req.params["id"]);
@@ -532,6 +649,77 @@ router.post("/others", async (req: Request, res: Response) => {
   }
 });
 
+router.put("/others/:id", async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params["id"]);
+    if (!Number.isInteger(id) || id <= 0) {
+      res.status(400).json({ error: "Invalid ID" });
+      return;
+    }
+    const [existing] = await db.select().from(otherLoansTable).where(eq(otherLoansTable.id, id));
+    if (!existing) {
+      res.status(404).json({ error: "Other loan not found" });
+      return;
+    }
+
+    const { personName, phone, amount, loanDate, returnDate, notes } = req.body;
+    const updates: Record<string, unknown> = {};
+
+    if (personName !== undefined) {
+      if (!personName || typeof personName !== "string" || !personName.trim()) {
+        res.status(400).json({ error: "Person name is required" });
+        return;
+      }
+      updates.personName = personName.trim();
+    }
+    if (phone !== undefined) updates.phone = phone || null;
+    let amountChanged = false;
+    if (amount !== undefined) {
+      const num = parsePositiveNum(amount);
+      if (!num) { res.status(400).json({ error: "Amount must be greater than 0" }); return; }
+      const returned = Number(existing.amountReturned);
+      if (num < returned) { res.status(400).json({ error: `Amount cannot be less than already returned amount (${returned})` }); return; }
+      updates.amount = String(num);
+      const newBalance = num - returned;
+      updates.status = newBalance <= 0 ? "Cleared" : returned > 0 ? "Partial" : "Outstanding";
+      amountChanged = true;
+    }
+    if (loanDate !== undefined) {
+      if (!isValidDate(loanDate)) { res.status(400).json({ error: "Valid loan date is required (YYYY-MM-DD)" }); return; }
+      updates.loanDate = loanDate;
+    }
+    if (returnDate !== undefined) updates.returnDate = isValidDate(returnDate) ? returnDate : null;
+    if (notes !== undefined) updates.notes = notes || null;
+
+    if (Object.keys(updates).length === 0) {
+      res.status(400).json({ error: "No fields to update" });
+      return;
+    }
+
+    const result = await db.transaction(async (tx) => {
+      const [upd] = await tx.update(otherLoansTable).set(updates).where(eq(otherLoansTable.id, id)).returning();
+
+      if (amountChanged) {
+        await tx.update(cashBookTable).set({
+          amount: updates.amount as string,
+        }).where(
+          sql`${cashBookTable.referenceTable} = 'other_loans' AND ${cashBookTable.referenceId} = ${id} AND ${cashBookTable.entryType} = 'OUT'`
+        );
+      }
+
+      return upd;
+    });
+
+    res.json({
+      ...result,
+      balance: Number(result.amount) - Number(result.amountReturned),
+    });
+  } catch (err) {
+    req.log.error({ err }, "Update other loan error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.delete("/others/:id", async (req: Request, res: Response) => {
   try {
     const id = Number(req.params["id"]);
@@ -721,6 +909,76 @@ router.post("/owner", async (req: Request, res: Response) => {
     });
   } catch (err) {
     req.log.error({ err }, "Create owner loan error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.put("/owner/:id", async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params["id"]);
+    if (!Number.isInteger(id) || id <= 0) {
+      res.status(400).json({ error: "Invalid ID" });
+      return;
+    }
+    const [existing] = await db.select().from(ownerLoansTable).where(eq(ownerLoansTable.id, id));
+    if (!existing) {
+      res.status(404).json({ error: "Owner loan not found" });
+      return;
+    }
+
+    const { borrowedFrom, amount, loanDate, returnDate, notes } = req.body;
+    const updates: Record<string, unknown> = {};
+
+    if (borrowedFrom !== undefined) {
+      if (!borrowedFrom || typeof borrowedFrom !== "string" || !borrowedFrom.trim()) {
+        res.status(400).json({ error: "Borrowed from is required" });
+        return;
+      }
+      updates.borrowedFrom = borrowedFrom.trim();
+    }
+    let amountChanged = false;
+    if (amount !== undefined) {
+      const num = parsePositiveNum(amount);
+      if (!num) { res.status(400).json({ error: "Amount must be greater than 0" }); return; }
+      const returned = Number(existing.amountReturned);
+      if (num < returned) { res.status(400).json({ error: `Amount cannot be less than already returned amount (${returned})` }); return; }
+      updates.amount = String(num);
+      const newBalance = num - returned;
+      updates.status = newBalance <= 0 ? "Cleared" : returned > 0 ? "Partial" : "Outstanding";
+      amountChanged = true;
+    }
+    if (loanDate !== undefined) {
+      if (!isValidDate(loanDate)) { res.status(400).json({ error: "Valid loan date is required (YYYY-MM-DD)" }); return; }
+      updates.loanDate = loanDate;
+    }
+    if (returnDate !== undefined) updates.returnDate = isValidDate(returnDate) ? returnDate : null;
+    if (notes !== undefined) updates.notes = notes || null;
+
+    if (Object.keys(updates).length === 0) {
+      res.status(400).json({ error: "No fields to update" });
+      return;
+    }
+
+    const result = await db.transaction(async (tx) => {
+      const [upd] = await tx.update(ownerLoansTable).set(updates).where(eq(ownerLoansTable.id, id)).returning();
+
+      if (amountChanged) {
+        await tx.update(cashBookTable).set({
+          amount: updates.amount as string,
+        }).where(
+          sql`${cashBookTable.referenceTable} = 'owner_loans' AND ${cashBookTable.referenceId} = ${id} AND ${cashBookTable.entryType} = 'IN'`
+        );
+      }
+
+      return upd;
+    });
+
+    res.json({
+      ...result,
+      balance: Number(result.amount) - Number(result.amountReturned),
+    });
+  } catch (err) {
+    req.log.error({ err }, "Update owner loan error");
     res.status(500).json({ error: "Internal server error" });
   }
 });

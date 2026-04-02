@@ -475,6 +475,39 @@ export interface OwnerLoanInput {
   notes?: string;
 }
 
+export interface CustomerDueUpdate {
+  dueAmount?: string;
+  dueDate?: string;
+  biltyNumber?: string;
+  notes?: string;
+}
+
+export interface DriverLoanUpdate {
+  amount?: string;
+  loanDate?: string;
+  returnDate?: string;
+  notes?: string;
+}
+
+export interface OtherLoanUpdate {
+  /** @minLength 1 */
+  personName?: string;
+  phone?: string;
+  amount?: string;
+  loanDate?: string;
+  returnDate?: string;
+  notes?: string;
+}
+
+export interface OwnerLoanUpdate {
+  /** @minLength 1 */
+  borrowedFrom?: string;
+  amount?: string;
+  loanDate?: string;
+  returnDate?: string;
+  notes?: string;
+}
+
 export interface RepaymentInput {
   amount: string;
   paymentDate: string;

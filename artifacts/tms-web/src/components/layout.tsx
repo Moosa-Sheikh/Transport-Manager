@@ -46,9 +46,9 @@ const financeLinks = [
 
 const duesLinks = [
   { href: "/dues/customers", label: "Customer Dues", icon: HandCoins },
-  { href: "/dues/driver-loans", label: "Driver Loans", icon: UserRound },
-  { href: "/dues/other-loans", label: "Other Loans", icon: CircleDollarSign },
-  { href: "/dues/owner-loans", label: "Owner Loans", icon: Building },
+  { href: "/dues/drivers", label: "Driver Loans", icon: UserRound },
+  { href: "/dues/others", label: "Other Loans", icon: CircleDollarSign },
+  { href: "/dues/owner", label: "Owner Loans", icon: Building },
 ];
 
 const reportsLinks = [

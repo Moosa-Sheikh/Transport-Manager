@@ -83,13 +83,13 @@ function Router() {
       <Route path="/dues/customers">
         <ProtectedRoute component={CustomerDuesPage} />
       </Route>
-      <Route path="/dues/driver-loans">
+      <Route path="/dues/drivers">
         <ProtectedRoute component={DriverLoansPage} />
       </Route>
-      <Route path="/dues/other-loans">
+      <Route path="/dues/others">
         <ProtectedRoute component={OtherLoansPage} />
       </Route>
-      <Route path="/dues/owner-loans">
+      <Route path="/dues/owner">
         <ProtectedRoute component={OwnerLoansPage} />
       </Route>
       <Route path="/reports/trips">

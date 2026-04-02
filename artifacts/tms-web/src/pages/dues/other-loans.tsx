@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Loader2, Plus, Banknote, Trash2, Search, X } from "lucide-react";
+import { Loader2, Plus, Banknote, Trash2, Search, X, Pencil } from "lucide-react";
 import {
   useListOtherLoans,
   useCreateOtherLoan,
+  useUpdateOtherLoan,
   useDeleteOtherLoan,
   useRepayOtherLoan,
 } from "@workspace/api-client-react";
@@ -20,6 +21,7 @@ const statusColors: Record<string, string> = {
 export default function OtherLoansPage() {
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [showAdd, setShowAdd] = useState(false);
+  const [editItem, setEditItem] = useState<{ id: number; personName: string; phone: string; amount: string; loanDate: string; returnDate: string; notes: string } | null>(null);
   const [repayId, setRepayId] = useState<number | null>(null);
 
   const params: Record<string, unknown> = {};
@@ -32,6 +34,7 @@ export default function OtherLoansPage() {
 
   const loansQuery = useListOtherLoans(params);
   const createMutation = useCreateOtherLoan();
+  const updateMutation = useUpdateOtherLoan();
   const deleteMutation = useDeleteOtherLoan();
   const repayMutation = useRepayOtherLoan();
   const loans = loansQuery.data ?? [];
@@ -68,6 +71,25 @@ export default function OtherLoansPage() {
       },
     });
     setRepayId(null);
+    loansQuery.refetch();
+  };
+
+  const handleEdit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editItem) return;
+    const fd = new FormData(e.currentTarget);
+    await updateMutation.mutateAsync({
+      id: editItem.id,
+      data: {
+        personName: fd.get("personName") as string,
+        phone: (fd.get("phone") as string) || undefined,
+        amount: fd.get("amount") as string,
+        loanDate: fd.get("loanDate") as string,
+        returnDate: (fd.get("returnDate") as string) || undefined,
+        notes: (fd.get("notes") as string) || undefined,
+      },
+    });
+    setEditItem(null);
     loansQuery.refetch();
   };
 
@@ -154,6 +176,9 @@ export default function OtherLoansPage() {
                   <td className="px-4 py-3 text-sm text-gray-500 max-w-[150px] truncate">{l.notes ?? "-"}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
+                      <button onClick={() => setEditItem({ id: l.id, personName: l.personName, phone: l.phone ?? "", amount: String(l.amount), loanDate: l.loanDate, returnDate: l.returnDate ?? "", notes: l.notes ?? "" })} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Edit">
+                        <Pencil className="w-4 h-4" />
+                      </button>
                       {l.status !== "Cleared" && (
                         <button onClick={() => setRepayId(l.id)} className="p-1.5 text-green-600 hover:bg-green-50 rounded" title="Record Repayment">
                           <Banknote className="w-4 h-4" />
@@ -204,6 +229,46 @@ export default function OtherLoansPage() {
                 <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
                 <button type="submit" disabled={createMutation.isPending} className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50">
                   {createMutation.isPending ? "Adding..." : "Add Loan"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {editItem && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold mb-4">Edit Other Loan</h3>
+            <form onSubmit={handleEdit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Person Name</label>
+                <input name="personName" type="text" required defaultValue={editItem.personName} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phone (optional)</label>
+                <input name="phone" type="text" defaultValue={editItem.phone} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Loan Amount</label>
+                <input name="amount" type="number" step="0.01" min="0.01" required defaultValue={editItem.amount} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Loan Date</label>
+                <input name="loanDate" type="date" required defaultValue={editItem.loanDate} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Expected Return Date (optional)</label>
+                <input name="returnDate" type="date" defaultValue={editItem.returnDate} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
+                <textarea name="notes" rows={2} defaultValue={editItem.notes} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button type="button" onClick={() => setEditItem(null)} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+                <button type="submit" disabled={updateMutation.isPending} className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                  {updateMutation.isPending ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </form>

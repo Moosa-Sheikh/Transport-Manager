@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Loader2, Plus, Banknote, Trash2, Search, X } from "lucide-react";
+import { Loader2, Plus, Banknote, Trash2, Search, X, Pencil } from "lucide-react";
 import {
   useListCustomerDues,
   useCreateCustomerDue,
+  useUpdateCustomerDue,
   useDeleteCustomerDue,
   useRepayCustomerDue,
   useListCustomers,
@@ -21,6 +22,7 @@ const statusColors: Record<string, string> = {
 export default function CustomerDuesPage() {
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [showAdd, setShowAdd] = useState(false);
+  const [editItem, setEditItem] = useState<{ id: number; dueAmount: string; dueDate: string; biltyNumber: string; notes: string } | null>(null);
   const [repayId, setRepayId] = useState<number | null>(null);
 
   const params: Record<string, unknown> = {};
@@ -35,6 +37,7 @@ export default function CustomerDuesPage() {
   const duesQuery = useListCustomerDues(params);
   const customersQuery = useListCustomers({});
   const createMutation = useCreateCustomerDue();
+  const updateMutation = useUpdateCustomerDue();
   const deleteMutation = useDeleteCustomerDue();
   const repayMutation = useRepayCustomerDue();
   const dues = duesQuery.data ?? [];
@@ -71,6 +74,23 @@ export default function CustomerDuesPage() {
       },
     });
     setRepayId(null);
+    duesQuery.refetch();
+  };
+
+  const handleEdit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editItem) return;
+    const fd = new FormData(e.currentTarget);
+    await updateMutation.mutateAsync({
+      id: editItem.id,
+      data: {
+        dueAmount: fd.get("dueAmount") as string,
+        dueDate: fd.get("dueDate") as string,
+        biltyNumber: (fd.get("biltyNumber") as string) || undefined,
+        notes: (fd.get("notes") as string) || undefined,
+      },
+    });
+    setEditItem(null);
     duesQuery.refetch();
   };
 
@@ -161,6 +181,9 @@ export default function CustomerDuesPage() {
                   <td className="px-4 py-3 text-sm text-gray-500 max-w-[150px] truncate">{d.notes ?? "-"}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
+                      <button onClick={() => setEditItem({ id: d.id, dueAmount: String(d.dueAmount), dueDate: d.dueDate, biltyNumber: d.biltyNumber ?? "", notes: d.notes ?? "" })} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Edit">
+                        <Pencil className="w-4 h-4" />
+                      </button>
                       {d.status !== "Cleared" && (
                         <button onClick={() => setRepayId(d.id)} className="p-1.5 text-green-600 hover:bg-green-50 rounded" title="Record Payment">
                           <Banknote className="w-4 h-4" />
@@ -210,6 +233,38 @@ export default function CustomerDuesPage() {
                 <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
                 <button type="submit" disabled={createMutation.isPending} className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50">
                   {createMutation.isPending ? "Adding..." : "Add Due"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {editItem && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold mb-4">Edit Customer Due</h3>
+            <form onSubmit={handleEdit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Due Amount</label>
+                <input name="dueAmount" type="number" step="0.01" min="0.01" required defaultValue={editItem.dueAmount} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+                <input name="dueDate" type="date" required defaultValue={editItem.dueDate} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Bilty Number (optional)</label>
+                <input name="biltyNumber" type="text" defaultValue={editItem.biltyNumber} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
+                <textarea name="notes" rows={2} defaultValue={editItem.notes} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button type="button" onClick={() => setEditItem(null)} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+                <button type="submit" disabled={updateMutation.isPending} className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                  {updateMutation.isPending ? "Saving..." : "Save Changes"}
                 </button>
               </div>
             </form>

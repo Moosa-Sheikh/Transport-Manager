@@ -188,7 +188,7 @@ export default function DashboardPage() {
               <div className="text-xl font-bold text-yellow-700">{formatPKR(summary.outstandingCustomerDues ?? 0)}</div>
             </Link>
 
-            <Link href="/dues/driver-loans" className="bg-white border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow">
+            <Link href="/dues/drivers" className="bg-white border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-cyan-50 text-cyan-600">
                   <UserRound className="w-5 h-5" />
@@ -198,7 +198,7 @@ export default function DashboardPage() {
               <div className="text-xl font-bold text-cyan-700">{formatPKR(summary.outstandingDriverLoans ?? 0)}</div>
             </Link>
 
-            <Link href="/dues/other-loans" className="bg-white border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow">
+            <Link href="/dues/others" className="bg-white border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-pink-50 text-pink-600">
                   <CircleDollarSign className="w-5 h-5" />
@@ -208,7 +208,7 @@ export default function DashboardPage() {
               <div className="text-xl font-bold text-pink-700">{formatPKR(summary.outstandingOtherLoans ?? 0)}</div>
             </Link>
 
-            <Link href="/dues/owner-loans" className="bg-white border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow">
+            <Link href="/dues/owner" className="bg-white border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-amber-50 text-amber-600">
                   <Building className="w-5 h-5" />
