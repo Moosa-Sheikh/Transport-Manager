@@ -56,6 +56,7 @@ const reportsLinks = [
   { href: "/reports/trips", label: "Trip Report", icon: Route },
   { href: "/reports/drivers", label: "Driver Report", icon: UserCog },
   { href: "/reports/trucks", label: "Truck Report", icon: Truck },
+  { href: "/reports/customers", label: "Customer Report", icon: Users },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
