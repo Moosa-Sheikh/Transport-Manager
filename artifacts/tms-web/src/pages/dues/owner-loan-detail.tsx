@@ -5,7 +5,7 @@ import DueDetailPage from "./due-detail";
 export default function OwnerLoanDetailPage() {
   const params = useParams<{ id: string }>();
   const id = Number(params.id);
-  const query = useGetOwnerLoanHistory(id, { query: { enabled: id > 0 } });
+  const query = useGetOwnerLoanHistory(id || 0);
 
   return (
     <DueDetailPage

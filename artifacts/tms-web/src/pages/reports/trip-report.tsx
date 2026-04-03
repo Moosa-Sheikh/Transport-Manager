@@ -16,7 +16,7 @@ export default function TripReportPage() {
     date_to: filters.date_to,
     driver_id: filters.driver_id,
     truck_id: filters.truck_id,
-    status: filters.status,
+    status: filters.status as "Open" | "Closed" | undefined,
   });
 
   const data = query.data || [];

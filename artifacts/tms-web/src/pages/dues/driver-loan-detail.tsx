@@ -5,7 +5,7 @@ import DueDetailPage from "./due-detail";
 export default function DriverLoanDetailPage() {
   const params = useParams<{ id: string }>();
   const id = Number(params.id);
-  const query = useGetDriverLoanHistory(id, { query: { enabled: id > 0 } });
+  const query = useGetDriverLoanHistory(id || 0);
 
   return (
     <DueDetailPage
