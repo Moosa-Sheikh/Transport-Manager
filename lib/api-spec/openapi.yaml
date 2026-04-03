@@ -1152,6 +1152,11 @@ paths:
           in: query
           schema:
             type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [Outstanding, Cleared]
       responses:
         "200":
           description: Customer report data

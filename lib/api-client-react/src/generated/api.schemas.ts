@@ -645,7 +645,16 @@ export type GetCustomerReportParams = {
   date_from?: string;
   date_to?: string;
   customer_id?: number;
+  status?: GetCustomerReportStatus;
 };
+
+export type GetCustomerReportStatus =
+  (typeof GetCustomerReportStatus)[keyof typeof GetCustomerReportStatus];
+
+export const GetCustomerReportStatus = {
+  Outstanding: "Outstanding",
+  Cleared: "Cleared",
+} as const;
 
 export type GetTripReportParams = {
   date_from?: string;

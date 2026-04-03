@@ -24,6 +24,7 @@ export default function CustomerReportPage() {
     date_from: filters.date_from,
     date_to: filters.date_to,
     customer_id: filters.customer_id,
+    status: filters.status as "Outstanding" | "Cleared" | undefined,
   });
 
   const data = query.data || [];
@@ -44,6 +45,7 @@ export default function CustomerReportPage() {
   if (filters.date_from) csvParams.set("date_from", filters.date_from);
   if (filters.date_to) csvParams.set("date_to", filters.date_to);
   if (filters.customer_id) csvParams.set("customer_id", String(filters.customer_id));
+  if (filters.status) csvParams.set("status", filters.status);
 
   return (
     <div className="max-w-6xl">
@@ -56,7 +58,7 @@ export default function CustomerReportPage() {
       </div>
 
       <div className="print:hidden">
-        <ReportFilterBar filters={filters} onChange={setFilters} showCustomer />
+        <ReportFilterBar filters={filters} onChange={setFilters} showCustomer showStatus statusOptions={[{ value: "Outstanding", label: "Outstanding" }, { value: "Cleared", label: "Cleared" }]} />
       </div>
 
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">

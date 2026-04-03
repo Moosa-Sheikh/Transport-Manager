@@ -1033,6 +1033,15 @@ router.post("/owner", async (req: Request, res: Response) => {
     const cleanSourceType = sourceType && validSourceTypes.includes(sourceType) ? sourceType : null;
     const cleanSourceId = cleanSourceType && sourceId && Number.isInteger(Number(sourceId)) && Number(sourceId) > 0 ? Number(sourceId) : null;
 
+    if (cleanSourceType === "Customer" && cleanSourceId) {
+      const [c] = await db.select({ id: customersTable.id }).from(customersTable).where(eq(customersTable.id, cleanSourceId));
+      if (!c) { res.status(400).json({ error: "Selected customer does not exist" }); return; }
+    }
+    if (cleanSourceType === "Driver" && cleanSourceId) {
+      const [d] = await db.select({ id: driversTable.id }).from(driversTable).where(eq(driversTable.id, cleanSourceId));
+      if (!d) { res.status(400).json({ error: "Selected driver does not exist" }); return; }
+    }
+
     const result = await db.transaction(async (tx) => {
       const [inserted] = await tx.insert(ownerLoansTable).values({
         borrowedFrom: borrowedFrom.trim(),
@@ -1095,6 +1104,16 @@ router.put("/owner/:id", async (req: Request, res: Response) => {
     }
     if (sourceId !== undefined) {
       updates.sourceId = sourceId && Number.isInteger(Number(sourceId)) && Number(sourceId) > 0 ? Number(sourceId) : null;
+    }
+    const finalSourceType = updates.sourceType !== undefined ? updates.sourceType : existing.sourceType;
+    const finalSourceId = updates.sourceId !== undefined ? updates.sourceId : existing.sourceId;
+    if (finalSourceType === "Customer" && finalSourceId) {
+      const [c] = await db.select({ id: customersTable.id }).from(customersTable).where(eq(customersTable.id, finalSourceId));
+      if (!c) { res.status(400).json({ error: "Selected customer does not exist" }); return; }
+    }
+    if (finalSourceType === "Driver" && finalSourceId) {
+      const [d] = await db.select({ id: driversTable.id }).from(driversTable).where(eq(driversTable.id, finalSourceId));
+      if (!d) { res.status(400).json({ error: "Selected driver does not exist" }); return; }
     }
     let amountChanged = false;
     if (amount !== undefined) {

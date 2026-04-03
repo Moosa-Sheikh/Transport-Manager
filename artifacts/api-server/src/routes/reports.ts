@@ -178,7 +178,7 @@ async function buildDriverReportData(dateFrom?: string | null, dateTo?: string |
   });
 }
 
-async function buildCustomerReportData(dateFrom?: string | null, dateTo?: string | null, customerId?: number) {
+async function buildCustomerReportData(dateFrom?: string | null, dateTo?: string | null, customerId?: number, status?: string) {
   const dateCondition = [];
   if (dateFrom) dateCondition.push(sql`t.trip_date >= ${dateFrom}`);
   if (dateTo) dateCondition.push(sql`t.trip_date <= ${dateTo}`);
@@ -226,7 +226,7 @@ async function buildCustomerReportData(dateFrom?: string | null, dateTo?: string
     ORDER BY c.name
   `);
 
-  return (rows.rows as Record<string, unknown>[]).map((r) => ({
+  const mapped = (rows.rows as Record<string, unknown>[]).map((r) => ({
     customerId: Number(r.customerId),
     customerName: String(r.customerName),
     companyName: r.companyName ? String(r.companyName) : null,
@@ -236,6 +236,10 @@ async function buildCustomerReportData(dateFrom?: string | null, dateTo?: string
     totalDues: Number(r.totalDues),
     outstandingBalance: Number(r.outstandingBalance),
   }));
+
+  if (status === "Outstanding") return mapped.filter((r) => r.outstandingBalance > 0);
+  if (status === "Cleared") return mapped.filter((r) => r.outstandingBalance <= 0);
+  return mapped;
 }
 
 async function buildTruckReportData(dateFrom?: string | null, dateTo?: string | null) {
@@ -375,7 +379,8 @@ router.get("/customers", async (req: Request, res: Response) => {
     const dateFrom = validateDateParam(req.query.date_from);
     const dateTo = validateDateParam(req.query.date_to);
     const custId = req.query.customer_id ? Number(req.query.customer_id) : undefined;
-    const data = await buildCustomerReportData(dateFrom, dateTo, Number.isInteger(custId) && custId! > 0 ? custId : undefined);
+    const custStatus = req.query.status === "Outstanding" || req.query.status === "Cleared" ? String(req.query.status) : undefined;
+    const data = await buildCustomerReportData(dateFrom, dateTo, Number.isInteger(custId) && custId! > 0 ? custId : undefined, custStatus);
     res.json(data);
   } catch (err) {
     req.log.error({ err }, "Customer report error");
@@ -544,7 +549,8 @@ router.get("/export/csv", async (req: Request, res: Response) => {
       }
       case "customers": {
         const custIdCsv = req.query.customer_id ? Number(req.query.customer_id) : undefined;
-        const data = await buildCustomerReportData(dateFrom, dateTo, Number.isInteger(custIdCsv) && custIdCsv! > 0 ? custIdCsv : undefined);
+        const custStatusCsv = req.query.status === "Outstanding" || req.query.status === "Cleared" ? String(req.query.status) : undefined;
+        const data = await buildCustomerReportData(dateFrom, dateTo, Number.isInteger(custIdCsv) && custIdCsv! > 0 ? custIdCsv : undefined, custStatusCsv);
         const header = ["Customer ID", "Customer", "Company", "Total Trips", "Total Freight", "Total Received", "Total Dues", "Outstanding Balance"];
         csvContent = toCsvRow(header) + "\n" + data.map((r) =>
           toCsvRow([r.customerId, r.customerName, r.companyName ?? "", r.totalTrips, r.totalFreight, r.totalReceived, r.totalDues, r.outstandingBalance])

@@ -7,7 +7,7 @@ export interface ReportFilters {
   driver_id?: number;
   truck_id?: number;
   customer_id?: number;
-  status?: "Open" | "Closed";
+  status?: string;
 }
 
 interface Props {
@@ -17,9 +17,16 @@ interface Props {
   showTruck?: boolean;
   showStatus?: boolean;
   showCustomer?: boolean;
+  statusOptions?: { value: string; label: string }[];
 }
 
-export default function ReportFilterBar({ filters, onChange, showDriver, showTruck, showStatus, showCustomer }: Props) {
+const defaultStatusOptions = [
+  { value: "Open", label: "Open" },
+  { value: "Closed", label: "Closed" },
+];
+
+export default function ReportFilterBar({ filters, onChange, showDriver, showTruck, showStatus, showCustomer, statusOptions }: Props) {
+  const activeStatusOptions = statusOptions || defaultStatusOptions;
   const driversQuery = useListDrivers({});
   const trucksQuery = useListTrucks({});
   const customersQuery = useListCustomers({});
@@ -108,12 +115,11 @@ export default function ReportFilterBar({ filters, onChange, showDriver, showTru
             <label className="block text-xs font-medium text-gray-600 mb-1">Status</label>
             <select
               value={filters.status ?? ""}
-              onChange={(e) => onChange({ ...filters, status: (e.target.value || undefined) as "Open" | "Closed" | undefined })}
+              onChange={(e) => onChange({ ...filters, status: e.target.value || undefined })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">All</option>
-              <option value="Open">Open</option>
-              <option value="Closed">Closed</option>
+              {activeStatusOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
         )}

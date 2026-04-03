@@ -27,7 +27,9 @@ export default function OwnerLoansPage() {
   const [editItem, setEditItem] = useState<{ id: number; borrowedFrom: string; amount: string; loanDate: string; returnDate: string; notes: string; sourceId?: number } | null>(null);
   const [repayId, setRepayId] = useState<number | null>(null);
   const [sourceType, setSourceType] = useState<string>("");
+  const [addBorrowedFrom, setAddBorrowedFrom] = useState<string>("");
   const [editSourceType, setEditSourceType] = useState<string>("");
+  const [editBorrowedFrom, setEditBorrowedFrom] = useState<string>("");
 
   const customersQuery = useListCustomers({});
   const driversQuery = useListDrivers({});
@@ -51,14 +53,25 @@ export default function OwnerLoansPage() {
 
   const totalOutstanding = loans.reduce((sum, l) => sum + (l.balance ?? 0), 0);
 
+  const resolveSourceName = (st: string, si: string): string | undefined => {
+    if (st === "Customer" && si) {
+      return customersList.find((c) => String(c.id) === si)?.name;
+    }
+    if (st === "Driver" && si) {
+      return driversList.find((d) => String(d.id) === si)?.name;
+    }
+    return undefined;
+  };
+
   const handleAdd = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const st = fd.get("sourceType") as string;
     const si = fd.get("sourceId") as string;
+    const autoName = resolveSourceName(st, si);
     await createMutation.mutateAsync({
       data: {
-        borrowedFrom: fd.get("borrowedFrom") as string,
+        borrowedFrom: autoName || (fd.get("borrowedFrom") as string),
         sourceType: st ? st as "Customer" | "Driver" | "Other" : undefined,
         sourceId: si ? Number(si) : undefined,
         amount: fd.get("amount") as string,
@@ -69,6 +82,7 @@ export default function OwnerLoansPage() {
     });
     setShowAdd(false);
     setSourceType("");
+    setAddBorrowedFrom("");
     loansQuery.refetch();
   };
 
@@ -197,7 +211,7 @@ export default function OwnerLoansPage() {
                       <Link href={`/dues/owner/${l.id}`} className="p-1.5 text-gray-600 hover:bg-gray-100 rounded" title="View Details">
                         <Eye className="w-4 h-4" />
                       </Link>
-                      <button onClick={() => { setEditItem({ id: l.id, borrowedFrom: l.borrowedFrom, amount: String(l.amount), loanDate: l.loanDate, returnDate: l.returnDate ?? "", notes: l.notes ?? "", sourceId: l.sourceId ?? undefined }); setEditSourceType(l.sourceType ?? ""); }} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Edit">
+                      <button onClick={() => { setEditItem({ id: l.id, borrowedFrom: l.borrowedFrom, amount: String(l.amount), loanDate: l.loanDate, returnDate: l.returnDate ?? "", notes: l.notes ?? "", sourceId: l.sourceId ?? undefined }); setEditSourceType(l.sourceType ?? ""); setEditBorrowedFrom(l.borrowedFrom); }} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Edit">
                         <Pencil className="w-4 h-4" />
                       </button>
                       {l.status !== "Cleared" && (
@@ -223,13 +237,9 @@ export default function OwnerLoansPage() {
             <h3 className="text-lg font-semibold mb-4">Add Owner Loan</h3>
             <form onSubmit={handleAdd} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Borrowed From</label>
-                <input name="borrowedFrom" type="text" required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Source Type (optional)</label>
-                <select name="sourceType" value={sourceType} onChange={(e) => setSourceType(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                  <option value="">-- None --</option>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Source Type</label>
+                <select name="sourceType" value={sourceType} onChange={(e) => { setSourceType(e.target.value); setAddBorrowedFrom(""); }} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                  <option value="">-- None (manual entry) --</option>
                   <option value="Customer">Customer</option>
                   <option value="Driver">Driver</option>
                   <option value="Other">Other</option>
@@ -238,7 +248,7 @@ export default function OwnerLoansPage() {
               {sourceType === "Customer" && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Select Customer</label>
-                  <select name="sourceId" required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                  <select name="sourceId" required onChange={(e) => { const name = resolveSourceName("Customer", e.target.value); if (name) setAddBorrowedFrom(name); }} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
                     <option value="">-- Select --</option>
                     {customersList.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
@@ -247,7 +257,7 @@ export default function OwnerLoansPage() {
               {sourceType === "Driver" && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Select Driver</label>
-                  <select name="sourceId" required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                  <select name="sourceId" required onChange={(e) => { const name = resolveSourceName("Driver", e.target.value); if (name) setAddBorrowedFrom(name); }} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
                     <option value="">-- Select --</option>
                     {driversList.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
@@ -259,6 +269,11 @@ export default function OwnerLoansPage() {
                   <input name="sourceId" type="number" min="1" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Reference ID" />
                 </div>
               )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Borrowed From</label>
+                <input name="borrowedFrom" type="text" required value={addBorrowedFrom} onChange={(e) => setAddBorrowedFrom(e.target.value)} readOnly={sourceType === "Customer" || sourceType === "Driver"} className={`w-full border border-gray-300 rounded-lg px-3 py-2 text-sm ${sourceType === "Customer" || sourceType === "Driver" ? "bg-gray-100" : ""}`} />
+                {(sourceType === "Customer" || sourceType === "Driver") && <p className="text-xs text-gray-500 mt-1">Auto-filled from selected {sourceType.toLowerCase()}</p>}
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Loan Amount</label>
                 <input name="amount" type="number" step="0.01" min="0.01" required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
@@ -292,13 +307,9 @@ export default function OwnerLoansPage() {
             <h3 className="text-lg font-semibold mb-4">Edit Owner Loan</h3>
             <form onSubmit={handleEdit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Borrowed From</label>
-                <input name="borrowedFrom" type="text" required defaultValue={editItem.borrowedFrom} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Source Type (optional)</label>
-                <select name="sourceType" value={editSourceType} onChange={(e) => setEditSourceType(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                  <option value="">-- None --</option>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Source Type</label>
+                <select name="sourceType" value={editSourceType} onChange={(e) => { setEditSourceType(e.target.value); if (e.target.value !== "Customer" && e.target.value !== "Driver") setEditBorrowedFrom(editItem.borrowedFrom); }} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                  <option value="">-- None (manual entry) --</option>
                   <option value="Customer">Customer</option>
                   <option value="Driver">Driver</option>
                   <option value="Other">Other</option>
@@ -307,7 +318,7 @@ export default function OwnerLoansPage() {
               {editSourceType === "Customer" && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Select Customer</label>
-                  <select name="sourceId" required defaultValue={editItem.sourceId ?? ""} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                  <select name="sourceId" required defaultValue={editItem.sourceId ?? ""} onChange={(e) => { const name = resolveSourceName("Customer", e.target.value); if (name) setEditBorrowedFrom(name); }} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
                     <option value="">-- Select --</option>
                     {customersList.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
@@ -316,7 +327,7 @@ export default function OwnerLoansPage() {
               {editSourceType === "Driver" && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Select Driver</label>
-                  <select name="sourceId" required defaultValue={editItem.sourceId ?? ""} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                  <select name="sourceId" required defaultValue={editItem.sourceId ?? ""} onChange={(e) => { const name = resolveSourceName("Driver", e.target.value); if (name) setEditBorrowedFrom(name); }} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
                     <option value="">-- Select --</option>
                     {driversList.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
@@ -328,6 +339,11 @@ export default function OwnerLoansPage() {
                   <input name="sourceId" type="number" min="1" defaultValue={editItem.sourceId ?? ""} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Reference ID" />
                 </div>
               )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Borrowed From</label>
+                <input name="borrowedFrom" type="text" required value={editBorrowedFrom} onChange={(e) => setEditBorrowedFrom(e.target.value)} readOnly={editSourceType === "Customer" || editSourceType === "Driver"} className={`w-full border border-gray-300 rounded-lg px-3 py-2 text-sm ${editSourceType === "Customer" || editSourceType === "Driver" ? "bg-gray-100" : ""}`} />
+                {(editSourceType === "Customer" || editSourceType === "Driver") && <p className="text-xs text-gray-500 mt-1">Auto-filled from selected {editSourceType.toLowerCase()}</p>}
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Loan Amount</label>
                 <input name="amount" type="number" step="0.01" min="0.01" required defaultValue={editItem.amount} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
