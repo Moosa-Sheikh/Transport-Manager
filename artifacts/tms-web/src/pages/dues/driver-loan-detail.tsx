@@ -13,7 +13,7 @@ export default function DriverLoanDetailPage() {
       backHref="/dues/drivers"
       isLoading={query.isLoading}
       data={query.data}
-      reportLink={{ href: "/reports/drivers", label: "View Full Driver Report" }}
+      reportLink={{ href: "/reports/drivers", label: "View Full Driver Report", personIdParam: "driver_id" }}
     />
   );
 }

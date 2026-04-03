@@ -102,7 +102,7 @@ async function buildTripReportData(filters: {
   });
 }
 
-async function buildDriverReportData(dateFrom?: string | null, dateTo?: string | null) {
+async function buildDriverReportData(dateFrom?: string | null, dateTo?: string | null, driverId?: number) {
   const dateCondition = [];
   if (dateFrom) dateCondition.push(sql`t.trip_date >= ${dateFrom}`);
   if (dateTo) dateCondition.push(sql`t.trip_date <= ${dateTo}`);
@@ -150,6 +150,7 @@ async function buildDriverReportData(dateFrom?: string | null, dateTo?: string |
         FROM driver_loans dl WHERE dl.driver_id = d.id ${loanWhere}
       ), 0)::double precision AS "totalLoanReturned"
     FROM drivers d
+    ${driverId ? sql`WHERE d.id = ${driverId}` : sql``}
     ORDER BY d.name
   `);
 
@@ -412,7 +413,9 @@ router.get("/drivers", async (req: Request, res: Response) => {
   try {
     const dateFrom = validateDateParam(req.query.date_from);
     const dateTo = validateDateParam(req.query.date_to);
-    const data = await buildDriverReportData(dateFrom, dateTo);
+    const driverIdRaw = req.query.driver_id ? Number(req.query.driver_id) : undefined;
+    const driverId = driverIdRaw && Number.isInteger(driverIdRaw) && driverIdRaw > 0 ? driverIdRaw : undefined;
+    const data = await buildDriverReportData(dateFrom, dateTo, driverId);
     res.json(data);
   } catch (err) {
     req.log.error({ err }, "Driver report error");
@@ -494,7 +497,9 @@ router.get("/export/csv", async (req: Request, res: Response) => {
         break;
       }
       case "drivers": {
-        const data = await buildDriverReportData(dateFrom, dateTo);
+        const drvIdRaw = req.query.driver_id ? Number(req.query.driver_id) : undefined;
+        const drvId = drvIdRaw && Number.isInteger(drvIdRaw) && drvIdRaw > 0 ? drvIdRaw : undefined;
+        const data = await buildDriverReportData(dateFrom, dateTo, drvId);
         const header = ["Driver ID", "Driver", "Total Trips", "Income", "Expenses", "Advances", "Salary", "Net Paid", "Profit Generated", "Total Loans", "Loan Returned", "Loan Balance"];
         csvContent = toCsvRow(header) + "\n" + data.map((r) =>
           toCsvRow([r.driverId, r.driverName, r.totalTrips, r.totalIncome, r.totalExpenses, r.totalAdvances, r.totalSalary, r.netPaid, r.profitGenerated, r.totalLoans, r.totalLoanReturned, r.outstandingLoanBalance])

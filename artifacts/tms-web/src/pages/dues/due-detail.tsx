@@ -23,6 +23,7 @@ interface Repayment {
 interface DueDetail {
   id: number;
   label: string;
+  personId?: number;
   amount: string;
   amountReturned: string;
   balance: number;
@@ -37,7 +38,7 @@ interface DueDetailPageProps {
   backHref: string;
   isLoading: boolean;
   data?: DueDetail;
-  reportLink?: { href: string; label: string };
+  reportLink?: { href: string; label: string; personIdParam?: string };
 }
 
 export default function DueDetailPage({ title, backHref, isLoading, data, reportLink }: DueDetailPageProps) {
@@ -155,7 +156,12 @@ export default function DueDetailPage({ title, backHref, isLoading, data, report
 
       {reportLink && (
         <div className="mt-6 text-center">
-          <Link href={reportLink.href} className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline">
+          <Link
+            href={data.personId && reportLink.personIdParam
+              ? `${reportLink.href}?${reportLink.personIdParam}=${data.personId}`
+              : reportLink.href}
+            className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline"
+          >
             <FileText className="w-4 h-4" />
             {reportLink.label}
           </Link>

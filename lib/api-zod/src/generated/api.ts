@@ -767,6 +767,7 @@ export const GetTripReportResponse = zod.array(GetTripReportResponseItem);
 export const GetDriverReportQueryParams = zod.object({
   date_from: zod.coerce.string().optional(),
   date_to: zod.coerce.string().optional(),
+  driver_id: zod.coerce.number().optional(),
 });
 
 export const GetDriverReportResponseItem = zod.object({
@@ -1001,6 +1002,7 @@ export const GetCustomerDueHistoryParams = zod.object({
 export const GetCustomerDueHistoryResponse = zod.object({
   id: zod.number(),
   label: zod.string(),
+  personId: zod.number().optional(),
   amount: zod.string(),
   amountReturned: zod.string(),
   balance: zod.number(),
@@ -1132,6 +1134,7 @@ export const GetDriverLoanHistoryParams = zod.object({
 export const GetDriverLoanHistoryResponse = zod.object({
   id: zod.number(),
   label: zod.string(),
+  personId: zod.number().optional(),
   amount: zod.string(),
   amountReturned: zod.string(),
   balance: zod.number(),
@@ -1267,6 +1270,7 @@ export const GetOtherLoanHistoryParams = zod.object({
 export const GetOtherLoanHistoryResponse = zod.object({
   id: zod.number(),
   label: zod.string(),
+  personId: zod.number().optional(),
   amount: zod.string(),
   amountReturned: zod.string(),
   balance: zod.number(),
@@ -1407,6 +1411,7 @@ export const GetOwnerLoanHistoryParams = zod.object({
 export const GetOwnerLoanHistoryResponse = zod.object({
   id: zod.number(),
   label: zod.string(),
+  personId: zod.number().optional(),
   amount: zod.string(),
   amountReturned: zod.string(),
   balance: zod.number(),

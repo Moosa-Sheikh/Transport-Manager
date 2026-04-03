@@ -555,6 +555,7 @@ export interface RepaymentHistoryItem {
 export interface DueDetailWithHistory {
   id: number;
   label: string;
+  personId?: number;
   amount: string;
   amountReturned: string;
   balance: number;
@@ -665,6 +666,7 @@ export const GetTripReportStatus = {
 export type GetDriverReportParams = {
   date_from?: string;
   date_to?: string;
+  driver_id?: number;
 };
 
 export type GetTruckReportParams = {

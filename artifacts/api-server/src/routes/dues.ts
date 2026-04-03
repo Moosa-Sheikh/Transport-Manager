@@ -580,11 +580,12 @@ router.get("/drivers/:id/history", async (req: Request, res: Response) => {
       createdAt: dueRepaymentsTable.createdAt,
     }).from(dueRepaymentsTable)
       .where(and(eq(dueRepaymentsTable.dueId, id), eq(dueRepaymentsTable.dueType, "driver")))
-      .orderBy(sql`${dueRepaymentsTable.paymentDate} DESC`);
+      .orderBy(sql`${dueRepaymentsTable.paymentDate} ASC`);
 
     res.json({
       id: loan.id,
       label: loan.driverName ?? "Unknown Driver",
+      personId: loan.driverId,
       amount: loan.amount,
       amountReturned: loan.amountReturned,
       balance: Number(loan.amount) - Number(loan.amountReturned),
@@ -632,11 +633,12 @@ router.get("/customers/:id/history", async (req: Request, res: Response) => {
       createdAt: dueRepaymentsTable.createdAt,
     }).from(dueRepaymentsTable)
       .where(and(eq(dueRepaymentsTable.dueId, id), eq(dueRepaymentsTable.dueType, "customer")))
-      .orderBy(sql`${dueRepaymentsTable.paymentDate} DESC`);
+      .orderBy(sql`${dueRepaymentsTable.paymentDate} ASC`);
 
     res.json({
       id: due.id,
       label: `${due.customerName ?? "Unknown"} — ${due.biltyNumber ?? "No Bilty"}`,
+      personId: due.customerId,
       amount: due.dueAmount,
       amountReturned: due.paidAmount,
       balance: Number(due.dueAmount) - Number(due.paidAmount),
@@ -938,7 +940,7 @@ router.get("/others/:id/history", async (req: Request, res: Response) => {
       createdAt: dueRepaymentsTable.createdAt,
     }).from(dueRepaymentsTable)
       .where(and(eq(dueRepaymentsTable.dueId, id), eq(dueRepaymentsTable.dueType, "other")))
-      .orderBy(sql`${dueRepaymentsTable.paymentDate} DESC`);
+      .orderBy(sql`${dueRepaymentsTable.paymentDate} ASC`);
 
     res.json({
       id: loan.id,
@@ -1256,7 +1258,7 @@ router.get("/owner/:id/history", async (req: Request, res: Response) => {
       createdAt: dueRepaymentsTable.createdAt,
     }).from(dueRepaymentsTable)
       .where(and(eq(dueRepaymentsTable.dueId, id), eq(dueRepaymentsTable.dueType, "owner")))
-      .orderBy(sql`${dueRepaymentsTable.paymentDate} DESC`);
+      .orderBy(sql`${dueRepaymentsTable.paymentDate} ASC`);
 
     res.json({
       id: loan.id,

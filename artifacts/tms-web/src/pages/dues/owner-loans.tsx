@@ -24,7 +24,7 @@ const statusColors: Record<string, string> = {
 export default function OwnerLoansPage() {
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [showAdd, setShowAdd] = useState(false);
-  const [editItem, setEditItem] = useState<{ id: number; borrowedFrom: string; amount: string; loanDate: string; returnDate: string; notes: string } | null>(null);
+  const [editItem, setEditItem] = useState<{ id: number; borrowedFrom: string; amount: string; loanDate: string; returnDate: string; notes: string; sourceId?: number } | null>(null);
   const [repayId, setRepayId] = useState<number | null>(null);
   const [sourceType, setSourceType] = useState<string>("");
   const [editSourceType, setEditSourceType] = useState<string>("");
@@ -197,7 +197,7 @@ export default function OwnerLoansPage() {
                       <Link href={`/dues/owner/${l.id}`} className="p-1.5 text-gray-600 hover:bg-gray-100 rounded" title="View Details">
                         <Eye className="w-4 h-4" />
                       </Link>
-                      <button onClick={() => { setEditItem({ id: l.id, borrowedFrom: l.borrowedFrom, amount: String(l.amount), loanDate: l.loanDate, returnDate: l.returnDate ?? "", notes: l.notes ?? "" }); setEditSourceType(l.sourceType ?? ""); }} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Edit">
+                      <button onClick={() => { setEditItem({ id: l.id, borrowedFrom: l.borrowedFrom, amount: String(l.amount), loanDate: l.loanDate, returnDate: l.returnDate ?? "", notes: l.notes ?? "", sourceId: l.sourceId ?? undefined }); setEditSourceType(l.sourceType ?? ""); }} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Edit">
                         <Pencil className="w-4 h-4" />
                       </button>
                       {l.status !== "Cleared" && (
@@ -307,7 +307,7 @@ export default function OwnerLoansPage() {
               {editSourceType === "Customer" && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Select Customer</label>
-                  <select name="sourceId" required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                  <select name="sourceId" required defaultValue={editItem.sourceId ?? ""} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
                     <option value="">-- Select --</option>
                     {customersList.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
@@ -316,7 +316,7 @@ export default function OwnerLoansPage() {
               {editSourceType === "Driver" && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Select Driver</label>
-                  <select name="sourceId" required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                  <select name="sourceId" required defaultValue={editItem.sourceId ?? ""} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
                     <option value="">-- Select --</option>
                     {driversList.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
@@ -325,7 +325,7 @@ export default function OwnerLoansPage() {
               {editSourceType === "Other" && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Source Reference (optional)</label>
-                  <input name="sourceId" type="number" min="1" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Reference ID" />
+                  <input name="sourceId" type="number" min="1" defaultValue={editItem.sourceId ?? ""} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Reference ID" />
                 </div>
               )}
               <div>

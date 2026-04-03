@@ -10,6 +10,7 @@ import type { RepaymentHistoryItem } from "./repaymentHistoryItem";
 export interface DueDetailWithHistory {
   id: number;
   label: string;
+  personId?: number;
   amount: string;
   amountReturned: string;
   balance: number;

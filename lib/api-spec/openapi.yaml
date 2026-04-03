@@ -1213,6 +1213,10 @@ paths:
           in: query
           schema:
             type: string
+        - name: driver_id
+          in: query
+          schema:
+            type: integer
       responses:
         "200":
           description: Driver report data
@@ -2938,6 +2942,8 @@ components:
           type: integer
         label:
           type: string
+        personId:
+          type: integer
         amount:
           type: string
         amountReturned:

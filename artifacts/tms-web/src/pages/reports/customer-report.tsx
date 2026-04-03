@@ -8,8 +8,17 @@ function formatPKR(val: number) {
   return new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val);
 }
 
+function getInitialFilters(): ReportFilters {
+  const params = new URLSearchParams(window.location.search);
+  const f: ReportFilters = {};
+  if (params.get("customer_id")) f.customer_id = Number(params.get("customer_id"));
+  if (params.get("date_from")) f.date_from = params.get("date_from")!;
+  if (params.get("date_to")) f.date_to = params.get("date_to")!;
+  return f;
+}
+
 export default function CustomerReportPage() {
-  const [filters, setFilters] = useState<ReportFilters>({});
+  const [filters, setFilters] = useState<ReportFilters>(getInitialFilters);
 
   const query = useGetCustomerReport({
     date_from: filters.date_from,
@@ -25,8 +34,9 @@ export default function CustomerReportPage() {
       received: acc.received + r.totalReceived,
       dues: acc.dues + r.totalDues,
       outstanding: acc.outstanding + r.outstandingBalance,
+      netBalance: acc.netBalance + (r.totalFreight - r.totalReceived),
     }),
-    { trips: 0, freight: 0, received: 0, dues: 0, outstanding: 0 }
+    { trips: 0, freight: 0, received: 0, dues: 0, outstanding: 0, netBalance: 0 }
   );
 
   const csvParams = new URLSearchParams();
@@ -69,20 +79,25 @@ export default function CustomerReportPage() {
                   <th className="text-right px-4 py-3 font-medium text-green-700">Received</th>
                   <th className="text-right px-4 py-3 font-medium text-orange-700">Total Dues</th>
                   <th className="text-right px-4 py-3 font-medium text-red-700">Outstanding</th>
+                  <th className="text-right px-4 py-3 font-medium text-purple-700">Net Balance</th>
                 </tr>
               </thead>
               <tbody>
-                {data.map((r) => (
-                  <tr key={r.customerId} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-900">{r.customerName}</td>
-                    <td className="px-4 py-3 text-gray-600">{r.companyName ?? "-"}</td>
-                    <td className="px-4 py-3 text-right text-gray-700">{r.totalTrips}</td>
-                    <td className="px-4 py-3 text-right text-blue-700">{formatPKR(r.totalFreight)}</td>
-                    <td className="px-4 py-3 text-right text-green-700">{formatPKR(r.totalReceived)}</td>
-                    <td className="px-4 py-3 text-right text-orange-700">{formatPKR(r.totalDues)}</td>
-                    <td className={`px-4 py-3 text-right font-semibold ${r.outstandingBalance > 0 ? "text-red-700" : "text-green-700"}`}>{formatPKR(r.outstandingBalance)}</td>
-                  </tr>
-                ))}
+                {data.map((r) => {
+                  const netBalance = r.totalFreight - r.totalReceived;
+                  return (
+                    <tr key={r.customerId} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-gray-900">{r.customerName}</td>
+                      <td className="px-4 py-3 text-gray-600">{r.companyName ?? "-"}</td>
+                      <td className="px-4 py-3 text-right text-gray-700">{r.totalTrips}</td>
+                      <td className="px-4 py-3 text-right text-blue-700">{formatPKR(r.totalFreight)}</td>
+                      <td className="px-4 py-3 text-right text-green-700">{formatPKR(r.totalReceived)}</td>
+                      <td className="px-4 py-3 text-right text-orange-700">{formatPKR(r.totalDues)}</td>
+                      <td className={`px-4 py-3 text-right font-semibold ${r.outstandingBalance > 0 ? "text-red-700" : "text-green-700"}`}>{formatPKR(r.outstandingBalance)}</td>
+                      <td className={`px-4 py-3 text-right font-semibold ${netBalance > 0 ? "text-purple-700" : "text-green-700"}`}>{formatPKR(netBalance)}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
               <tfoot>
                 <tr className="bg-gray-100 border-t-2 border-gray-300 font-semibold">
@@ -93,6 +108,7 @@ export default function CustomerReportPage() {
                   <td className="px-4 py-3 text-right text-green-800">{formatPKR(totals.received)}</td>
                   <td className="px-4 py-3 text-right text-orange-800">{formatPKR(totals.dues)}</td>
                   <td className={`px-4 py-3 text-right ${totals.outstanding > 0 ? "text-red-800" : "text-green-800"}`}>{formatPKR(totals.outstanding)}</td>
+                  <td className={`px-4 py-3 text-right ${totals.netBalance > 0 ? "text-purple-800" : "text-green-800"}`}>{formatPKR(totals.netBalance)}</td>
                 </tr>
               </tfoot>
             </table>

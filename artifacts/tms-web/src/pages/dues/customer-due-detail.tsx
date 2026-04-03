@@ -13,7 +13,7 @@ export default function CustomerDueDetailPage() {
       backHref="/dues/customers"
       isLoading={query.isLoading}
       data={query.data}
-      reportLink={{ href: "/reports/customers", label: "View Full Customer Report" }}
+      reportLink={{ href: "/reports/customers", label: "View Full Customer Report", personIdParam: "customer_id" }}
     />
   );
 }

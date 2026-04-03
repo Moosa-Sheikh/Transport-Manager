@@ -8,12 +8,22 @@ function formatPKR(val: number) {
   return new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val);
 }
 
+function getInitialDriverFilters(): ReportFilters {
+  const params = new URLSearchParams(window.location.search);
+  const f: ReportFilters = {};
+  if (params.get("driver_id")) f.driver_id = Number(params.get("driver_id"));
+  if (params.get("date_from")) f.date_from = params.get("date_from")!;
+  if (params.get("date_to")) f.date_to = params.get("date_to")!;
+  return f;
+}
+
 export default function DriverReportPage() {
-  const [filters, setFilters] = useState<ReportFilters>({});
+  const [filters, setFilters] = useState<ReportFilters>(getInitialDriverFilters);
 
   const query = useGetDriverReport({
     date_from: filters.date_from,
     date_to: filters.date_to,
+    driver_id: filters.driver_id,
   });
 
   const data = query.data || [];
@@ -37,6 +47,7 @@ export default function DriverReportPage() {
   csvParams.set("type", "drivers");
   if (filters.date_from) csvParams.set("date_from", filters.date_from);
   if (filters.date_to) csvParams.set("date_to", filters.date_to);
+  if (filters.driver_id) csvParams.set("driver_id", String(filters.driver_id));
 
   return (
     <div className="max-w-6xl">
@@ -49,7 +60,7 @@ export default function DriverReportPage() {
       </div>
 
       <div className="print:hidden">
-        <ReportFilterBar filters={filters} onChange={setFilters} />
+        <ReportFilterBar filters={filters} onChange={setFilters} showDriver />
       </div>
 
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">

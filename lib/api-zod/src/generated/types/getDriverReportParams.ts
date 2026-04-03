@@ -9,4 +9,5 @@
 export type GetDriverReportParams = {
   date_from?: string;
   date_to?: string;
+  driver_id?: number;
 };
