@@ -1,11 +1,12 @@
 import { Filter } from "lucide-react";
-import { useListDrivers, useListTrucks } from "@workspace/api-client-react";
+import { useListDrivers, useListTrucks, useListCustomers } from "@workspace/api-client-react";
 
 export interface ReportFilters {
   date_from?: string;
   date_to?: string;
   driver_id?: number;
   truck_id?: number;
+  customer_id?: number;
   status?: "Open" | "Closed";
 }
 
@@ -15,13 +16,15 @@ interface Props {
   showDriver?: boolean;
   showTruck?: boolean;
   showStatus?: boolean;
+  showCustomer?: boolean;
 }
 
-export default function ReportFilterBar({ filters, onChange, showDriver, showTruck, showStatus }: Props) {
+export default function ReportFilterBar({ filters, onChange, showDriver, showTruck, showStatus, showCustomer }: Props) {
   const driversQuery = useListDrivers({});
   const trucksQuery = useListTrucks({});
+  const customersQuery = useListCustomers({});
 
-  const hasFilters = filters.date_from || filters.date_to || filters.driver_id || filters.truck_id || filters.status;
+  const hasFilters = filters.date_from || filters.date_to || filters.driver_id || filters.truck_id || filters.customer_id || filters.status;
 
   return (
     <div className="mb-6 p-4 bg-white border border-gray-200 rounded-lg">
@@ -81,6 +84,21 @@ export default function ReportFilterBar({ filters, onChange, showDriver, showTru
               <option value="">All Trucks</option>
               {(trucksQuery.data || []).map((t) => (
                 <option key={t.id} value={t.id}>{t.truckNumber}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        {showCustomer && (
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Customer</label>
+            <select
+              value={filters.customer_id ?? ""}
+              onChange={(e) => onChange({ ...filters, customer_id: e.target.value ? Number(e.target.value) : undefined })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">All Customers</option>
+              {(customersQuery.data || []).map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
               ))}
             </select>
           </div>

@@ -180,7 +180,7 @@ export default function OwnerLoansPage() {
               {loans.map((l) => (
                 <tr key={l.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-sm text-gray-900">{l.borrowedFrom}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{(l as any).sourceType ? `${(l as any).sourceType}` : "-"}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{l.sourceType ?? "-"}</td>
                   <td className="px-4 py-3 text-sm text-gray-900 text-right">{formatPKR(Number(l.amount))}</td>
                   <td className="px-4 py-3 text-sm text-green-700 text-right">{formatPKR(Number(l.amountReturned))}</td>
                   <td className="px-4 py-3 text-sm font-medium text-red-700 text-right">{formatPKR(l.balance ?? 0)}</td>
@@ -197,7 +197,7 @@ export default function OwnerLoansPage() {
                       <Link href={`/dues/owner/${l.id}`} className="p-1.5 text-gray-600 hover:bg-gray-100 rounded" title="View Details">
                         <Eye className="w-4 h-4" />
                       </Link>
-                      <button onClick={() => { setEditItem({ id: l.id, borrowedFrom: l.borrowedFrom, amount: String(l.amount), loanDate: l.loanDate, returnDate: l.returnDate ?? "", notes: l.notes ?? "" }); setEditSourceType((l as any).sourceType ?? ""); }} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Edit">
+                      <button onClick={() => { setEditItem({ id: l.id, borrowedFrom: l.borrowedFrom, amount: String(l.amount), loanDate: l.loanDate, returnDate: l.returnDate ?? "", notes: l.notes ?? "" }); setEditSourceType(l.sourceType ?? ""); }} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Edit">
                         <Pencil className="w-4 h-4" />
                       </button>
                       {l.status !== "Cleared" && (
@@ -240,7 +240,7 @@ export default function OwnerLoansPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Select Customer</label>
                   <select name="sourceId" required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
                     <option value="">-- Select --</option>
-                    {customersList.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    {customersList.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
               )}
@@ -249,8 +249,14 @@ export default function OwnerLoansPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Select Driver</label>
                   <select name="sourceId" required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
                     <option value="">-- Select --</option>
-                    {driversList.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    {driversList.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
+                </div>
+              )}
+              {sourceType === "Other" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Source Reference (optional)</label>
+                  <input name="sourceId" type="number" min="1" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Reference ID" />
                 </div>
               )}
               <div>
@@ -303,7 +309,7 @@ export default function OwnerLoansPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Select Customer</label>
                   <select name="sourceId" required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
                     <option value="">-- Select --</option>
-                    {customersList.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    {customersList.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
               )}
@@ -312,8 +318,14 @@ export default function OwnerLoansPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Select Driver</label>
                   <select name="sourceId" required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
                     <option value="">-- Select --</option>
-                    {driversList.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                    {driversList.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
                   </select>
+                </div>
+              )}
+              {editSourceType === "Other" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Source Reference (optional)</label>
+                  <input name="sourceId" type="number" min="1" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Reference ID" />
                 </div>
               )}
               <div>

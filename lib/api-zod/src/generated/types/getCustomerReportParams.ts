@@ -9,4 +9,5 @@
 export type GetCustomerReportParams = {
   date_from?: string;
   date_to?: string;
+  customer_id?: number;
 };

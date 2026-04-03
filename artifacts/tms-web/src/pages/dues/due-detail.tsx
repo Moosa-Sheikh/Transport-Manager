@@ -1,4 +1,4 @@
-import { Loader2, ArrowLeft, Clock, Banknote } from "lucide-react";
+import { Loader2, ArrowLeft, Clock, Banknote, FileText } from "lucide-react";
 import { Link } from "wouter";
 
 function formatPKR(val: number) {
@@ -37,9 +37,10 @@ interface DueDetailPageProps {
   backHref: string;
   isLoading: boolean;
   data?: DueDetail;
+  reportLink?: { href: string; label: string };
 }
 
-export default function DueDetailPage({ title, backHref, isLoading, data }: DueDetailPageProps) {
+export default function DueDetailPage({ title, backHref, isLoading, data, reportLink }: DueDetailPageProps) {
   if (isLoading) {
     return (
       <div className="p-8 text-center text-gray-500">
@@ -58,6 +59,13 @@ export default function DueDetailPage({ title, backHref, isLoading, data }: DueD
     );
   }
 
+  const totalAmount = Number(data.amount);
+  let runningBalance = totalAmount;
+  const timelineEntries = data.repayments.map((r) => {
+    runningBalance -= Number(r.amount);
+    return { ...r, runningBalance };
+  });
+
   return (
     <div className="max-w-3xl">
       <div className="flex items-center gap-3 mb-6">
@@ -74,7 +82,7 @@ export default function DueDetailPage({ title, backHref, isLoading, data }: DueD
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
             <p className="text-xs text-gray-500 uppercase font-medium">Amount</p>
-            <p className="text-lg font-bold text-gray-900">{formatPKR(Number(data.amount))}</p>
+            <p className="text-lg font-bold text-gray-900">{formatPKR(totalAmount)}</p>
           </div>
           <div>
             <p className="text-xs text-gray-500 uppercase font-medium">Returned</p>
@@ -101,31 +109,58 @@ export default function DueDetailPage({ title, backHref, isLoading, data }: DueD
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
             <Clock className="w-5 h-5 text-gray-500" />
-            Repayment History
+            Transaction Timeline
           </h3>
         </div>
 
-        {data.repayments.length === 0 ? (
-          <div className="p-6 text-center text-gray-500">No repayments recorded yet.</div>
-        ) : (
-          <div className="divide-y divide-gray-100">
-            {data.repayments.map((r) => (
+        <div className="divide-y divide-gray-100">
+          <div className="px-6 py-4 flex items-center justify-between bg-blue-50/50">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                <FileText className="w-4 h-4 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-900">{data.date} — Original Amount</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-semibold text-blue-700">{formatPKR(totalAmount)}</p>
+              <p className="text-xs text-gray-500">Balance: {formatPKR(totalAmount)}</p>
+            </div>
+          </div>
+
+          {timelineEntries.length === 0 ? (
+            <div className="p-6 text-center text-gray-500">No repayments recorded yet.</div>
+          ) : (
+            timelineEntries.map((r) => (
               <div key={r.id} className="px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center">
                     <Banknote className="w-4 h-4 text-green-600" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{r.paymentDate}</p>
+                    <p className="text-sm font-medium text-gray-900">{r.paymentDate} — Repayment</p>
                     {r.notes && <p className="text-xs text-gray-500 mt-0.5">{r.notes}</p>}
                   </div>
                 </div>
-                <p className="text-sm font-semibold text-green-700">{formatPKR(Number(r.amount))}</p>
+                <div className="text-right">
+                  <p className="text-sm font-semibold text-green-700">-{formatPKR(Number(r.amount))}</p>
+                  <p className="text-xs text-gray-500">Balance: {formatPKR(r.runningBalance)}</p>
+                </div>
               </div>
-            ))}
-          </div>
-        )}
+            ))
+          )}
+        </div>
       </div>
+
+      {reportLink && (
+        <div className="mt-6 text-center">
+          <Link href={reportLink.href} className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline">
+            <FileText className="w-4 h-4" />
+            {reportLink.label}
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

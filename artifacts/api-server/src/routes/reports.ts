@@ -177,7 +177,7 @@ async function buildDriverReportData(dateFrom?: string | null, dateTo?: string |
   });
 }
 
-async function buildCustomerReportData(dateFrom?: string | null, dateTo?: string | null) {
+async function buildCustomerReportData(dateFrom?: string | null, dateTo?: string | null, customerId?: number) {
   const dateCondition = [];
   if (dateFrom) dateCondition.push(sql`t.trip_date >= ${dateFrom}`);
   if (dateTo) dateCondition.push(sql`t.trip_date <= ${dateTo}`);
@@ -187,6 +187,8 @@ async function buildCustomerReportData(dateFrom?: string | null, dateTo?: string
   if (dateFrom) dueDateCondition.push(sql`cd.due_date >= ${dateFrom}`);
   if (dateTo) dueDateCondition.push(sql`cd.due_date <= ${dateTo}`);
   const dueWhere = dueDateCondition.length ? sql`AND ${sql.join(dueDateCondition, sql` AND `)}` : sql``;
+
+  const customerCondition = customerId ? sql`WHERE c.id = ${customerId}` : sql``;
 
   const rows = await db.execute(sql`
     SELECT
@@ -219,6 +221,7 @@ async function buildCustomerReportData(dateFrom?: string | null, dateTo?: string
         WHERE cd.customer_id = c.id AND cd.status != 'Cleared' ${dueWhere}
       ), 0)::double precision AS "outstandingBalance"
     FROM customers c
+    ${customerCondition}
     ORDER BY c.name
   `);
 
@@ -370,7 +373,8 @@ router.get("/customers", async (req: Request, res: Response) => {
   try {
     const dateFrom = validateDateParam(req.query.date_from);
     const dateTo = validateDateParam(req.query.date_to);
-    const data = await buildCustomerReportData(dateFrom, dateTo);
+    const custId = req.query.customer_id ? Number(req.query.customer_id) : undefined;
+    const data = await buildCustomerReportData(dateFrom, dateTo, Number.isInteger(custId) && custId! > 0 ? custId : undefined);
     res.json(data);
   } catch (err) {
     req.log.error({ err }, "Customer report error");
@@ -534,7 +538,8 @@ router.get("/export/csv", async (req: Request, res: Response) => {
         break;
       }
       case "customers": {
-        const data = await buildCustomerReportData(dateFrom, dateTo);
+        const custIdCsv = req.query.customer_id ? Number(req.query.customer_id) : undefined;
+        const data = await buildCustomerReportData(dateFrom, dateTo, Number.isInteger(custIdCsv) && custIdCsv! > 0 ? custIdCsv : undefined);
         const header = ["Customer ID", "Customer", "Company", "Total Trips", "Total Freight", "Total Received", "Total Dues", "Outstanding Balance"];
         csvContent = toCsvRow(header) + "\n" + data.map((r) =>
           toCsvRow([r.customerId, r.customerName, r.companyName ?? "", r.totalTrips, r.totalFreight, r.totalReceived, r.totalDues, r.outstandingBalance])
