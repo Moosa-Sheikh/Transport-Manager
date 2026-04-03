@@ -6,10 +6,10 @@
  * OpenAPI spec version: 0.2.0
  */
 
-export interface CustomerPaymentInput {
+export interface RepaymentHistoryItem {
+  id: number;
   amount: string;
-  paymentDate: Date;
-  customerId?: number;
-  paymentMode?: string;
-  notes?: string;
+  paymentDate: string;
+  notes?: string | null;
+  createdAt?: string;
 }

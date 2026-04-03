@@ -1134,6 +1134,30 @@ paths:
               schema:
                 $ref: "#/components/schemas/CashBookResponse"
 
+  /reports/customers:
+    get:
+      operationId: getCustomerReport
+      tags: [reports]
+      summary: Customer report with trip and payment data
+      parameters:
+        - name: date_from
+          in: query
+          schema:
+            type: string
+        - name: date_to
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Customer report data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CustomerReportRow"
+
   /reports/trips:
     get:
       operationId: getTripReport
@@ -1276,7 +1300,7 @@ paths:
           required: true
           schema:
             type: string
-            enum: [trips, drivers, trucks, cashflow, profit]
+            enum: [trips, drivers, trucks, cashflow, profit, customers]
         - name: date_from
           in: query
           schema:
@@ -1450,6 +1474,25 @@ paths:
               schema:
                 $ref: "#/components/schemas/CustomerDue"
 
+  /dues/customers/{id}/history:
+    get:
+      operationId: getCustomerDueHistory
+      tags: [dues]
+      summary: Get repayment history for a customer due
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Repayment history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DueDetailWithHistory"
+
   /dues/drivers:
     get:
       operationId: listDriverLoans
@@ -1576,6 +1619,25 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DriverLoan"
+
+  /dues/drivers/{id}/history:
+    get:
+      operationId: getDriverLoanHistory
+      tags: [dues]
+      summary: Get repayment history for a driver loan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Repayment history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DueDetailWithHistory"
 
   /dues/others:
     get:
@@ -1704,6 +1766,25 @@ paths:
               schema:
                 $ref: "#/components/schemas/OtherLoan"
 
+  /dues/others/{id}/history:
+    get:
+      operationId: getOtherLoanHistory
+      tags: [dues]
+      summary: Get repayment history for an other loan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Repayment history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DueDetailWithHistory"
+
   /dues/owner:
     get:
       operationId: listOwnerLoans
@@ -1830,6 +1911,25 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OwnerLoan"
+
+  /dues/owner/{id}/history:
+    get:
+      operationId: getOwnerLoanHistory
+      tags: [dues]
+      summary: Get repayment history for an owner loan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Repayment history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DueDetailWithHistory"
 
 components:
   schemas:
@@ -2465,7 +2565,13 @@ components:
           type: number
         profitGenerated:
           type: number
-      required: [driverId, driverName, totalTrips, totalIncome, totalExpenses, totalAdvances, totalSalary, netPaid, profitGenerated]
+        totalLoans:
+          type: number
+        totalLoanReturned:
+          type: number
+        outstandingLoanBalance:
+          type: number
+      required: [driverId, driverName, totalTrips, totalIncome, totalExpenses, totalAdvances, totalSalary, netPaid, profitGenerated, totalLoans, totalLoanReturned, outstandingLoanBalance]
 
     TruckReportRow:
       type: object
@@ -2674,6 +2780,12 @@ components:
           type: integer
         borrowedFrom:
           type: string
+        sourceType:
+          type: string
+          nullable: true
+        sourceId:
+          type: integer
+          nullable: true
         amount:
           type: string
         amountReturned:
@@ -2700,6 +2812,11 @@ components:
         borrowedFrom:
           type: string
           minLength: 1
+        sourceType:
+          type: string
+          enum: [Customer, Driver, Other]
+        sourceId:
+          type: integer
         amount:
           type: string
         loanDate:
@@ -2764,6 +2881,13 @@ components:
         borrowedFrom:
           type: string
           minLength: 1
+        sourceType:
+          type: string
+          enum: [Customer, Driver, Other]
+          nullable: true
+        sourceId:
+          type: integer
+          nullable: true
         amount:
           type: string
         loanDate:
@@ -2786,3 +2910,67 @@ components:
         notes:
           type: string
       required: [amount, paymentDate]
+
+    RepaymentHistoryItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        amount:
+          type: string
+        paymentDate:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required: [id, amount, paymentDate]
+
+    DueDetailWithHistory:
+      type: object
+      properties:
+        id:
+          type: integer
+        label:
+          type: string
+        amount:
+          type: string
+        amountReturned:
+          type: string
+        balance:
+          type: number
+        date:
+          type: string
+        status:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        repayments:
+          type: array
+          items:
+            $ref: "#/components/schemas/RepaymentHistoryItem"
+      required: [id, label, amount, amountReturned, balance, date, status, repayments]
+
+    CustomerReportRow:
+      type: object
+      properties:
+        customerId:
+          type: integer
+        customerName:
+          type: string
+        companyName:
+          type: string
+          nullable: true
+        totalTrips:
+          type: integer
+        totalFreight:
+          type: number
+        totalReceived:
+          type: number
+        totalDues:
+          type: number
+        outstandingBalance:
+          type: number
+      required: [customerId, customerName, totalTrips, totalFreight, totalReceived, totalDues, outstandingBalance]

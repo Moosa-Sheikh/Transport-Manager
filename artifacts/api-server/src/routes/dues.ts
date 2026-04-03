@@ -548,6 +548,109 @@ router.post("/drivers/:id/repay", async (req: Request, res: Response) => {
   }
 });
 
+router.get("/drivers/:id/history", async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params["id"]);
+    if (!Number.isInteger(id) || id <= 0) {
+      res.status(400).json({ error: "Invalid ID" });
+      return;
+    }
+    const [loan] = await db.select({
+      id: driverLoansTable.id,
+      driverId: driverLoansTable.driverId,
+      driverName: driversTable.name,
+      amount: driverLoansTable.amount,
+      amountReturned: driverLoansTable.amountReturned,
+      loanDate: driverLoansTable.loanDate,
+      status: driverLoansTable.status,
+      notes: driverLoansTable.notes,
+    }).from(driverLoansTable)
+      .leftJoin(driversTable, eq(driversTable.id, driverLoansTable.driverId))
+      .where(eq(driverLoansTable.id, id));
+    if (!loan) {
+      res.status(404).json({ error: "Driver loan not found" });
+      return;
+    }
+
+    const repayments = await db.select({
+      id: dueRepaymentsTable.id,
+      amount: dueRepaymentsTable.amount,
+      paymentDate: dueRepaymentsTable.paymentDate,
+      notes: dueRepaymentsTable.notes,
+      createdAt: dueRepaymentsTable.createdAt,
+    }).from(dueRepaymentsTable)
+      .where(and(eq(dueRepaymentsTable.dueId, id), eq(dueRepaymentsTable.dueType, "driver")))
+      .orderBy(sql`${dueRepaymentsTable.paymentDate} DESC`);
+
+    res.json({
+      id: loan.id,
+      label: loan.driverName ?? "Unknown Driver",
+      amount: loan.amount,
+      amountReturned: loan.amountReturned,
+      balance: Number(loan.amount) - Number(loan.amountReturned),
+      date: loan.loanDate,
+      status: loan.status,
+      notes: loan.notes,
+      repayments,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Driver loan history error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/customers/:id/history", async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params["id"]);
+    if (!Number.isInteger(id) || id <= 0) {
+      res.status(400).json({ error: "Invalid ID" });
+      return;
+    }
+    const [due] = await db.select({
+      id: customerDuesTable.id,
+      customerId: customerDuesTable.customerId,
+      customerName: customersTable.name,
+      dueAmount: customerDuesTable.dueAmount,
+      paidAmount: customerDuesTable.paidAmount,
+      dueDate: customerDuesTable.dueDate,
+      biltyNumber: customerDuesTable.biltyNumber,
+      status: customerDuesTable.status,
+      notes: customerDuesTable.notes,
+    }).from(customerDuesTable)
+      .leftJoin(customersTable, eq(customersTable.id, customerDuesTable.customerId))
+      .where(eq(customerDuesTable.id, id));
+    if (!due) {
+      res.status(404).json({ error: "Customer due not found" });
+      return;
+    }
+
+    const repayments = await db.select({
+      id: dueRepaymentsTable.id,
+      amount: dueRepaymentsTable.amount,
+      paymentDate: dueRepaymentsTable.paymentDate,
+      notes: dueRepaymentsTable.notes,
+      createdAt: dueRepaymentsTable.createdAt,
+    }).from(dueRepaymentsTable)
+      .where(and(eq(dueRepaymentsTable.dueId, id), eq(dueRepaymentsTable.dueType, "customer")))
+      .orderBy(sql`${dueRepaymentsTable.paymentDate} DESC`);
+
+    res.json({
+      id: due.id,
+      label: `${due.customerName ?? "Unknown"} — ${due.biltyNumber ?? "No Bilty"}`,
+      amount: due.dueAmount,
+      amountReturned: due.paidAmount,
+      balance: Number(due.dueAmount) - Number(due.paidAmount),
+      date: due.dueDate,
+      status: due.status,
+      notes: due.notes,
+      repayments,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Customer due history error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/others", async (req: Request, res: Response) => {
   try {
     const { person_name, status, date_from, date_to, amount_min, amount_max } = req.query;
@@ -814,6 +917,46 @@ router.post("/others/:id/repay", async (req: Request, res: Response) => {
   }
 });
 
+router.get("/others/:id/history", async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params["id"]);
+    if (!Number.isInteger(id) || id <= 0) {
+      res.status(400).json({ error: "Invalid ID" });
+      return;
+    }
+    const [loan] = await db.select().from(otherLoansTable).where(eq(otherLoansTable.id, id));
+    if (!loan) {
+      res.status(404).json({ error: "Other loan not found" });
+      return;
+    }
+
+    const repayments = await db.select({
+      id: dueRepaymentsTable.id,
+      amount: dueRepaymentsTable.amount,
+      paymentDate: dueRepaymentsTable.paymentDate,
+      notes: dueRepaymentsTable.notes,
+      createdAt: dueRepaymentsTable.createdAt,
+    }).from(dueRepaymentsTable)
+      .where(and(eq(dueRepaymentsTable.dueId, id), eq(dueRepaymentsTable.dueType, "other")))
+      .orderBy(sql`${dueRepaymentsTable.paymentDate} DESC`);
+
+    res.json({
+      id: loan.id,
+      label: loan.personName,
+      amount: loan.amount,
+      amountReturned: loan.amountReturned,
+      balance: Number(loan.amount) - Number(loan.amountReturned),
+      date: loan.loanDate,
+      status: loan.status,
+      notes: loan.notes,
+      repayments,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Other loan history error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/owner", async (req: Request, res: Response) => {
   try {
     const { borrowed_from, status, date_from, date_to, amount_min, amount_max } = req.query;
@@ -844,6 +987,8 @@ router.get("/owner", async (req: Request, res: Response) => {
       .select({
         id: ownerLoansTable.id,
         borrowedFrom: ownerLoansTable.borrowedFrom,
+        sourceType: ownerLoansTable.sourceType,
+        sourceId: ownerLoansTable.sourceId,
         amount: ownerLoansTable.amount,
         amountReturned: ownerLoansTable.amountReturned,
         balance: sql<number>`(${ownerLoansTable.amount}::numeric - ${ownerLoansTable.amountReturned}::numeric)::double precision`.as("balance"),
@@ -866,7 +1011,7 @@ router.get("/owner", async (req: Request, res: Response) => {
 
 router.post("/owner", async (req: Request, res: Response) => {
   try {
-    const { borrowedFrom, amount, loanDate, returnDate, notes } = req.body;
+    const { borrowedFrom, sourceType, sourceId, amount, loanDate, returnDate, notes } = req.body;
 
     if (!borrowedFrom || typeof borrowedFrom !== "string" || !borrowedFrom.trim()) {
       res.status(400).json({ error: "Borrowed from name is required" });
@@ -882,9 +1027,15 @@ router.post("/owner", async (req: Request, res: Response) => {
       return;
     }
 
+    const validSourceTypes = ["Customer", "Driver", "Other"];
+    const cleanSourceType = sourceType && validSourceTypes.includes(sourceType) ? sourceType : null;
+    const cleanSourceId = cleanSourceType && sourceId && Number.isInteger(Number(sourceId)) && Number(sourceId) > 0 ? Number(sourceId) : null;
+
     const result = await db.transaction(async (tx) => {
       const [inserted] = await tx.insert(ownerLoansTable).values({
         borrowedFrom: borrowedFrom.trim(),
+        sourceType: cleanSourceType,
+        sourceId: cleanSourceId,
         amount: String(numAmount),
         loanDate,
         returnDate: isValidDate(returnDate) ? returnDate : null,
@@ -926,7 +1077,7 @@ router.put("/owner/:id", async (req: Request, res: Response) => {
       return;
     }
 
-    const { borrowedFrom, amount, loanDate, returnDate, notes } = req.body;
+    const { borrowedFrom, sourceType, sourceId, amount, loanDate, returnDate, notes } = req.body;
     const updates: Record<string, unknown> = {};
 
     if (borrowedFrom !== undefined) {
@@ -935,6 +1086,13 @@ router.put("/owner/:id", async (req: Request, res: Response) => {
         return;
       }
       updates.borrowedFrom = borrowedFrom.trim();
+    }
+    if (sourceType !== undefined) {
+      const validSourceTypes = ["Customer", "Driver", "Other"];
+      updates.sourceType = sourceType && validSourceTypes.includes(sourceType) ? sourceType : null;
+    }
+    if (sourceId !== undefined) {
+      updates.sourceId = sourceId && Number.isInteger(Number(sourceId)) && Number(sourceId) > 0 ? Number(sourceId) : null;
     }
     let amountChanged = false;
     if (amount !== undefined) {
@@ -1073,6 +1231,46 @@ router.post("/owner/:id/repay", async (req: Request, res: Response) => {
     });
   } catch (err) {
     req.log.error({ err }, "Repay owner loan error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/owner/:id/history", async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params["id"]);
+    if (!Number.isInteger(id) || id <= 0) {
+      res.status(400).json({ error: "Invalid ID" });
+      return;
+    }
+    const [loan] = await db.select().from(ownerLoansTable).where(eq(ownerLoansTable.id, id));
+    if (!loan) {
+      res.status(404).json({ error: "Owner loan not found" });
+      return;
+    }
+
+    const repayments = await db.select({
+      id: dueRepaymentsTable.id,
+      amount: dueRepaymentsTable.amount,
+      paymentDate: dueRepaymentsTable.paymentDate,
+      notes: dueRepaymentsTable.notes,
+      createdAt: dueRepaymentsTable.createdAt,
+    }).from(dueRepaymentsTable)
+      .where(and(eq(dueRepaymentsTable.dueId, id), eq(dueRepaymentsTable.dueType, "owner")))
+      .orderBy(sql`${dueRepaymentsTable.paymentDate} DESC`);
+
+    res.json({
+      id: loan.id,
+      label: loan.borrowedFrom,
+      amount: loan.amount,
+      amountReturned: loan.amountReturned,
+      balance: Number(loan.amount) - Number(loan.amountReturned),
+      date: loan.loanDate,
+      status: loan.status,
+      notes: loan.notes,
+      repayments,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Owner loan history error");
     res.status(500).json({ error: "Internal server error" });
   }
 });

@@ -5,10 +5,13 @@
  * API specification
  * OpenAPI spec version: 0.2.0
  */
+import type { OwnerLoanInputSourceType } from "./ownerLoanInputSourceType";
 
 export interface OwnerLoanInput {
   /** @minLength 1 */
   borrowedFrom: string;
+  sourceType?: OwnerLoanInputSourceType;
+  sourceId?: number;
   amount: string;
   loanDate: Date;
   returnDate?: Date;

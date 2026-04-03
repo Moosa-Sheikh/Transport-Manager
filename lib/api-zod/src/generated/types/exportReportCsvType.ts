@@ -15,4 +15,5 @@ export const ExportReportCsvType = {
   trucks: "trucks",
   cashflow: "cashflow",
   profit: "profit",
+  customers: "customers",
 } as const;

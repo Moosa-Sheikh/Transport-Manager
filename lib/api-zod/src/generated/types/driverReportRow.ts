@@ -16,4 +16,7 @@ export interface DriverReportRow {
   totalSalary: number;
   netPaid: number;
   profitGenerated: number;
+  totalLoans: number;
+  totalLoanReturned: number;
+  outstandingLoanBalance: number;
 }

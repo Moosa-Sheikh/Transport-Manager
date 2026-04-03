@@ -5,18 +5,16 @@
  * API specification
  * OpenAPI spec version: 0.2.0
  */
+import type { RepaymentHistoryItem } from "./repaymentHistoryItem";
 
-export interface OwnerLoan {
+export interface DueDetailWithHistory {
   id: number;
-  borrowedFrom: string;
-  sourceType?: string | null;
-  sourceId?: number | null;
+  label: string;
   amount: string;
   amountReturned: string;
   balance: number;
-  loanDate: string;
-  returnDate?: string | null;
+  date: string;
   status: string;
   notes?: string | null;
-  createdAt?: string;
+  repayments: RepaymentHistoryItem[];
 }

@@ -1,8 +1,10 @@
-import { pgTable, serial, varchar, numeric, date, text, timestamp, index } from "drizzle-orm/pg-core";
+import { pgTable, serial, varchar, numeric, date, text, timestamp, integer, index } from "drizzle-orm/pg-core";
 
 export const ownerLoansTable = pgTable("owner_loans", {
   id: serial("id").primaryKey(),
   borrowedFrom: varchar("borrowed_from", { length: 100 }).notNull(),
+  sourceType: varchar("source_type", { length: 20 }),
+  sourceId: integer("source_id"),
   amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
   amountReturned: numeric("amount_returned", { precision: 12, scale: 2 }).notNull().default("0"),
   loanDate: date("loan_date").notNull(),
@@ -13,4 +15,5 @@ export const ownerLoansTable = pgTable("owner_loans", {
 }, (table) => [
   index("idx_owner_loans_date").on(table.loanDate),
   index("idx_owner_loans_status").on(table.status),
+  index("idx_owner_loans_source").on(table.sourceType, table.sourceId),
 ]);

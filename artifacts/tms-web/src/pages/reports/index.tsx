@@ -1,9 +1,10 @@
-import { BarChart3, Route, UserCog, Truck, ArrowDownUp, TrendingUp } from "lucide-react";
+import { BarChart3, Route, UserCog, Truck, ArrowDownUp, TrendingUp, Users } from "lucide-react";
 import { Link } from "wouter";
 
 const reportCards = [
   { href: "/reports/trips", label: "Trip Report", description: "Income, expenses, profit per trip", icon: Route, color: "bg-blue-50 text-blue-600 border-blue-200" },
-  { href: "/reports/drivers", label: "Driver Report", description: "Trips, income, advances, salary per driver", icon: UserCog, color: "bg-green-50 text-green-600 border-green-200" },
+  { href: "/reports/drivers", label: "Driver Report", description: "Trips, income, advances, salary, loans per driver", icon: UserCog, color: "bg-green-50 text-green-600 border-green-200" },
+  { href: "/reports/customers", label: "Customer Report", description: "Freight, payments, dues per customer", icon: Users, color: "bg-cyan-50 text-cyan-600 border-cyan-200" },
   { href: "/reports/trucks", label: "Truck Report", description: "Trips, income, expenses, profit per truck", icon: Truck, color: "bg-orange-50 text-orange-600 border-orange-200" },
   { href: "/reports/cashflow", label: "Cash Flow Report", description: "Daily cash in/out with running balance", icon: ArrowDownUp, color: "bg-purple-50 text-purple-600 border-purple-200" },
   { href: "/reports/profit", label: "Profit Report", description: "Overall profit summary for date range", icon: TrendingUp, color: "bg-emerald-50 text-emerald-600 border-emerald-200" },

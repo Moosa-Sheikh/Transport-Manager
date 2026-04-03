@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Loader2, Plus, Banknote, Trash2, X, Pencil } from "lucide-react";
+import { Loader2, Plus, Banknote, Trash2, X, Pencil, Eye } from "lucide-react";
+import { Link } from "wouter";
 import {
   useListDriverLoans,
   useCreateDriverLoan,
@@ -174,6 +175,9 @@ export default function DriverLoansPage() {
                   <td className="px-4 py-3 text-sm text-gray-500 max-w-[150px] truncate">{l.notes ?? "-"}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
+                      <Link href={`/dues/drivers/${l.id}`} className="p-1.5 text-gray-600 hover:bg-gray-100 rounded" title="View Details">
+                        <Eye className="w-4 h-4" />
+                      </Link>
                       <button onClick={() => setEditItem({ id: l.id, amount: String(l.amount), loanDate: l.loanDate, returnDate: l.returnDate ?? "", notes: l.notes ?? "" })} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Edit">
                         <Pencil className="w-4 h-4" />
                       </button>

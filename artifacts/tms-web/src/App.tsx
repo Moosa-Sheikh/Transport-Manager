@@ -25,6 +25,11 @@ import CustomerDuesPage from "@/pages/dues/customer-dues";
 import DriverLoansPage from "@/pages/dues/driver-loans";
 import OtherLoansPage from "@/pages/dues/other-loans";
 import OwnerLoansPage from "@/pages/dues/owner-loans";
+import CustomerDueDetailPage from "@/pages/dues/customer-due-detail";
+import DriverLoanDetailPage from "@/pages/dues/driver-loan-detail";
+import OtherLoanDetailPage from "@/pages/dues/other-loan-detail";
+import OwnerLoanDetailPage from "@/pages/dues/owner-loan-detail";
+import CustomerReportPage from "@/pages/reports/customer-report";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -80,17 +85,32 @@ function Router() {
       <Route path="/payments/driver-salaries">
         <ProtectedRoute component={DriverSalariesPage} />
       </Route>
+      <Route path="/dues/customers/:id">
+        <ProtectedRoute component={CustomerDueDetailPage} />
+      </Route>
       <Route path="/dues/customers">
         <ProtectedRoute component={CustomerDuesPage} />
+      </Route>
+      <Route path="/dues/drivers/:id">
+        <ProtectedRoute component={DriverLoanDetailPage} />
       </Route>
       <Route path="/dues/drivers">
         <ProtectedRoute component={DriverLoansPage} />
       </Route>
+      <Route path="/dues/others/:id">
+        <ProtectedRoute component={OtherLoanDetailPage} />
+      </Route>
       <Route path="/dues/others">
         <ProtectedRoute component={OtherLoansPage} />
       </Route>
+      <Route path="/dues/owner/:id">
+        <ProtectedRoute component={OwnerLoanDetailPage} />
+      </Route>
       <Route path="/dues/owner">
         <ProtectedRoute component={OwnerLoansPage} />
+      </Route>
+      <Route path="/reports/customers">
+        <ProtectedRoute component={CustomerReportPage} />
       </Route>
       <Route path="/reports/trips">
         <ProtectedRoute component={TripReportPage} />

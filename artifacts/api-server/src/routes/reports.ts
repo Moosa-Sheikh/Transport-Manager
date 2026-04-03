@@ -4,6 +4,7 @@ import {
   tripsTable, tripLoadsTable, tripExpensesTable,
   driverAdvancesTable, driverSalariesTable, cashBookTable,
   customerPaymentsTable, driversTable, trucksTable, citiesTable,
+  customersTable, driverLoansTable, customerDuesTable,
 } from "@workspace/db/schema";
 import { sql, eq, and, gte, lte, type SQL } from "drizzle-orm";
 
@@ -112,6 +113,11 @@ async function buildDriverReportData(dateFrom?: string | null, dateTo?: string |
   if (dateTo) salaryDateCondition.push(sql`ds.payment_date <= ${dateTo}`);
   const salaryWhere = salaryDateCondition.length ? sql`WHERE ${sql.join(salaryDateCondition, sql` AND `)}` : sql``;
 
+  const loanDateCondition = [];
+  if (dateFrom) loanDateCondition.push(sql`dl.loan_date >= ${dateFrom}`);
+  if (dateTo) loanDateCondition.push(sql`dl.loan_date <= ${dateTo}`);
+  const loanWhere = loanDateCondition.length ? sql`AND ${sql.join(loanDateCondition, sql` AND `)}` : sql``;
+
   const rows = await db.execute(sql`
     SELECT
       d.id AS "driverId",
@@ -134,7 +140,15 @@ async function buildDriverReportData(dateFrom?: string | null, dateTo?: string |
       COALESCE((
         SELECT SUM(COALESCE(ds.amount, 0)::numeric)
         FROM driver_salaries ds WHERE ds.driver_id = d.id ${salaryWhere}
-      ), 0)::double precision AS "totalSalary"
+      ), 0)::double precision AS "totalSalary",
+      COALESCE((
+        SELECT SUM(COALESCE(dl.amount, 0)::numeric)
+        FROM driver_loans dl WHERE dl.driver_id = d.id ${loanWhere}
+      ), 0)::double precision AS "totalLoans",
+      COALESCE((
+        SELECT SUM(COALESCE(dl.amount_returned, 0)::numeric)
+        FROM driver_loans dl WHERE dl.driver_id = d.id ${loanWhere}
+      ), 0)::double precision AS "totalLoanReturned"
     FROM drivers d
     ORDER BY d.name
   `);
@@ -144,6 +158,8 @@ async function buildDriverReportData(dateFrom?: string | null, dateTo?: string |
     const totalExpenses = Number(r.totalExpenses);
     const totalAdvances = Number(r.totalAdvances);
     const totalSalary = Number(r.totalSalary);
+    const totalLoans = Number(r.totalLoans);
+    const totalLoanReturned = Number(r.totalLoanReturned);
     return {
       driverId: Number(r.driverId),
       driverName: String(r.driverName),
@@ -154,8 +170,68 @@ async function buildDriverReportData(dateFrom?: string | null, dateTo?: string |
       totalSalary,
       netPaid: totalAdvances + totalSalary,
       profitGenerated: totalIncome - totalExpenses,
+      totalLoans,
+      totalLoanReturned,
+      outstandingLoanBalance: totalLoans - totalLoanReturned,
     };
   });
+}
+
+async function buildCustomerReportData(dateFrom?: string | null, dateTo?: string | null) {
+  const dateCondition = [];
+  if (dateFrom) dateCondition.push(sql`t.trip_date >= ${dateFrom}`);
+  if (dateTo) dateCondition.push(sql`t.trip_date <= ${dateTo}`);
+  const dateWhere = dateCondition.length ? sql`AND ${sql.join(dateCondition, sql` AND `)}` : sql``;
+
+  const dueDateCondition = [];
+  if (dateFrom) dueDateCondition.push(sql`cd.due_date >= ${dateFrom}`);
+  if (dateTo) dueDateCondition.push(sql`cd.due_date <= ${dateTo}`);
+  const dueWhere = dueDateCondition.length ? sql`AND ${sql.join(dueDateCondition, sql` AND `)}` : sql``;
+
+  const rows = await db.execute(sql`
+    SELECT
+      c.id AS "customerId",
+      c.name AS "customerName",
+      c.company_name AS "companyName",
+      COALESCE((
+        SELECT COUNT(DISTINCT tl.trip_id)::integer
+        FROM trip_loads tl JOIN trips t ON t.id = tl.trip_id
+        WHERE tl.customer_id = c.id ${dateWhere}
+      ), 0) AS "totalTrips",
+      COALESCE((
+        SELECT SUM(COALESCE(tl.freight, 0))
+        FROM trip_loads tl JOIN trips t ON t.id = tl.trip_id
+        WHERE tl.customer_id = c.id ${dateWhere}
+      ), 0)::double precision AS "totalFreight",
+      COALESCE((
+        SELECT SUM(COALESCE(cp.amount, 0)::numeric)
+        FROM customer_payments cp JOIN trips t ON t.id = cp.trip_id
+        WHERE cp.customer_id = c.id ${dateWhere}
+      ), 0)::double precision AS "totalReceived",
+      COALESCE((
+        SELECT SUM(COALESCE(cd.due_amount, 0)::numeric)
+        FROM customer_dues cd
+        WHERE cd.customer_id = c.id ${dueWhere}
+      ), 0)::double precision AS "totalDues",
+      COALESCE((
+        SELECT SUM(COALESCE(cd.due_amount, 0)::numeric - COALESCE(cd.paid_amount, 0)::numeric)
+        FROM customer_dues cd
+        WHERE cd.customer_id = c.id AND cd.status != 'Cleared' ${dueWhere}
+      ), 0)::double precision AS "outstandingBalance"
+    FROM customers c
+    ORDER BY c.name
+  `);
+
+  return (rows.rows as Record<string, unknown>[]).map((r) => ({
+    customerId: Number(r.customerId),
+    customerName: String(r.customerName),
+    companyName: r.companyName ? String(r.companyName) : null,
+    totalTrips: Number(r.totalTrips),
+    totalFreight: Number(r.totalFreight),
+    totalReceived: Number(r.totalReceived),
+    totalDues: Number(r.totalDues),
+    outstandingBalance: Number(r.outstandingBalance),
+  }));
 }
 
 async function buildTruckReportData(dateFrom?: string | null, dateTo?: string | null) {
@@ -290,6 +366,18 @@ async function buildProfitData(dateFrom?: string | null, dateTo?: string | null)
   };
 }
 
+router.get("/customers", async (req: Request, res: Response) => {
+  try {
+    const dateFrom = validateDateParam(req.query.date_from);
+    const dateTo = validateDateParam(req.query.date_to);
+    const data = await buildCustomerReportData(dateFrom, dateTo);
+    res.json(data);
+  } catch (err) {
+    req.log.error({ err }, "Customer report error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.get("/trips", async (req: Request, res: Response) => {
   try {
     const dateFrom = validateDateParam(req.query.date_from);
@@ -403,9 +491,9 @@ router.get("/export/csv", async (req: Request, res: Response) => {
       }
       case "drivers": {
         const data = await buildDriverReportData(dateFrom, dateTo);
-        const header = ["Driver ID", "Driver", "Total Trips", "Income", "Expenses", "Advances", "Salary", "Net Paid", "Profit Generated"];
+        const header = ["Driver ID", "Driver", "Total Trips", "Income", "Expenses", "Advances", "Salary", "Net Paid", "Profit Generated", "Total Loans", "Loan Returned", "Loan Balance"];
         csvContent = toCsvRow(header) + "\n" + data.map((r) =>
-          toCsvRow([r.driverId, r.driverName, r.totalTrips, r.totalIncome, r.totalExpenses, r.totalAdvances, r.totalSalary, r.netPaid, r.profitGenerated])
+          toCsvRow([r.driverId, r.driverName, r.totalTrips, r.totalIncome, r.totalExpenses, r.totalAdvances, r.totalSalary, r.netPaid, r.profitGenerated, r.totalLoans, r.totalLoanReturned, r.outstandingLoanBalance])
         ).join("\n");
         filename = "driver-report.csv";
         break;
@@ -445,8 +533,17 @@ router.get("/export/csv", async (req: Request, res: Response) => {
         filename = "profit-report.csv";
         break;
       }
+      case "customers": {
+        const data = await buildCustomerReportData(dateFrom, dateTo);
+        const header = ["Customer ID", "Customer", "Company", "Total Trips", "Total Freight", "Total Received", "Total Dues", "Outstanding Balance"];
+        csvContent = toCsvRow(header) + "\n" + data.map((r) =>
+          toCsvRow([r.customerId, r.customerName, r.companyName ?? "", r.totalTrips, r.totalFreight, r.totalReceived, r.totalDues, r.outstandingBalance])
+        ).join("\n");
+        filename = "customer-report.csv";
+        break;
+      }
       default:
-        res.status(400).json({ error: "Invalid report type. Must be: trips, drivers, trucks, cashflow, profit" });
+        res.status(400).json({ error: "Invalid report type. Must be: trips, drivers, trucks, cashflow, profit, customers" });
         return;
     }
 

@@ -1,11 +1,14 @@
 import { useState } from "react";
-import { Loader2, Plus, Banknote, Trash2, Search, X, Pencil } from "lucide-react";
+import { Loader2, Plus, Banknote, Trash2, Search, X, Pencil, Eye } from "lucide-react";
+import { Link } from "wouter";
 import {
   useListOwnerLoans,
   useCreateOwnerLoan,
   useUpdateOwnerLoan,
   useDeleteOwnerLoan,
   useRepayOwnerLoan,
+  useListCustomers,
+  useListDrivers,
 } from "@workspace/api-client-react";
 
 function formatPKR(val: number) {
@@ -23,6 +26,13 @@ export default function OwnerLoansPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [editItem, setEditItem] = useState<{ id: number; borrowedFrom: string; amount: string; loanDate: string; returnDate: string; notes: string } | null>(null);
   const [repayId, setRepayId] = useState<number | null>(null);
+  const [sourceType, setSourceType] = useState<string>("");
+  const [editSourceType, setEditSourceType] = useState<string>("");
+
+  const customersQuery = useListCustomers({});
+  const driversQuery = useListDrivers({});
+  const customersList = customersQuery.data ?? [];
+  const driversList = driversQuery.data ?? [];
 
   const params: Record<string, unknown> = {};
   if (filters.borrowed_from) params.borrowed_from = filters.borrowed_from;
@@ -44,9 +54,13 @@ export default function OwnerLoansPage() {
   const handleAdd = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
+    const st = fd.get("sourceType") as string;
+    const si = fd.get("sourceId") as string;
     await createMutation.mutateAsync({
       data: {
         borrowedFrom: fd.get("borrowedFrom") as string,
+        sourceType: st ? st as "Customer" | "Driver" | "Other" : undefined,
+        sourceId: si ? Number(si) : undefined,
         amount: fd.get("amount") as string,
         loanDate: fd.get("loanDate") as string,
         returnDate: (fd.get("returnDate") as string) || undefined,
@@ -54,6 +68,7 @@ export default function OwnerLoansPage() {
       },
     });
     setShowAdd(false);
+    setSourceType("");
     loansQuery.refetch();
   };
 
@@ -77,10 +92,14 @@ export default function OwnerLoansPage() {
     e.preventDefault();
     if (!editItem) return;
     const fd = new FormData(e.currentTarget);
+    const st = fd.get("sourceType") as string;
+    const si = fd.get("sourceId") as string;
     await updateMutation.mutateAsync({
       id: editItem.id,
       data: {
         borrowedFrom: fd.get("borrowedFrom") as string,
+        sourceType: st ? st as "Customer" | "Driver" | "Other" : undefined,
+        sourceId: si ? Number(si) : undefined,
         amount: fd.get("amount") as string,
         loanDate: fd.get("loanDate") as string,
         returnDate: (fd.get("returnDate") as string) || undefined,
@@ -88,6 +107,7 @@ export default function OwnerLoansPage() {
       },
     });
     setEditItem(null);
+    setEditSourceType("");
     loansQuery.refetch();
   };
 
@@ -145,6 +165,7 @@ export default function OwnerLoansPage() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Borrowed From</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Source</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Amount</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Returned</th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Balance</th>
@@ -159,6 +180,7 @@ export default function OwnerLoansPage() {
               {loans.map((l) => (
                 <tr key={l.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-sm text-gray-900">{l.borrowedFrom}</td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{(l as any).sourceType ? `${(l as any).sourceType}` : "-"}</td>
                   <td className="px-4 py-3 text-sm text-gray-900 text-right">{formatPKR(Number(l.amount))}</td>
                   <td className="px-4 py-3 text-sm text-green-700 text-right">{formatPKR(Number(l.amountReturned))}</td>
                   <td className="px-4 py-3 text-sm font-medium text-red-700 text-right">{formatPKR(l.balance ?? 0)}</td>
@@ -172,7 +194,10 @@ export default function OwnerLoansPage() {
                   <td className="px-4 py-3 text-sm text-gray-500 max-w-[150px] truncate">{l.notes ?? "-"}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <button onClick={() => setEditItem({ id: l.id, borrowedFrom: l.borrowedFrom, amount: String(l.amount), loanDate: l.loanDate, returnDate: l.returnDate ?? "", notes: l.notes ?? "" })} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Edit">
+                      <Link href={`/dues/owner/${l.id}`} className="p-1.5 text-gray-600 hover:bg-gray-100 rounded" title="View Details">
+                        <Eye className="w-4 h-4" />
+                      </Link>
+                      <button onClick={() => { setEditItem({ id: l.id, borrowedFrom: l.borrowedFrom, amount: String(l.amount), loanDate: l.loanDate, returnDate: l.returnDate ?? "", notes: l.notes ?? "" }); setEditSourceType((l as any).sourceType ?? ""); }} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Edit">
                         <Pencil className="w-4 h-4" />
                       </button>
                       {l.status !== "Cleared" && (
@@ -201,6 +226,33 @@ export default function OwnerLoansPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Borrowed From</label>
                 <input name="borrowedFrom" type="text" required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Source Type (optional)</label>
+                <select name="sourceType" value={sourceType} onChange={(e) => setSourceType(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                  <option value="">-- None --</option>
+                  <option value="Customer">Customer</option>
+                  <option value="Driver">Driver</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              {sourceType === "Customer" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Select Customer</label>
+                  <select name="sourceId" required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    <option value="">-- Select --</option>
+                    {customersList.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+              )}
+              {sourceType === "Driver" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Select Driver</label>
+                  <select name="sourceId" required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    <option value="">-- Select --</option>
+                    {driversList.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Loan Amount</label>
                 <input name="amount" type="number" step="0.01" min="0.01" required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
@@ -237,6 +289,33 @@ export default function OwnerLoansPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Borrowed From</label>
                 <input name="borrowedFrom" type="text" required defaultValue={editItem.borrowedFrom} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Source Type (optional)</label>
+                <select name="sourceType" value={editSourceType} onChange={(e) => setEditSourceType(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                  <option value="">-- None --</option>
+                  <option value="Customer">Customer</option>
+                  <option value="Driver">Driver</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              {editSourceType === "Customer" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Select Customer</label>
+                  <select name="sourceId" required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    <option value="">-- Select --</option>
+                    {customersList.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+              )}
+              {editSourceType === "Driver" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Select Driver</label>
+                  <select name="sourceId" required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                    <option value="">-- Select --</option>
+                    {driversList.map((d: any) => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Loan Amount</label>
                 <input name="amount" type="number" step="0.01" min="0.01" required defaultValue={editItem.amount} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />

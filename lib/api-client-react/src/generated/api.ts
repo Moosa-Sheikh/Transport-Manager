@@ -30,6 +30,7 @@ import type {
   CustomerPayment,
   CustomerPaymentInput,
   CustomerPaymentsResponse,
+  CustomerReportRow,
   DashboardSummary,
   Driver,
   DriverAdvance,
@@ -42,11 +43,13 @@ import type {
   DriverReportRow,
   DriverSalaryInput,
   DriverSalaryWithName,
+  DueDetailWithHistory,
   ErrorResponse,
   ExpenseType,
   ExpenseTypeInput,
   ExportReportCsvParams,
   GetCashFlowReportParams,
+  GetCustomerReportParams,
   GetDriverReportParams,
   GetProfitReportParams,
   GetTripReportParams,
@@ -3746,6 +3749,103 @@ export function useListCashBook<
 }
 
 /**
+ * @summary Customer report with trip and payment data
+ */
+export const getGetCustomerReportUrl = (params?: GetCustomerReportParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/reports/customers?${stringifiedParams}`
+    : `/api/reports/customers`;
+};
+
+export const getCustomerReport = async (
+  params?: GetCustomerReportParams,
+  options?: RequestInit,
+): Promise<CustomerReportRow[]> => {
+  return customFetch<CustomerReportRow[]>(getGetCustomerReportUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCustomerReportQueryKey = (
+  params?: GetCustomerReportParams,
+) => {
+  return [`/api/reports/customers`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetCustomerReportQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCustomerReport>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetCustomerReportParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCustomerReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetCustomerReportQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getCustomerReport>>
+  > = ({ signal }) => getCustomerReport(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCustomerReport>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCustomerReportQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCustomerReport>>
+>;
+export type GetCustomerReportQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Customer report with trip and payment data
+ */
+
+export function useGetCustomerReport<
+  TData = Awaited<ReturnType<typeof getCustomerReport>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetCustomerReportParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCustomerReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCustomerReportQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * @summary Trip report with aggregated financials
  */
 export const getGetTripReportUrl = (params?: GetTripReportParams) => {
@@ -4829,6 +4929,94 @@ export const useRepayCustomerDue = <
 };
 
 /**
+ * @summary Get repayment history for a customer due
+ */
+export const getGetCustomerDueHistoryUrl = (id: number) => {
+  return `/api/dues/customers/${id}/history`;
+};
+
+export const getCustomerDueHistory = async (
+  id: number,
+  options?: RequestInit,
+): Promise<DueDetailWithHistory> => {
+  return customFetch<DueDetailWithHistory>(getGetCustomerDueHistoryUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetCustomerDueHistoryQueryKey = (id: number) => {
+  return [`/api/dues/customers/${id}/history`] as const;
+};
+
+export const getGetCustomerDueHistoryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCustomerDueHistory>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCustomerDueHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetCustomerDueHistoryQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getCustomerDueHistory>>
+  > = ({ signal }) => getCustomerDueHistory(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCustomerDueHistory>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCustomerDueHistoryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCustomerDueHistory>>
+>;
+export type GetCustomerDueHistoryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get repayment history for a customer due
+ */
+
+export function useGetCustomerDueHistory<
+  TData = Awaited<ReturnType<typeof getCustomerDueHistory>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCustomerDueHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCustomerDueHistoryQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * @summary List driver loans with filters
  */
 export const getListDriverLoansUrl = (params?: ListDriverLoansParams) => {
@@ -5265,6 +5453,94 @@ export const useRepayDriverLoan = <
 > => {
   return useMutation(getRepayDriverLoanMutationOptions(options));
 };
+
+/**
+ * @summary Get repayment history for a driver loan
+ */
+export const getGetDriverLoanHistoryUrl = (id: number) => {
+  return `/api/dues/drivers/${id}/history`;
+};
+
+export const getDriverLoanHistory = async (
+  id: number,
+  options?: RequestInit,
+): Promise<DueDetailWithHistory> => {
+  return customFetch<DueDetailWithHistory>(getGetDriverLoanHistoryUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDriverLoanHistoryQueryKey = (id: number) => {
+  return [`/api/dues/drivers/${id}/history`] as const;
+};
+
+export const getGetDriverLoanHistoryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDriverLoanHistory>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDriverLoanHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetDriverLoanHistoryQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getDriverLoanHistory>>
+  > = ({ signal }) => getDriverLoanHistory(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDriverLoanHistory>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDriverLoanHistoryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDriverLoanHistory>>
+>;
+export type GetDriverLoanHistoryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get repayment history for a driver loan
+ */
+
+export function useGetDriverLoanHistory<
+  TData = Awaited<ReturnType<typeof getDriverLoanHistory>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getDriverLoanHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDriverLoanHistoryQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary List other loans with filters
@@ -5705,6 +5981,93 @@ export const useRepayOtherLoan = <
 };
 
 /**
+ * @summary Get repayment history for an other loan
+ */
+export const getGetOtherLoanHistoryUrl = (id: number) => {
+  return `/api/dues/others/${id}/history`;
+};
+
+export const getOtherLoanHistory = async (
+  id: number,
+  options?: RequestInit,
+): Promise<DueDetailWithHistory> => {
+  return customFetch<DueDetailWithHistory>(getGetOtherLoanHistoryUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetOtherLoanHistoryQueryKey = (id: number) => {
+  return [`/api/dues/others/${id}/history`] as const;
+};
+
+export const getGetOtherLoanHistoryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getOtherLoanHistory>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getOtherLoanHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetOtherLoanHistoryQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getOtherLoanHistory>>
+  > = ({ signal }) => getOtherLoanHistory(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getOtherLoanHistory>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetOtherLoanHistoryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getOtherLoanHistory>>
+>;
+export type GetOtherLoanHistoryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get repayment history for an other loan
+ */
+
+export function useGetOtherLoanHistory<
+  TData = Awaited<ReturnType<typeof getOtherLoanHistory>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getOtherLoanHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetOtherLoanHistoryQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * @summary List owner loans with filters
  */
 export const getListOwnerLoansUrl = (params?: ListOwnerLoansParams) => {
@@ -6141,3 +6504,90 @@ export const useRepayOwnerLoan = <
 > => {
   return useMutation(getRepayOwnerLoanMutationOptions(options));
 };
+
+/**
+ * @summary Get repayment history for an owner loan
+ */
+export const getGetOwnerLoanHistoryUrl = (id: number) => {
+  return `/api/dues/owner/${id}/history`;
+};
+
+export const getOwnerLoanHistory = async (
+  id: number,
+  options?: RequestInit,
+): Promise<DueDetailWithHistory> => {
+  return customFetch<DueDetailWithHistory>(getGetOwnerLoanHistoryUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetOwnerLoanHistoryQueryKey = (id: number) => {
+  return [`/api/dues/owner/${id}/history`] as const;
+};
+
+export const getGetOwnerLoanHistoryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getOwnerLoanHistory>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getOwnerLoanHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetOwnerLoanHistoryQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getOwnerLoanHistory>>
+  > = ({ signal }) => getOwnerLoanHistory(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getOwnerLoanHistory>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetOwnerLoanHistoryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getOwnerLoanHistory>>
+>;
+export type GetOwnerLoanHistoryQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get repayment history for an owner loan
+ */
+
+export function useGetOwnerLoanHistory<
+  TData = Awaited<ReturnType<typeof getOwnerLoanHistory>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getOwnerLoanHistory>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetOwnerLoanHistoryQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}

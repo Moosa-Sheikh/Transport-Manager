@@ -9,6 +9,7 @@
 export interface CustomerPayment {
   id: number;
   tripId?: number | null;
+  customerId?: number | null;
   amount: string;
   paymentDate: string;
   paymentMode?: string | null;

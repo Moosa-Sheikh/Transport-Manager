@@ -220,6 +220,7 @@ export interface TripExpensesResponse {
 export interface CustomerPaymentInput {
   amount: string;
   paymentDate: string;
+  customerId?: number;
   paymentMode?: string;
   notes?: string;
 }
@@ -227,6 +228,7 @@ export interface CustomerPaymentInput {
 export interface CustomerPayment {
   id: number;
   tripId?: number | null;
+  customerId?: number | null;
   amount: string;
   paymentDate: string;
   paymentMode?: string | null;
@@ -353,6 +355,9 @@ export interface DriverReportRow {
   totalSalary: number;
   netPaid: number;
   profitGenerated: number;
+  totalLoans: number;
+  totalLoanReturned: number;
+  outstandingLoanBalance: number;
 }
 
 export interface TruckReportRow {
@@ -456,6 +461,8 @@ export interface OtherLoanInput {
 export interface OwnerLoan {
   id: number;
   borrowedFrom: string;
+  sourceType?: string | null;
+  sourceId?: number | null;
   amount: string;
   amountReturned: string;
   balance: number;
@@ -466,9 +473,20 @@ export interface OwnerLoan {
   createdAt?: string;
 }
 
+export type OwnerLoanInputSourceType =
+  (typeof OwnerLoanInputSourceType)[keyof typeof OwnerLoanInputSourceType];
+
+export const OwnerLoanInputSourceType = {
+  Customer: "Customer",
+  Driver: "Driver",
+  Other: "Other",
+} as const;
+
 export interface OwnerLoanInput {
   /** @minLength 1 */
   borrowedFrom: string;
+  sourceType?: OwnerLoanInputSourceType;
+  sourceId?: number;
   amount: string;
   loanDate: string;
   returnDate?: string;
@@ -499,9 +517,21 @@ export interface OtherLoanUpdate {
   notes?: string;
 }
 
+export type OwnerLoanUpdateSourceType =
+  | (typeof OwnerLoanUpdateSourceType)[keyof typeof OwnerLoanUpdateSourceType]
+  | null;
+
+export const OwnerLoanUpdateSourceType = {
+  Customer: "Customer",
+  Driver: "Driver",
+  Other: "Other",
+} as const;
+
 export interface OwnerLoanUpdate {
   /** @minLength 1 */
   borrowedFrom?: string;
+  sourceType?: OwnerLoanUpdateSourceType;
+  sourceId?: number | null;
   amount?: string;
   loanDate?: string;
   returnDate?: string;
@@ -512,6 +542,37 @@ export interface RepaymentInput {
   amount: string;
   paymentDate: string;
   notes?: string;
+}
+
+export interface RepaymentHistoryItem {
+  id: number;
+  amount: string;
+  paymentDate: string;
+  notes?: string | null;
+  createdAt?: string;
+}
+
+export interface DueDetailWithHistory {
+  id: number;
+  label: string;
+  amount: string;
+  amountReturned: string;
+  balance: number;
+  date: string;
+  status: string;
+  notes?: string | null;
+  repayments: RepaymentHistoryItem[];
+}
+
+export interface CustomerReportRow {
+  customerId: number;
+  customerName: string;
+  companyName?: string | null;
+  totalTrips: number;
+  totalFreight: number;
+  totalReceived: number;
+  totalDues: number;
+  outstandingBalance: number;
 }
 
 export type ListCustomersParams = {
@@ -579,6 +640,11 @@ export const ListCashBookEntryType = {
   OUT: "OUT",
 } as const;
 
+export type GetCustomerReportParams = {
+  date_from?: string;
+  date_to?: string;
+};
+
 export type GetTripReportParams = {
   date_from?: string;
   date_to?: string;
@@ -633,6 +699,7 @@ export const ExportReportCsvType = {
   trucks: "trucks",
   cashflow: "cashflow",
   profit: "profit",
+  customers: "customers",
 } as const;
 
 export type ExportReportCsvStatus =
