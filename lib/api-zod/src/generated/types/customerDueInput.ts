@@ -12,4 +12,6 @@ export interface CustomerDueInput {
   dueAmount: string;
   dueDate: Date;
   notes?: string;
+  tripId?: number;
+  loadId?: number;
 }

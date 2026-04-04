@@ -1388,6 +1388,27 @@ paths:
               schema:
                 $ref: "#/components/schemas/DashboardSummary"
 
+  /dues/trip-loads/search:
+    get:
+      operationId: searchTripLoads
+      tags: [dues]
+      summary: Search trip loads by bilty number
+      parameters:
+        - name: bilty_number
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Matching trip loads
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TripLoadSearchResult"
+
   /dues/customers:
     get:
       operationId: listCustomerDues
@@ -2720,6 +2741,10 @@ components:
           format: date
         notes:
           type: string
+        tripId:
+          type: integer
+        loadId:
+          type: integer
       required: [customerId, dueAmount, dueDate]
 
     DriverLoan:
@@ -2873,6 +2898,24 @@ components:
         notes:
           type: string
       required: [borrowedFrom, amount, loanDate]
+
+    TripLoadSearchResult:
+      type: object
+      properties:
+        loadId:
+          type: integer
+        tripId:
+          type: integer
+        biltyNumber:
+          type: string
+        customerId:
+          type: integer
+        customerName:
+          type: string
+        freight:
+          type: string
+          nullable: true
+      required: [loadId, tripId, biltyNumber, customerId, customerName]
 
     CustomerDueUpdate:
       type: object

@@ -894,6 +894,23 @@ export const GetDashboardSummaryResponse = zod.object({
 });
 
 /**
+ * @summary Search trip loads by bilty number
+ */
+export const SearchTripLoadsQueryParams = zod.object({
+  bilty_number: zod.coerce.string(),
+});
+
+export const SearchTripLoadsResponseItem = zod.object({
+  loadId: zod.number(),
+  tripId: zod.number(),
+  biltyNumber: zod.string(),
+  customerId: zod.number(),
+  customerName: zod.string(),
+  freight: zod.string().nullish(),
+});
+export const SearchTripLoadsResponse = zod.array(SearchTripLoadsResponseItem);
+
+/**
  * @summary List customer dues with filters
  */
 export const ListCustomerDuesQueryParams = zod.object({
@@ -932,6 +949,8 @@ export const CreateCustomerDueBody = zod.object({
   dueAmount: zod.string(),
   dueDate: zod.coerce.date(),
   notes: zod.string().optional(),
+  tripId: zod.number().optional(),
+  loadId: zod.number().optional(),
 });
 
 /**

@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import {
   customerDuesTable, driverLoansTable, otherLoansTable, ownerLoansTable,
   dueRepaymentsTable, cashBookTable, customersTable, driversTable,
+  tripLoadsTable, tripsTable,
 } from "@workspace/db/schema";
 import { eq, and, gte, lte, sql, ilike, type SQL } from "drizzle-orm";
 
@@ -20,6 +21,34 @@ function parsePositiveNum(val: unknown): number | null {
   const n = Number(val);
   return Number.isFinite(n) && n > 0 ? n : null;
 }
+
+router.get("/trip-loads/search", async (req: Request, res: Response) => {
+  try {
+    const { bilty_number } = req.query;
+    if (!bilty_number || typeof bilty_number !== "string" || bilty_number.trim().length === 0) {
+      res.json([]);
+      return;
+    }
+    const rows = await db
+      .select({
+        loadId: tripLoadsTable.id,
+        tripId: tripLoadsTable.tripId,
+        biltyNumber: tripLoadsTable.biltyNumber,
+        customerId: tripLoadsTable.customerId,
+        customerName: customersTable.name,
+        freight: tripLoadsTable.freight,
+      })
+      .from(tripLoadsTable)
+      .innerJoin(customersTable, eq(tripLoadsTable.customerId, customersTable.id))
+      .where(ilike(tripLoadsTable.biltyNumber, `%${bilty_number.trim()}%`))
+      .orderBy(sql`${tripLoadsTable.id} DESC`)
+      .limit(20);
+    res.json(rows);
+  } catch (err) {
+    req.log.error({ err }, "Search trip loads error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
 
 router.get("/customers", async (req: Request, res: Response) => {
   try {
@@ -81,7 +110,7 @@ router.get("/customers", async (req: Request, res: Response) => {
 
 router.post("/customers", async (req: Request, res: Response) => {
   try {
-    const { customerId, biltyNumber, dueAmount, dueDate, notes } = req.body;
+    const { customerId, biltyNumber, dueAmount, dueDate, notes, tripId, loadId } = req.body;
 
     const numCustomerId = Number(customerId);
     if (!Number.isInteger(numCustomerId) || numCustomerId <= 0) {
@@ -105,12 +134,46 @@ router.post("/customers", async (req: Request, res: Response) => {
       return;
     }
 
+    let numTripId: number | null = null;
+    let numLoadId: number | null = null;
+
+    if (loadId) {
+      numLoadId = Number(loadId);
+      if (!Number.isInteger(numLoadId) || numLoadId <= 0) {
+        res.status(400).json({ error: "Invalid load ID" });
+        return;
+      }
+      const [load] = await db.select({
+        id: tripLoadsTable.id,
+        tripId: tripLoadsTable.tripId,
+        customerId: tripLoadsTable.customerId,
+        biltyNumber: tripLoadsTable.biltyNumber,
+      }).from(tripLoadsTable).where(eq(tripLoadsTable.id, numLoadId));
+      if (!load) {
+        res.status(400).json({ error: "Trip load not found" });
+        return;
+      }
+      if (load.customerId !== numCustomerId) {
+        res.status(400).json({ error: "Load does not belong to the selected customer" });
+        return;
+      }
+      numTripId = load.tripId;
+    } else if (tripId) {
+      numTripId = Number(tripId);
+      if (!Number.isInteger(numTripId) || numTripId <= 0) {
+        res.status(400).json({ error: "Invalid trip ID" });
+        return;
+      }
+    }
+
     const [inserted] = await db.insert(customerDuesTable).values({
       customerId: numCustomerId,
       biltyNumber: biltyNumber ? String(biltyNumber) : null,
       dueAmount: String(numAmount),
       dueDate,
       notes: notes ? String(notes) : null,
+      tripId: numTripId,
+      loadId: numLoadId,
     }).returning();
 
     res.status(201).json({

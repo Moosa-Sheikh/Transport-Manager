@@ -410,6 +410,8 @@ export interface CustomerDueInput {
   dueAmount: string;
   dueDate: string;
   notes?: string;
+  tripId?: number;
+  loadId?: number;
 }
 
 export interface DriverLoan {
@@ -491,6 +493,15 @@ export interface OwnerLoanInput {
   loanDate: string;
   returnDate?: string;
   notes?: string;
+}
+
+export interface TripLoadSearchResult {
+  loadId: number;
+  tripId: number;
+  biltyNumber: string;
+  customerId: number;
+  customerName: string;
+  freight?: string | null;
 }
 
 export interface CustomerDueUpdate {
@@ -725,6 +736,10 @@ export const ExportReportCsvStatus = {
   Open: "Open",
   Closed: "Closed",
 } as const;
+
+export type SearchTripLoadsParams = {
+  bilty_number: string;
+};
 
 export type ListCustomerDuesParams = {
   customer_id?: number;

@@ -78,12 +78,14 @@ import type {
   OwnerLoanUpdate,
   ProfitReportSummary,
   RepaymentInput,
+  SearchTripLoadsParams,
   TripCommissionInput,
   TripExpenseInput,
   TripExpenseWithType,
   TripExpensesResponse,
   TripInput,
   TripLoadInput,
+  TripLoadSearchResult,
   TripLoadWithIncome,
   TripLoadsResponse,
   TripReportRow,
@@ -4564,6 +4566,100 @@ export function useGetDashboardSummary<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetDashboardSummaryQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Search trip loads by bilty number
+ */
+export const getSearchTripLoadsUrl = (params: SearchTripLoadsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/dues/trip-loads/search?${stringifiedParams}`
+    : `/api/dues/trip-loads/search`;
+};
+
+export const searchTripLoads = async (
+  params: SearchTripLoadsParams,
+  options?: RequestInit,
+): Promise<TripLoadSearchResult[]> => {
+  return customFetch<TripLoadSearchResult[]>(getSearchTripLoadsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getSearchTripLoadsQueryKey = (params?: SearchTripLoadsParams) => {
+  return [`/api/dues/trip-loads/search`, ...(params ? [params] : [])] as const;
+};
+
+export const getSearchTripLoadsQueryOptions = <
+  TData = Awaited<ReturnType<typeof searchTripLoads>>,
+  TError = ErrorType<unknown>,
+>(
+  params: SearchTripLoadsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof searchTripLoads>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getSearchTripLoadsQueryKey(params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof searchTripLoads>>> = ({
+    signal,
+  }) => searchTripLoads(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof searchTripLoads>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type SearchTripLoadsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof searchTripLoads>>
+>;
+export type SearchTripLoadsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Search trip loads by bilty number
+ */
+
+export function useSearchTripLoads<
+  TData = Awaited<ReturnType<typeof searchTripLoads>>,
+  TError = ErrorType<unknown>,
+>(
+  params: SearchTripLoadsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof searchTripLoads>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getSearchTripLoadsQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

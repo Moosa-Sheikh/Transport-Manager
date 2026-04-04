@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Loader2, Plus, Banknote, Trash2, Search, X, Pencil, Eye } from "lucide-react";
 import { Link } from "wouter";
 import {
@@ -8,6 +8,7 @@ import {
   useDeleteCustomerDue,
   useRepayCustomerDue,
   useListCustomers,
+  useSearchTripLoads,
 } from "@workspace/api-client-react";
 
 function formatPKR(val: number) {
@@ -26,6 +27,52 @@ export default function CustomerDuesPage() {
   const [editItem, setEditItem] = useState<{ id: number; dueAmount: string; dueDate: string; biltyNumber: string; notes: string } | null>(null);
   const [repayId, setRepayId] = useState<number | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+
+  const [biltySearch, setBiltySearch] = useState("");
+  const [biltyDropdownOpen, setBiltyDropdownOpen] = useState(false);
+  const [selectedLoad, setSelectedLoad] = useState<{ loadId: number; tripId: number; biltyNumber: string; customerId: number; customerName: string; freight: string | null } | null>(null);
+  const [addFormCustomerId, setAddFormCustomerId] = useState("");
+  const [addFormAmount, setAddFormAmount] = useState("");
+  const biltyDropdownRef = useRef<HTMLDivElement>(null);
+
+  const biltySearchQuery = useSearchTripLoads(
+    { bilty_number: biltySearch },
+    { query: { enabled: biltySearch.length >= 1 } }
+  );
+  const biltyResults = biltySearchQuery.data ?? [];
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (biltyDropdownRef.current && !biltyDropdownRef.current.contains(e.target as Node)) {
+        setBiltyDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSelectBilty = (load: typeof biltyResults[0]) => {
+    setSelectedLoad(load);
+    setBiltySearch(load.biltyNumber);
+    setAddFormCustomerId(String(load.customerId));
+    setAddFormAmount(load.freight ? String(Number(load.freight)) : "");
+    setBiltyDropdownOpen(false);
+  };
+
+  const handleClearBilty = () => {
+    setSelectedLoad(null);
+    setBiltySearch("");
+    setAddFormCustomerId("");
+    setAddFormAmount("");
+  };
+
+  const resetAddForm = () => {
+    setShowAdd(false);
+    setSelectedLoad(null);
+    setBiltySearch("");
+    setAddFormCustomerId("");
+    setAddFormAmount("");
+  };
 
   const params: Record<string, unknown> = {};
   if (filters.customer_id) params.customer_id = Number(filters.customer_id);
@@ -55,11 +102,13 @@ export default function CustomerDuesPage() {
         customerId: Number(fd.get("customerId")),
         dueAmount: fd.get("dueAmount") as string,
         dueDate: fd.get("dueDate") as string,
-        biltyNumber: (fd.get("biltyNumber") as string) || undefined,
+        biltyNumber: biltySearch || undefined,
         notes: (fd.get("notes") as string) || undefined,
+        tripId: selectedLoad?.tripId,
+        loadId: selectedLoad?.loadId,
       },
     });
-    setShowAdd(false);
+    resetAddForm();
     duesQuery.refetch();
   };
 
@@ -170,7 +219,7 @@ export default function CustomerDuesPage() {
                 <tr key={d.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-sm text-gray-900">{d.customerName}</td>
                   <td className="px-4 py-3 text-sm text-gray-600">{d.biltyNumber ?? "-"}</td>
-                  <td className="px-4 py-3 text-sm text-gray-600">{d.tripId ? `#${d.tripId}` : "-"}</td>
+                  <td className="px-4 py-3 text-sm">{d.tripId ? <Link href={`/trips/${d.tripId}`} className="text-blue-600 hover:underline font-medium">#{d.tripId}</Link> : "-"}</td>
                   <td className="px-4 py-3 text-sm text-gray-900 text-right">{formatPKR(Number(d.dueAmount))}</td>
                   <td className="px-4 py-3 text-sm text-green-700 text-right">{formatPKR(Number(d.paidAmount))}</td>
                   <td className="px-4 py-3 text-sm font-medium text-red-700 text-right">{formatPKR(d.balance ?? 0)}</td>
@@ -211,31 +260,102 @@ export default function CustomerDuesPage() {
           <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
             <h3 className="text-lg font-semibold mb-4">Add Customer Due</h3>
             <form onSubmit={handleAdd} className="space-y-4">
+              <div ref={biltyDropdownRef} className="relative">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Bilty Number (optional)</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={biltySearch}
+                    onChange={(e) => {
+                      setBiltySearch(e.target.value);
+                      setBiltyDropdownOpen(true);
+                      if (selectedLoad && e.target.value !== selectedLoad.biltyNumber) {
+                        setSelectedLoad(null);
+                      }
+                    }}
+                    onFocus={() => { if (biltySearch.length >= 1) setBiltyDropdownOpen(true); }}
+                    placeholder="Type bilty number to search..."
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm pr-8"
+                  />
+                  {biltySearch && (
+                    <button type="button" onClick={handleClearBilty} className="absolute right-2 top-2.5 text-gray-400 hover:text-gray-600">
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                {biltyDropdownOpen && biltySearch.length >= 1 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {biltySearchQuery.isLoading ? (
+                      <div className="px-3 py-2 text-sm text-gray-500 flex items-center gap-2">
+                        <Loader2 className="w-3 h-3 animate-spin" /> Searching...
+                      </div>
+                    ) : biltyResults.length === 0 ? (
+                      <div className="px-3 py-2 text-sm text-gray-500">No matching bilty numbers found</div>
+                    ) : (
+                      biltyResults.map((load) => (
+                        <button
+                          key={load.loadId}
+                          type="button"
+                          onClick={() => handleSelectBilty(load)}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 border-b border-gray-100 last:border-b-0"
+                        >
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium">{load.biltyNumber}</span>
+                            <span className="text-xs text-gray-500">Trip #{load.tripId}</span>
+                          </div>
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            {load.customerName} — Freight: {load.freight ? formatPKR(Number(load.freight)) : "N/A"}
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+                {selectedLoad && (
+                  <div className="mt-1.5 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800">
+                    Linked to Trip #{selectedLoad.tripId} — {selectedLoad.customerName} — Freight: {selectedLoad.freight ? formatPKR(Number(selectedLoad.freight)) : "N/A"}
+                  </div>
+                )}
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Customer</label>
-                <select name="customerId" required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                <select
+                  name="customerId"
+                  required
+                  value={addFormCustomerId}
+                  onChange={(e) => setAddFormCustomerId(e.target.value)}
+                  disabled={!!selectedLoad}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
                   <option value="">Select customer</option>
                   {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
+                {selectedLoad && <p className="text-xs text-gray-500 mt-1">Auto-filled from bilty number</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Due Amount</label>
-                <input name="dueAmount" type="number" step="0.01" min="0.01" required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
+                <input
+                  name="dueAmount"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  required
+                  value={addFormAmount}
+                  onChange={(e) => setAddFormAmount(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                />
+                {selectedLoad && <p className="text-xs text-gray-500 mt-1">Pre-filled from freight amount (editable)</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
                 <input name="dueDate" type="date" required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Bilty Number (optional)</label>
-                <input name="biltyNumber" type="text" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-              </div>
-              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
                 <textarea name="notes" rows={2} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
               </div>
               <div className="flex gap-3 justify-end">
-                <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+                <button type="button" onClick={resetAddForm} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
                 <button type="submit" disabled={createMutation.isPending} className="px-4 py-2 text-sm text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50">
                   {createMutation.isPending ? "Adding..." : "Add Due"}
                 </button>
