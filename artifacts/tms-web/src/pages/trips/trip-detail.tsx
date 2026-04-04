@@ -251,7 +251,8 @@ export default function TripDetailPage() {
 
   const handleAddPayment = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!paymentForm.amount || !paymentForm.paymentDate || !paymentForm.customerId) return;
+    const effectiveCustomerId = hasSingleLoadCustomer ? autoCustomerId : paymentForm.customerId;
+    if (!paymentForm.amount || !paymentForm.paymentDate || !effectiveCustomerId) return;
     addPaymentMutation.mutate({
       id: tripId,
       data: {
@@ -259,7 +260,7 @@ export default function TripDetailPage() {
         paymentDate: paymentForm.paymentDate,
         paymentMode: paymentForm.paymentMode || undefined,
         notes: paymentForm.notes || undefined,
-        customerId: paymentForm.customerId,
+        customerId: effectiveCustomerId,
       },
     });
   };
@@ -282,6 +283,19 @@ export default function TripDetailPage() {
   const expensesData = expensesQuery.data;
   const paymentsData = paymentsQuery.data;
   const advancesData = advancesQuery.data;
+
+  const loadCustomers = (() => {
+    if (!loadsData?.loads?.length) return [];
+    const seen = new Map<number, string>();
+    for (const l of loadsData.loads) {
+      if (l.customerId && !seen.has(l.customerId)) {
+        seen.set(l.customerId, l.customerName ?? "");
+      }
+    }
+    return Array.from(seen.entries()).map(([id, name]) => ({ id, name }));
+  })();
+  const hasSingleLoadCustomer = loadCustomers.length === 1;
+  const autoCustomerId = hasSingleLoadCustomer ? String(loadCustomers[0].id) : "";
 
   return (
     <div className="max-w-5xl">
@@ -752,10 +766,26 @@ export default function TripDetailPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 mb-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Customer *</label>
-                    <select value={paymentForm.customerId} onChange={(e) => setPaymentForm((f) => ({ ...f, customerId: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500" required>
-                      <option value="">Select Customer</option>
-                      {customersQuery.data?.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
-                    </select>
+                    {hasSingleLoadCustomer ? (
+                      <>
+                        <input type="text" value={loadCustomers[0].name} disabled className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-gray-100 text-gray-700 cursor-not-allowed" />
+                        <input type="hidden" name="customerId" value={autoCustomerId} />
+                        <p className="text-xs text-gray-500 mt-0.5">Auto-selected from load</p>
+                      </>
+                    ) : loadCustomers.length > 1 ? (
+                      <>
+                        <select value={paymentForm.customerId} onChange={(e) => setPaymentForm((f) => ({ ...f, customerId: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500" required>
+                          <option value="">Select Customer</option>
+                          {loadCustomers.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+                        </select>
+                        <p className="text-xs text-gray-500 mt-0.5">Filtered to load customers</p>
+                      </>
+                    ) : (
+                      <select value={paymentForm.customerId} onChange={(e) => setPaymentForm((f) => ({ ...f, customerId: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500" required>
+                        <option value="">Select Customer</option>
+                        {customersQuery.data?.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+                      </select>
+                    )}
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Amount *</label>
