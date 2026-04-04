@@ -23,6 +23,7 @@ export * from "./customerPaymentInput";
 export * from "./customerPaymentsResponse";
 export * from "./customerReportRow";
 export * from "./dashboardSummary";
+export * from "./deleteTrip200";
 export * from "./driver";
 export * from "./driverAdvance";
 export * from "./driverAdvanceInput";

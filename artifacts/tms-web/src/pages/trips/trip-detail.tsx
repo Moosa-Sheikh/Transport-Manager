@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { useRoute, Link } from "wouter";
+import { useRoute, Link, useLocation } from "wouter";
 import { ArrowLeft, Lock, Loader2, ChevronRight, Trash2, Plus } from "lucide-react";
 import {
   useGetTrip,
   useCloseTrip,
+  useDeleteTrip,
   useListTripLoads,
   useAddTripLoad,
   useDeleteTripLoad,
@@ -39,6 +40,7 @@ export default function TripDetailPage() {
   const tripId = Number(params?.id);
   const queryClient = useQueryClient();
   const [closeConfirm, setCloseConfirm] = useState(false);
+  const [deleteTripConfirm, setDeleteTripConfirm] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
   const [deleteExpenseConfirmId, setDeleteExpenseConfirmId] = useState<number | null>(null);
   const [successMsg, setSuccessMsg] = useState("");
@@ -100,12 +102,22 @@ export default function TripDetailPage() {
     queryClient.invalidateQueries({ queryKey: getListTripDriverAdvancesQueryKey(tripId) });
   }
 
+  const [, navigate] = useLocation();
+
   const closeMutation = useCloseTrip({
     mutation: {
       onSuccess: () => {
         invalidateAll();
         setCloseConfirm(false);
         showSuccess("Trip closed successfully");
+      },
+    },
+  });
+
+  const deleteTripMutation = useDeleteTrip({
+    mutation: {
+      onSuccess: () => {
+        navigate("/trips");
       },
     },
   });
@@ -278,13 +290,22 @@ export default function TripDetailPage() {
         </Link>
         <h2 className="text-2xl font-bold text-gray-900">Trip #{tripId}</h2>
         {trip?.status === "Open" && (
-          <button
-            onClick={() => setCloseConfirm(true)}
-            className="ml-auto flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm font-medium"
-          >
-            <Lock className="w-4 h-4" />
-            Close Trip
-          </button>
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={() => setDeleteTripConfirm(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete
+            </button>
+            <button
+              onClick={() => setCloseConfirm(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-sm font-medium"
+            >
+              <Lock className="w-4 h-4" />
+              Close Trip
+            </button>
+          </div>
         )}
       </div>
 
@@ -309,6 +330,26 @@ export default function TripDetailPage() {
               >
                 {closeMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
                 Close Trip
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteTripConfirm && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
+            <h3 className="text-lg font-semibold text-red-700 mb-2">Delete Trip</h3>
+            <p className="text-sm text-gray-600 mb-4">Are you sure you want to delete this trip? All related loads, expenses, payments, advances, and cash book entries will be permanently removed.</p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setDeleteTripConfirm(false)} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+              <button
+                onClick={() => deleteTripMutation.mutate({ id: tripId })}
+                disabled={deleteTripMutation.isPending}
+                className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
+              >
+                {deleteTripMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                Delete Trip
               </button>
             </div>
           </div>
@@ -705,36 +746,43 @@ export default function TripDetailPage() {
               )}
             </h3>
 
-            <form onSubmit={handleAddPayment} className="mb-4 p-4 bg-teal-50 border border-teal-200 rounded-lg">
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Amount *</label>
-                  <input type="number" step="0.01" min="0.01" value={paymentForm.amount} onChange={(e) => setPaymentForm((f) => ({ ...f, amount: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500" required />
+            {trip.status === "Open" && (
+              <form onSubmit={handleAddPayment} className="mb-4 p-4 bg-teal-50 border border-teal-200 rounded-lg">
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Amount *</label>
+                    <input type="number" step="0.01" min="0.01" value={paymentForm.amount} onChange={(e) => setPaymentForm((f) => ({ ...f, amount: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500" required />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Date *</label>
+                    <input type="date" value={paymentForm.paymentDate} onChange={(e) => setPaymentForm((f) => ({ ...f, paymentDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500" required />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Payment Mode</label>
+                    <select value={paymentForm.paymentMode} onChange={(e) => setPaymentForm((f) => ({ ...f, paymentMode: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
+                      <option value="">Select</option>
+                      <option value="Cash">Cash</option>
+                      <option value="Bank Transfer">Bank Transfer</option>
+                      <option value="Cheque">Cheque</option>
+                      <option value="Online">Online</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
+                    <input type="text" value={paymentForm.notes} onChange={(e) => setPaymentForm((f) => ({ ...f, notes: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500" />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Date *</label>
-                  <input type="date" value={paymentForm.paymentDate} onChange={(e) => setPaymentForm((f) => ({ ...f, paymentDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500" required />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Payment Mode</label>
-                  <select value={paymentForm.paymentMode} onChange={(e) => setPaymentForm((f) => ({ ...f, paymentMode: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
-                    <option value="">Select</option>
-                    <option value="Cash">Cash</option>
-                    <option value="Bank Transfer">Bank Transfer</option>
-                    <option value="Cheque">Cheque</option>
-                    <option value="Online">Online</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
-                  <input type="text" value={paymentForm.notes} onChange={(e) => setPaymentForm((f) => ({ ...f, notes: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500" />
-                </div>
+                <button type="submit" disabled={addPaymentMutation.isPending} className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 text-sm font-medium disabled:opacity-50">
+                  {addPaymentMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                  <Plus className="w-4 h-4" /> Record Payment
+                </button>
+              </form>
+            )}
+            {trip.status === "Closed" && (
+              <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-600">
+                Trip is closed. Any remaining amounts are managed through Customer Dues.
               </div>
-              <button type="submit" disabled={addPaymentMutation.isPending} className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 text-sm font-medium disabled:opacity-50">
-                {addPaymentMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                <Plus className="w-4 h-4" /> Record Payment
-              </button>
-            </form>
+            )}
 
             {paymentsQuery.isLoading ? (
               <div className="p-4 text-center text-gray-500"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></div>

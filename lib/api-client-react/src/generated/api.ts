@@ -32,6 +32,7 @@ import type {
   CustomerPaymentsResponse,
   CustomerReportRow,
   DashboardSummary,
+  DeleteTrip200,
   Driver,
   DriverAdvance,
   DriverAdvanceInput,
@@ -2424,6 +2425,90 @@ export function useGetTrip<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Delete an open trip and all related data
+ */
+export const getDeleteTripUrl = (id: number) => {
+  return `/api/trips/${id}`;
+};
+
+export const deleteTrip = async (
+  id: number,
+  options?: RequestInit,
+): Promise<DeleteTrip200> => {
+  return customFetch<DeleteTrip200>(getDeleteTripUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteTripMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteTrip>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteTrip>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteTrip"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteTrip>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteTrip(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteTripMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteTrip>>
+>;
+
+export type DeleteTripMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Delete an open trip and all related data
+ */
+export const useDeleteTrip = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteTrip>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteTrip>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteTripMutationOptions(options));
+};
 
 /**
  * @summary Close an open trip

@@ -397,6 +397,17 @@ export const GetTripResponse = zod.object({
 });
 
 /**
+ * @summary Delete an open trip and all related data
+ */
+export const DeleteTripParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteTripResponse = zod.object({
+  message: zod.string().optional(),
+});
+
+/**
  * @summary Close an open trip
  */
 export const CloseTripParams = zod.object({

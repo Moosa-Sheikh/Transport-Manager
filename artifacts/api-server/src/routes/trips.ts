@@ -285,6 +285,40 @@ router.put("/:id/close", async (req: Request, res: Response) => {
   }
 });
 
+router.delete("/:id", async (req: Request, res: Response) => {
+  try {
+    const id = parseId(req, res);
+    if (!id) return;
+
+    const [trip] = await db.select().from(tripsTable).where(eq(tripsTable.id, id));
+    if (!trip) { res.status(404).json({ error: "Trip not found" }); return; }
+
+    if (trip.status === "Closed") {
+      res.status(400).json({ error: "Cannot delete a closed trip" });
+      return;
+    }
+
+    await db.transaction(async (tx) => {
+      await tx.delete(customerPaymentsTable).where(eq(customerPaymentsTable.tripId, id));
+      await tx.delete(driverAdvancesTable).where(eq(driverAdvancesTable.tripId, id));
+      await tx.delete(tripExpensesTable).where(eq(tripExpensesTable.tripId, id));
+      await tx.delete(tripLoadsTable).where(eq(tripLoadsTable.tripId, id));
+      await tx.delete(cashBookTable).where(
+        and(
+          eq(cashBookTable.referenceTable, "trips"),
+          eq(cashBookTable.referenceId, id)
+        )
+      );
+      await tx.delete(tripsTable).where(eq(tripsTable.id, id));
+    });
+
+    res.json({ message: "Trip deleted successfully" });
+  } catch (err) {
+    req.log.error({ err }, "Delete trip error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.put("/:id/commission", async (req: Request, res: Response) => {
   try {
     const id = parseId(req, res);
@@ -731,6 +765,11 @@ router.post("/:id/customer-payments", async (req: Request, res: Response) => {
 
     const [trip] = await db.select().from(tripsTable).where(eq(tripsTable.id, id));
     if (!trip) { res.status(404).json({ error: "Trip not found" }); return; }
+
+    if (trip.status === "Closed") {
+      res.status(400).json({ error: "Cannot add payments to a closed trip. Use Customer Dues to manage remaining amounts." });
+      return;
+    }
 
     const { amount, paymentDate, paymentMode, notes, customerId } = req.body;
 

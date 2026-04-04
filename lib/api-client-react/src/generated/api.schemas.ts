@@ -621,6 +621,10 @@ export const ListTripsProfit = {
   negative: "negative",
 } as const;
 
+export type DeleteTrip200 = {
+  message?: string;
+};
+
 export type ListDriverSalariesParams = {
   driver_id?: number;
   month?: string;

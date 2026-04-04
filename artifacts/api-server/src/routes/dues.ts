@@ -182,11 +182,20 @@ router.delete("/customers/:id", async (req: Request, res: Response) => {
       res.status(400).json({ error: "Invalid ID" });
       return;
     }
-    const [deleted] = await db.delete(customerDuesTable).where(eq(customerDuesTable.id, id)).returning();
-    if (!deleted) {
+    const [existing] = await db.select({ id: customerDuesTable.id }).from(customerDuesTable).where(eq(customerDuesTable.id, id));
+    if (!existing) {
       res.status(404).json({ error: "Customer due not found" });
       return;
     }
+    await db.transaction(async (tx) => {
+      await tx.delete(cashBookTable).where(
+        and(eq(cashBookTable.referenceTable, "customer_dues"), eq(cashBookTable.referenceId, id))
+      );
+      await tx.delete(dueRepaymentsTable).where(
+        and(eq(dueRepaymentsTable.dueType, "customer"), eq(dueRepaymentsTable.dueId, id))
+      );
+      await tx.delete(customerDuesTable).where(eq(customerDuesTable.id, id));
+    });
     res.json({ message: "Customer due deleted successfully" });
   } catch (err) {
     req.log.error({ err }, "Delete customer due error");
@@ -457,11 +466,20 @@ router.delete("/drivers/:id", async (req: Request, res: Response) => {
       res.status(400).json({ error: "Invalid ID" });
       return;
     }
-    const [deleted] = await db.delete(driverLoansTable).where(eq(driverLoansTable.id, id)).returning();
-    if (!deleted) {
+    const [existing] = await db.select({ id: driverLoansTable.id }).from(driverLoansTable).where(eq(driverLoansTable.id, id));
+    if (!existing) {
       res.status(404).json({ error: "Driver loan not found" });
       return;
     }
+    await db.transaction(async (tx) => {
+      await tx.delete(cashBookTable).where(
+        and(eq(cashBookTable.referenceTable, "driver_loans"), eq(cashBookTable.referenceId, id))
+      );
+      await tx.delete(dueRepaymentsTable).where(
+        and(eq(dueRepaymentsTable.dueType, "driver"), eq(dueRepaymentsTable.dueId, id))
+      );
+      await tx.delete(driverLoansTable).where(eq(driverLoansTable.id, id));
+    });
     res.json({ message: "Driver loan deleted successfully" });
   } catch (err) {
     req.log.error({ err }, "Delete driver loan error");
@@ -832,11 +850,20 @@ router.delete("/others/:id", async (req: Request, res: Response) => {
       res.status(400).json({ error: "Invalid ID" });
       return;
     }
-    const [deleted] = await db.delete(otherLoansTable).where(eq(otherLoansTable.id, id)).returning();
-    if (!deleted) {
+    const [existing] = await db.select({ id: otherLoansTable.id }).from(otherLoansTable).where(eq(otherLoansTable.id, id));
+    if (!existing) {
       res.status(404).json({ error: "Loan not found" });
       return;
     }
+    await db.transaction(async (tx) => {
+      await tx.delete(cashBookTable).where(
+        and(eq(cashBookTable.referenceTable, "other_loans"), eq(cashBookTable.referenceId, id))
+      );
+      await tx.delete(dueRepaymentsTable).where(
+        and(eq(dueRepaymentsTable.dueType, "other"), eq(dueRepaymentsTable.dueId, id))
+      );
+      await tx.delete(otherLoansTable).where(eq(otherLoansTable.id, id));
+    });
     res.json({ message: "Loan deleted successfully" });
   } catch (err) {
     req.log.error({ err }, "Delete other loan error");
@@ -1169,11 +1196,20 @@ router.delete("/owner/:id", async (req: Request, res: Response) => {
       res.status(400).json({ error: "Invalid ID" });
       return;
     }
-    const [deleted] = await db.delete(ownerLoansTable).where(eq(ownerLoansTable.id, id)).returning();
-    if (!deleted) {
+    const [existing] = await db.select({ id: ownerLoansTable.id }).from(ownerLoansTable).where(eq(ownerLoansTable.id, id));
+    if (!existing) {
       res.status(404).json({ error: "Loan not found" });
       return;
     }
+    await db.transaction(async (tx) => {
+      await tx.delete(cashBookTable).where(
+        and(eq(cashBookTable.referenceTable, "owner_loans"), eq(cashBookTable.referenceId, id))
+      );
+      await tx.delete(dueRepaymentsTable).where(
+        and(eq(dueRepaymentsTable.dueType, "owner"), eq(dueRepaymentsTable.dueId, id))
+      );
+      await tx.delete(ownerLoansTable).where(eq(ownerLoansTable.id, id));
+    });
     res.json({ message: "Loan deleted successfully" });
   } catch (err) {
     req.log.error({ err }, "Delete owner loan error");
