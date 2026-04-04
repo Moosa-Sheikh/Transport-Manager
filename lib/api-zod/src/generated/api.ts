@@ -585,6 +585,35 @@ export const DeleteTripExpenseResponse = zod.object({
 });
 
 /**
+ * @summary List customer dues linked to a trip
+ */
+export const ListTripCustomerDuesParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListTripCustomerDuesResponse = zod.object({
+  dues: zod.array(
+    zod.object({
+      id: zod.number(),
+      tripId: zod.number().nullish(),
+      loadId: zod.number().nullish(),
+      customerId: zod.number(),
+      customerName: zod.string(),
+      biltyNumber: zod.string().nullish(),
+      dueAmount: zod.string(),
+      paidAmount: zod.string(),
+      balance: zod.number().nullish(),
+      dueDate: zod.coerce.date(),
+      status: zod.enum(["Pending", "Partial", "Cleared"]),
+      notes: zod.string().nullish(),
+    }),
+  ),
+  totalDue: zod.number(),
+  totalPaid: zod.number(),
+  totalBalance: zod.number(),
+});
+
+/**
  * @summary List customer payments for a trip
  */
 export const ListTripCustomerPaymentsParams = zod.object({

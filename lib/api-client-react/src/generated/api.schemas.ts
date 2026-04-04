@@ -241,6 +241,37 @@ export interface CustomerPaymentsResponse {
   totalReceived: number;
 }
 
+export type TripCustomerDueItemStatus =
+  (typeof TripCustomerDueItemStatus)[keyof typeof TripCustomerDueItemStatus];
+
+export const TripCustomerDueItemStatus = {
+  Pending: "Pending",
+  Partial: "Partial",
+  Cleared: "Cleared",
+} as const;
+
+export interface TripCustomerDueItem {
+  id: number;
+  tripId?: number | null;
+  loadId?: number | null;
+  customerId: number;
+  customerName: string;
+  biltyNumber?: string | null;
+  dueAmount: string;
+  paidAmount: string;
+  balance?: number | null;
+  dueDate: string;
+  status: TripCustomerDueItemStatus;
+  notes?: string | null;
+}
+
+export interface TripCustomerDuesResponse {
+  dues: TripCustomerDueItem[];
+  totalDue: number;
+  totalPaid: number;
+  totalBalance: number;
+}
+
 export interface DriverAdvanceInput {
   amount: string;
   advanceDate: string;

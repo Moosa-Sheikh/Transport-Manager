@@ -18,6 +18,7 @@ import {
   useUpdateTripCommission,
   useListCustomers,
   useListExpenseTypes,
+  useListTripCustomerDues,
   getGetTripQueryKey,
   getGetTripQueryOptions,
   getListTripLoadsQueryKey,
@@ -28,6 +29,7 @@ import {
   getListTripCustomerPaymentsQueryOptions,
   getListTripDriverAdvancesQueryKey,
   getListTripDriverAdvancesQueryOptions,
+  getListTripCustomerDuesQueryOptions,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -89,6 +91,11 @@ export default function TripDetailPage() {
   const advancesDefaults = getListTripDriverAdvancesQueryOptions(tripId);
   const advancesQuery = useListTripDriverAdvances(tripId, {
     query: { ...advancesDefaults, enabled: Number.isFinite(tripId) && tripId > 0 },
+  });
+
+  const customerDuesDefaults = getListTripCustomerDuesQueryOptions(tripId);
+  const customerDuesQuery = useListTripCustomerDues(tripId, {
+    query: { ...customerDuesDefaults, enabled: Number.isFinite(tripId) && tripId > 0 },
   });
 
   const customersQuery = useListCustomers({});
@@ -283,6 +290,7 @@ export default function TripDetailPage() {
   const expensesData = expensesQuery.data;
   const paymentsData = paymentsQuery.data;
   const advancesData = advancesQuery.data;
+  const customerDuesData = customerDuesQuery.data;
 
   const loadCustomers = (() => {
     if (!loadsData?.loads?.length) return [];
@@ -912,6 +920,74 @@ export default function TripDetailPage() {
                   </tbody>
                 </table>
               </div>
+            )}
+          </div>
+
+          <div className="mt-6 bg-white border border-gray-200 rounded-lg p-6">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
+              Customer Dues ({customerDuesData?.dues.length ?? 0})
+              {customerDuesData && customerDuesData.dues.length > 0 && (
+                <span className="ml-2 text-orange-700">— Outstanding: {formatPKR(customerDuesData.totalBalance)}</span>
+              )}
+            </h3>
+
+            {customerDuesQuery.isLoading ? (
+              <div className="p-4 text-center text-gray-500"><Loader2 className="w-5 h-5 animate-spin mx-auto" /></div>
+            ) : !customerDuesData?.dues.length ? (
+              <div className="p-4 text-center text-gray-500 text-sm">No customer dues linked to this trip.</div>
+            ) : (
+              <>
+                <div className="grid grid-cols-3 gap-4 mb-4">
+                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-center">
+                    <div className="text-xs text-orange-600 font-medium mb-1">Total Due</div>
+                    <div className="text-lg font-bold text-orange-800">{formatPKR(customerDuesData.totalDue)}</div>
+                  </div>
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                    <div className="text-xs text-green-600 font-medium mb-1">Paid</div>
+                    <div className="text-lg font-bold text-green-800">{formatPKR(customerDuesData.totalPaid)}</div>
+                  </div>
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
+                    <div className="text-xs text-red-600 font-medium mb-1">Balance</div>
+                    <div className="text-lg font-bold text-red-800">{formatPKR(customerDuesData.totalBalance)}</div>
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-200">
+                        <th className="text-left px-4 py-3 font-medium text-gray-600">Customer</th>
+                        <th className="text-left px-4 py-3 font-medium text-gray-600">Bilty #</th>
+                        <th className="text-right px-4 py-3 font-medium text-gray-600">Due Amount</th>
+                        <th className="text-right px-4 py-3 font-medium text-gray-600">Paid</th>
+                        <th className="text-right px-4 py-3 font-medium text-gray-600">Balance</th>
+                        <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
+                        <th className="text-left px-4 py-3 font-medium text-gray-600">Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {customerDuesData.dues.map((d) => (
+                        <tr key={d.id} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="px-4 py-3 text-gray-900">{d.customerName}</td>
+                          <td className="px-4 py-3 text-gray-600">{d.biltyNumber ?? "—"}</td>
+                          <td className="px-4 py-3 text-right text-orange-700 font-semibold">{formatPKR(Number(d.dueAmount))}</td>
+                          <td className="px-4 py-3 text-right text-green-700">{formatPKR(Number(d.paidAmount))}</td>
+                          <td className="px-4 py-3 text-right font-medium text-red-700">{formatPKR(d.balance ?? 0)}</td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                              d.status === "Cleared" ? "bg-green-100 text-green-800" :
+                              d.status === "Partial" ? "bg-yellow-100 text-yellow-800" :
+                              "bg-red-100 text-red-800"
+                            }`}>
+                              {d.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-gray-500 max-w-[150px] truncate">{d.notes ?? "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </div>
         </>

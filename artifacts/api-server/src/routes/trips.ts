@@ -770,6 +770,45 @@ router.get("/:id/customer-payments", async (req: Request, res: Response) => {
   }
 });
 
+router.get("/:id/customer-dues", async (req: Request, res: Response) => {
+  try {
+    const id = parseId(req, res);
+    if (!id) return;
+
+    const [trip] = await db.select().from(tripsTable).where(eq(tripsTable.id, id));
+    if (!trip) { res.status(404).json({ error: "Trip not found" }); return; }
+
+    const rows = await db
+      .select({
+        id: customerDuesTable.id,
+        tripId: customerDuesTable.tripId,
+        loadId: customerDuesTable.loadId,
+        customerId: customerDuesTable.customerId,
+        customerName: customersTable.name,
+        biltyNumber: customerDuesTable.biltyNumber,
+        dueAmount: customerDuesTable.dueAmount,
+        paidAmount: customerDuesTable.paidAmount,
+        balance: sql<number>`(${customerDuesTable.dueAmount}::numeric - ${customerDuesTable.paidAmount}::numeric)::double precision`.as("balance"),
+        dueDate: customerDuesTable.dueDate,
+        status: customerDuesTable.status,
+        notes: customerDuesTable.notes,
+      })
+      .from(customerDuesTable)
+      .innerJoin(customersTable, eq(customerDuesTable.customerId, customersTable.id))
+      .where(eq(customerDuesTable.tripId, id))
+      .orderBy(sql`${customerDuesTable.dueDate} DESC`);
+
+    const totalDue = rows.reduce((sum, r) => sum + Number(r.dueAmount), 0);
+    const totalPaid = rows.reduce((sum, r) => sum + Number(r.paidAmount), 0);
+    const totalBalance = rows.reduce((sum, r) => sum + (r.balance ?? 0), 0);
+
+    res.json({ dues: rows, totalDue, totalPaid, totalBalance });
+  } catch (err) {
+    req.log.error({ err }, "List trip customer dues error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 router.post("/:id/customer-payments", async (req: Request, res: Response) => {
   try {
     const id = parseId(req, res);

@@ -974,6 +974,31 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /trips/{id}/customer-dues:
+    get:
+      operationId: listTripCustomerDues
+      tags: [trips]
+      summary: List customer dues linked to a trip
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Customer dues list with totals
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TripCustomerDuesResponse"
+        "404":
+          description: Trip not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /trips/{id}/customer-payments:
     get:
       operationId: listTripCustomerPayments
@@ -2421,6 +2446,57 @@ components:
         totalReceived:
           type: number
       required: [payments, totalReceived]
+
+    TripCustomerDuesResponse:
+      type: object
+      properties:
+        dues:
+          type: array
+          items:
+            $ref: "#/components/schemas/TripCustomerDueItem"
+        totalDue:
+          type: number
+        totalPaid:
+          type: number
+        totalBalance:
+          type: number
+      required: [dues, totalDue, totalPaid, totalBalance]
+
+    TripCustomerDueItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        tripId:
+          type: integer
+          nullable: true
+        loadId:
+          type: integer
+          nullable: true
+        customerId:
+          type: integer
+        customerName:
+          type: string
+        biltyNumber:
+          type: string
+          nullable: true
+        dueAmount:
+          type: string
+        paidAmount:
+          type: string
+        balance:
+          type: number
+          nullable: true
+        dueDate:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [Pending, Partial, Cleared]
+        notes:
+          type: string
+          nullable: true
+      required: [id, customerId, customerName, dueAmount, paidAmount, dueDate, status]
 
     DriverAdvanceInput:
       type: object

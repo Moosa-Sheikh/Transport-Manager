@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Loader2, Plus, Banknote, Trash2, Search, X, Pencil, Eye } from "lucide-react";
+import { Loader2, Plus, Banknote, Trash2, Search, X, Pencil, Eye, Lock } from "lucide-react";
 import { Link } from "wouter";
 import {
   useListCustomerDues,
@@ -243,9 +243,15 @@ export default function CustomerDuesPage() {
                           <Banknote className="w-4 h-4" />
                         </button>
                       )}
-                      <button onClick={() => setDeleteConfirmId(d.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Delete">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {d.tripId ? (
+                        <span className="p-1.5 text-gray-400 cursor-not-allowed" title="Linked to trip — cannot delete">
+                          <Lock className="w-4 h-4" />
+                        </span>
+                      ) : (
+                        <button onClick={() => setDeleteConfirmId(d.id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded" title="Delete">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

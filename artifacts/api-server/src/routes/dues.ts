@@ -245,9 +245,13 @@ router.delete("/customers/:id", async (req: Request, res: Response) => {
       res.status(400).json({ error: "Invalid ID" });
       return;
     }
-    const [existing] = await db.select({ id: customerDuesTable.id }).from(customerDuesTable).where(eq(customerDuesTable.id, id));
+    const [existing] = await db.select({ id: customerDuesTable.id, tripId: customerDuesTable.tripId }).from(customerDuesTable).where(eq(customerDuesTable.id, id));
     if (!existing) {
       res.status(404).json({ error: "Customer due not found" });
+      return;
+    }
+    if (existing.tripId) {
+      res.status(400).json({ error: "Cannot delete a due linked to a trip. The due is attached to trip data and must be managed through the trip." });
       return;
     }
     await db.transaction(async (tx) => {

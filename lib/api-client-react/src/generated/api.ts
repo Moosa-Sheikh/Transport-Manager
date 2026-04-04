@@ -80,6 +80,7 @@ import type {
   RepaymentInput,
   SearchTripLoadsParams,
   TripCommissionInput,
+  TripCustomerDuesResponse,
   TripExpenseInput,
   TripExpenseWithType,
   TripExpensesResponse,
@@ -3200,6 +3201,94 @@ export const useDeleteTripExpense = <
 > => {
   return useMutation(getDeleteTripExpenseMutationOptions(options));
 };
+
+/**
+ * @summary List customer dues linked to a trip
+ */
+export const getListTripCustomerDuesUrl = (id: number) => {
+  return `/api/trips/${id}/customer-dues`;
+};
+
+export const listTripCustomerDues = async (
+  id: number,
+  options?: RequestInit,
+): Promise<TripCustomerDuesResponse> => {
+  return customFetch<TripCustomerDuesResponse>(getListTripCustomerDuesUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListTripCustomerDuesQueryKey = (id: number) => {
+  return [`/api/trips/${id}/customer-dues`] as const;
+};
+
+export const getListTripCustomerDuesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listTripCustomerDues>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTripCustomerDues>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListTripCustomerDuesQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listTripCustomerDues>>
+  > = ({ signal }) => listTripCustomerDues(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listTripCustomerDues>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListTripCustomerDuesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listTripCustomerDues>>
+>;
+export type ListTripCustomerDuesQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary List customer dues linked to a trip
+ */
+
+export function useListTripCustomerDues<
+  TData = Awaited<ReturnType<typeof listTripCustomerDues>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTripCustomerDues>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListTripCustomerDuesQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 /**
  * @summary List customer payments for a trip
