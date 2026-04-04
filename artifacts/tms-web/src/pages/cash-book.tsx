@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { BookOpen, Loader2, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
-import { useListCashBook, useListCustomers, useListDrivers, useListTrips } from "@workspace/api-client-react";
+import { useListCashBook, useListCustomers, useListDrivers, useListTrips, type ListCashBookParams, type ListCashBookCategory } from "@workspace/api-client-react";
 
 function formatPKR(val: number) {
   return new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val);
@@ -21,7 +21,7 @@ export default function CashBookPage() {
     date_from?: string;
     date_to?: string;
     entry_type?: "IN" | "OUT";
-    category?: string;
+    category?: ListCashBookCategory;
     customer_id?: number;
     driver_id?: number;
     trip_id?: number;
@@ -30,23 +30,26 @@ export default function CashBookPage() {
 
   const [showFilters, setShowFilters] = useState(false);
 
-  const apiFilters: Record<string, unknown> = {};
-  if (filters.month) {
-    const [y, m] = filters.month.split("-").map(Number);
-    apiFilters.date_from = `${y}-${String(m).padStart(2, "0")}-01`;
-    const lastDay = new Date(y, m, 0).getDate();
-    apiFilters.date_to = `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-  } else {
-    if (filters.date_from) apiFilters.date_from = filters.date_from;
-    if (filters.date_to) apiFilters.date_to = filters.date_to;
-  }
-  if (filters.entry_type) apiFilters.entry_type = filters.entry_type;
-  if (filters.category) apiFilters.category = filters.category;
-  if (filters.customer_id) apiFilters.customer_id = filters.customer_id;
-  if (filters.driver_id) apiFilters.driver_id = filters.driver_id;
-  if (filters.trip_id) apiFilters.trip_id = filters.trip_id;
+  const apiFilters: ListCashBookParams = (() => {
+    const p: ListCashBookParams = {};
+    if (filters.month) {
+      const [y, m] = filters.month.split("-").map(Number);
+      p.date_from = `${y}-${String(m).padStart(2, "0")}-01`;
+      const lastDay = new Date(y, m, 0).getDate();
+      p.date_to = `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+    } else {
+      if (filters.date_from) p.date_from = filters.date_from;
+      if (filters.date_to) p.date_to = filters.date_to;
+    }
+    if (filters.entry_type) p.entry_type = filters.entry_type;
+    if (filters.category) p.category = filters.category;
+    if (filters.customer_id) p.customer_id = filters.customer_id;
+    if (filters.driver_id) p.driver_id = filters.driver_id;
+    if (filters.trip_id) p.trip_id = filters.trip_id;
+    return p;
+  })();
 
-  const cashBookQuery = useListCashBook(apiFilters as any);
+  const cashBookQuery = useListCashBook(apiFilters);
   const customersQuery = useListCustomers({});
   const driversQuery = useListDrivers({});
   const tripsQuery = useListTrips({});
@@ -138,7 +141,7 @@ export default function CashBookPage() {
               <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
               <select
                 value={filters.category ?? ""}
-                onChange={(e) => setFilters((f) => ({ ...f, category: e.target.value || undefined }))}
+                onChange={(e) => setFilters((f) => ({ ...f, category: (e.target.value || undefined) as ListCashBookCategory | undefined }))}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">All Categories</option>
@@ -182,7 +185,7 @@ export default function CashBookPage() {
               >
                 <option value="">All Trips</option>
                 {tripsQuery.data?.map((t) => (
-                  <option key={t.id} value={t.id}>Trip #{t.id} — {t.fromCity} → {t.toCity}</option>
+                  <option key={t.id} value={t.id}>Trip #{t.id} — {t.fromCityName} → {t.toCityName}</option>
                 ))}
               </select>
             </div>
