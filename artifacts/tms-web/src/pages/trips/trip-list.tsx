@@ -16,6 +16,7 @@ import {
   useDeleteTrip,
   useListTrucks,
   useListDrivers,
+  useListCities,
   getListTripsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -28,6 +29,8 @@ export default function TripListPage() {
     driver_id?: number;
     status?: "Open" | "Closed";
     profit?: "positive" | "negative";
+    from_city_id?: number;
+    to_city_id?: number;
   }>({});
   const [showFilters, setShowFilters] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
@@ -37,6 +40,7 @@ export default function TripListPage() {
   const tripsQuery = useListTrips(filters);
   const trucksQuery = useListTrucks({});
   const driversQuery = useListDrivers({});
+  const citiesQuery = useListCities({});
 
   const closeMutation = useCloseTrip({
     mutation: {
@@ -120,7 +124,7 @@ export default function TripListPage() {
                 </button>
               )}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">
                   Date From
@@ -233,6 +237,50 @@ export default function TripListPage() {
                   <option value="">All Trips</option>
                   <option value="positive">Profitable</option>
                   <option value="negative">Loss-Making</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  From City
+                </label>
+                <select
+                  value={filters.from_city_id ?? ""}
+                  onChange={(e) =>
+                    setFilters((f) => ({
+                      ...f,
+                      from_city_id: e.target.value ? Number(e.target.value) : undefined,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">All Cities</option>
+                  {citiesQuery.data?.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  To City
+                </label>
+                <select
+                  value={filters.to_city_id ?? ""}
+                  onChange={(e) =>
+                    setFilters((f) => ({
+                      ...f,
+                      to_city_id: e.target.value ? Number(e.target.value) : undefined,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">All Cities</option>
+                  {citiesQuery.data?.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

@@ -620,6 +620,14 @@ paths:
           schema:
             type: string
             enum: [positive, negative]
+        - name: from_city_id
+          in: query
+          schema:
+            type: integer
+        - name: to_city_id
+          in: query
+          schema:
+            type: integer
       responses:
         "200":
           description: Trip list

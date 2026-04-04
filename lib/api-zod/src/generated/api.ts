@@ -330,6 +330,8 @@ export const ListTripsQueryParams = zod.object({
   driver_id: zod.coerce.number().optional(),
   status: zod.enum(["Open", "Closed"]).optional(),
   profit: zod.enum(["positive", "negative"]).optional(),
+  from_city_id: zod.coerce.number().optional(),
+  to_city_id: zod.coerce.number().optional(),
 });
 
 export const ListTripsResponseItem = zod.object({

@@ -68,7 +68,7 @@ function buildTripQuery() {
 
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const { date_from, date_to, truck_id, driver_id, status, profit } = req.query;
+    const { date_from, date_to, truck_id, driver_id, status, profit, from_city_id, to_city_id } = req.query;
     const conditions: SQL[] = [];
 
     if (typeof date_from === "string" && date_from) {
@@ -87,6 +87,18 @@ router.get("/", async (req: Request, res: Response) => {
       const did = Number(driver_id);
       if (Number.isFinite(did) && did > 0) {
         conditions.push(eq(tripsTable.driverId, did));
+      }
+    }
+    if (typeof from_city_id === "string" && from_city_id) {
+      const fcid = Number(from_city_id);
+      if (Number.isFinite(fcid) && fcid > 0) {
+        conditions.push(eq(tripsTable.fromCityId, fcid));
+      }
+    }
+    if (typeof to_city_id === "string" && to_city_id) {
+      const tcid = Number(to_city_id);
+      if (Number.isFinite(tcid) && tcid > 0) {
+        conditions.push(eq(tripsTable.toCityId, tcid));
       }
     }
     if (typeof status === "string" && (status === "Open" || status === "Closed")) {

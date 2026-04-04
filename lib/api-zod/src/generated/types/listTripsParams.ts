@@ -15,4 +15,6 @@ export type ListTripsParams = {
   driver_id?: number;
   status?: ListTripsStatus;
   profit?: ListTripsProfit;
+  from_city_id?: number;
+  to_city_id?: number;
 };
