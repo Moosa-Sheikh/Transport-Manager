@@ -9,7 +9,7 @@
 export interface CustomerPaymentInput {
   amount: string;
   paymentDate: Date;
-  customerId?: number;
+  customerId: number;
   paymentMode?: string;
   notes?: string;
 }

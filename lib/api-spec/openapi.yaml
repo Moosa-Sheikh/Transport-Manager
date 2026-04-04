@@ -2355,7 +2355,7 @@ components:
           type: string
         notes:
           type: string
-      required: [amount, paymentDate]
+      required: [amount, paymentDate, customerId]
 
     CustomerPayment:
       type: object

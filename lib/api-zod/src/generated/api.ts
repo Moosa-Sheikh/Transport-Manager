@@ -615,7 +615,7 @@ export const AddTripCustomerPaymentParams = zod.object({
 export const AddTripCustomerPaymentBody = zod.object({
   amount: zod.string(),
   paymentDate: zod.coerce.date(),
-  customerId: zod.number().optional(),
+  customerId: zod.number(),
   paymentMode: zod.string().optional(),
   notes: zod.string().optional(),
 });

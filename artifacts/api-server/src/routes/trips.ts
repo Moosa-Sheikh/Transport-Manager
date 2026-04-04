@@ -791,6 +791,10 @@ router.post("/:id/customer-payments", async (req: Request, res: Response) => {
     }
 
     const custId = customerId ? Number(customerId) : null;
+    if (!custId || !Number.isInteger(custId) || custId <= 0) {
+      res.status(400).json({ error: "Customer is required" });
+      return;
+    }
 
     const result = await db.transaction(async (tx) => {
       const [payment] = await tx

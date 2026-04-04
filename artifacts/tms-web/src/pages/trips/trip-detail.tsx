@@ -56,7 +56,7 @@ export default function TripDetailPage() {
   });
 
   const [paymentForm, setPaymentForm] = useState({
-    amount: "", paymentDate: "", paymentMode: "", notes: "",
+    amount: "", paymentDate: "", paymentMode: "", notes: "", customerId: "",
   });
 
   const [advanceForm, setAdvanceForm] = useState({
@@ -174,7 +174,7 @@ export default function TripDetailPage() {
     mutation: {
       onSuccess: () => {
         invalidateAll();
-        setPaymentForm({ amount: "", paymentDate: "", paymentMode: "", notes: "" });
+        setPaymentForm({ amount: "", paymentDate: "", paymentMode: "", notes: "", customerId: "" });
         showSuccess("Payment recorded successfully");
       },
       onError: (err: Error & { message?: string }) => {
@@ -251,7 +251,7 @@ export default function TripDetailPage() {
 
   const handleAddPayment = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!paymentForm.amount || !paymentForm.paymentDate) return;
+    if (!paymentForm.amount || !paymentForm.paymentDate || !paymentForm.customerId) return;
     addPaymentMutation.mutate({
       id: tripId,
       data: {
@@ -259,6 +259,7 @@ export default function TripDetailPage() {
         paymentDate: paymentForm.paymentDate,
         paymentMode: paymentForm.paymentMode || undefined,
         notes: paymentForm.notes || undefined,
+        customerId: paymentForm.customerId,
       },
     });
   };
@@ -748,7 +749,14 @@ export default function TripDetailPage() {
 
             {trip.status === "Open" && (
               <form onSubmit={handleAddPayment} className="mb-4 p-4 bg-teal-50 border border-teal-200 rounded-lg">
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-3">
+                <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 mb-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Customer *</label>
+                    <select value={paymentForm.customerId} onChange={(e) => setPaymentForm((f) => ({ ...f, customerId: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500" required>
+                      <option value="">Select Customer</option>
+                      {customersQuery.data?.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+                    </select>
+                  </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Amount *</label>
                     <input type="number" step="0.01" min="0.01" value={paymentForm.amount} onChange={(e) => setPaymentForm((f) => ({ ...f, amount: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500" required />

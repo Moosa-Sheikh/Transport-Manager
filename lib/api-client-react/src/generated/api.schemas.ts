@@ -220,7 +220,7 @@ export interface TripExpensesResponse {
 export interface CustomerPaymentInput {
   amount: string;
   paymentDate: string;
-  customerId?: number;
+  customerId: number;
   paymentMode?: string;
   notes?: string;
 }
