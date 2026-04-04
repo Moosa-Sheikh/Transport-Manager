@@ -51,6 +51,7 @@ export * from "./getTripReportParams";
 export * from "./getTripReportStatus";
 export * from "./getTruckReportParams";
 export * from "./healthStatus";
+export * from "./listCashBookCategory";
 export * from "./listCashBookEntryType";
 export * from "./listCashBookParams";
 export * from "./listCitiesParams";

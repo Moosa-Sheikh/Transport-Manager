@@ -729,6 +729,20 @@ export const ListCashBookQueryParams = zod.object({
   date_from: zod.date().optional(),
   date_to: zod.date().optional(),
   entry_type: zod.enum(["IN", "OUT"]).optional(),
+  category: zod
+    .enum([
+      "customer_payments",
+      "customer_dues",
+      "driver_advances",
+      "driver_loans",
+      "driver_salaries",
+      "owner_loans",
+      "other_loans",
+    ])
+    .optional(),
+  customer_id: zod.coerce.number().optional(),
+  driver_id: zod.coerce.number().optional(),
+  trip_id: zod.coerce.number().optional(),
 });
 
 export const ListCashBookResponse = zod.object({

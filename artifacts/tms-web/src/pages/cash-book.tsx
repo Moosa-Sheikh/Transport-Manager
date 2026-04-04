@@ -1,27 +1,59 @@
 import { useState } from "react";
 import { BookOpen, Loader2, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
-import { useListCashBook } from "@workspace/api-client-react";
+import { useListCashBook, useListCustomers, useListDrivers, useListTrips } from "@workspace/api-client-react";
 
 function formatPKR(val: number) {
   return new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val);
 }
+
+const CATEGORY_OPTIONS = [
+  { value: "customer_payments", label: "Customer Payments" },
+  { value: "customer_dues", label: "Customer Dues" },
+  { value: "driver_advances", label: "Driver Advances" },
+  { value: "driver_loans", label: "Driver Loans" },
+  { value: "driver_salaries", label: "Driver Salaries" },
+  { value: "owner_loans", label: "Owner Loans" },
+  { value: "other_loans", label: "Other Loans" },
+];
 
 export default function CashBookPage() {
   const [filters, setFilters] = useState<{
     date_from?: string;
     date_to?: string;
     entry_type?: "IN" | "OUT";
+    category?: string;
+    customer_id?: number;
+    driver_id?: number;
+    trip_id?: number;
+    month?: string;
   }>({});
 
   const [showFilters, setShowFilters] = useState(false);
 
-  const cashBookQuery = useListCashBook({
-    date_from: filters.date_from,
-    date_to: filters.date_to,
-    entry_type: filters.entry_type,
-  });
+  const apiFilters: Record<string, unknown> = {};
+  if (filters.month) {
+    const [y, m] = filters.month.split("-").map(Number);
+    apiFilters.date_from = `${y}-${String(m).padStart(2, "0")}-01`;
+    const lastDay = new Date(y, m, 0).getDate();
+    apiFilters.date_to = `${y}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+  } else {
+    if (filters.date_from) apiFilters.date_from = filters.date_from;
+    if (filters.date_to) apiFilters.date_to = filters.date_to;
+  }
+  if (filters.entry_type) apiFilters.entry_type = filters.entry_type;
+  if (filters.category) apiFilters.category = filters.category;
+  if (filters.customer_id) apiFilters.customer_id = filters.customer_id;
+  if (filters.driver_id) apiFilters.driver_id = filters.driver_id;
+  if (filters.trip_id) apiFilters.trip_id = filters.trip_id;
+
+  const cashBookQuery = useListCashBook(apiFilters as any);
+  const customersQuery = useListCustomers({});
+  const driversQuery = useListDrivers({});
+  const tripsQuery = useListTrips({});
 
   const data = cashBookQuery.data;
+
+  const hasActiveFilters = !!(filters.date_from || filters.date_to || filters.entry_type || filters.category || filters.customer_id || filters.driver_id || filters.trip_id || filters.month);
 
   return (
     <div className="max-w-5xl">
@@ -44,7 +76,7 @@ export default function CashBookPage() {
         <div className="mb-6 p-4 bg-white border border-gray-200 rounded-lg">
           <div className="flex items-center justify-between mb-3">
             <span className="text-sm font-medium text-gray-700">Filter Entries</span>
-            {(filters.date_from || filters.date_to || filters.entry_type) && (
+            {hasActiveFilters && (
               <button
                 onClick={() => setFilters({})}
                 className="text-xs text-blue-600 hover:underline"
@@ -53,23 +85,39 @@ export default function CashBookPage() {
               </button>
             )}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Month</label>
+              <input
+                type="month"
+                value={filters.month ?? ""}
+                onChange={(e) => setFilters((f) => ({
+                  ...f,
+                  month: e.target.value || undefined,
+                  date_from: e.target.value ? undefined : f.date_from,
+                  date_to: e.target.value ? undefined : f.date_to,
+                }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Date From</label>
               <input
                 type="date"
-                value={filters.date_from ?? ""}
+                value={filters.month ? "" : (filters.date_from ?? "")}
+                disabled={!!filters.month}
                 onChange={(e) => setFilters((f) => ({ ...f, date_from: e.target.value || undefined }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
               />
             </div>
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Date To</label>
               <input
                 type="date"
-                value={filters.date_to ?? ""}
+                value={filters.month ? "" : (filters.date_to ?? "")}
+                disabled={!!filters.month}
                 onChange={(e) => setFilters((f) => ({ ...f, date_to: e.target.value || undefined }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
               />
             </div>
             <div>
@@ -82,6 +130,60 @@ export default function CashBookPage() {
                 <option value="">All</option>
                 <option value="IN">Cash IN</option>
                 <option value="OUT">Cash OUT</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
+              <select
+                value={filters.category ?? ""}
+                onChange={(e) => setFilters((f) => ({ ...f, category: e.target.value || undefined }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">All Categories</option>
+                {CATEGORY_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Customer</label>
+              <select
+                value={filters.customer_id ?? ""}
+                onChange={(e) => setFilters((f) => ({ ...f, customer_id: e.target.value ? Number(e.target.value) : undefined }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">All Customers</option>
+                {customersQuery.data?.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Driver</label>
+              <select
+                value={filters.driver_id ?? ""}
+                onChange={(e) => setFilters((f) => ({ ...f, driver_id: e.target.value ? Number(e.target.value) : undefined }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">All Drivers</option>
+                {driversQuery.data?.map((d) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Trip</label>
+              <select
+                value={filters.trip_id ?? ""}
+                onChange={(e) => setFilters((f) => ({ ...f, trip_id: e.target.value ? Number(e.target.value) : undefined }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">All Trips</option>
+                {tripsQuery.data?.map((t) => (
+                  <option key={t.id} value={t.id}>Trip #{t.id} — {t.fromCity} → {t.toCity}</option>
+                ))}
               </select>
             </div>
           </div>

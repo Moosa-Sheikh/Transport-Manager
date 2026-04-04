@@ -5,10 +5,15 @@
  * API specification
  * OpenAPI spec version: 0.2.0
  */
+import type { ListCashBookCategory } from "./listCashBookCategory";
 import type { ListCashBookEntryType } from "./listCashBookEntryType";
 
 export type ListCashBookParams = {
   date_from?: Date;
   date_to?: Date;
   entry_type?: ListCashBookEntryType;
+  category?: ListCashBookCategory;
+  customer_id?: number;
+  driver_id?: number;
+  trip_id?: number;
 };

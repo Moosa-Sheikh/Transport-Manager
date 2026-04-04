@@ -679,6 +679,10 @@ export type ListCashBookParams = {
   date_from?: string;
   date_to?: string;
   entry_type?: ListCashBookEntryType;
+  category?: ListCashBookCategory;
+  customer_id?: number;
+  driver_id?: number;
+  trip_id?: number;
 };
 
 export type ListCashBookEntryType =
@@ -687,6 +691,19 @@ export type ListCashBookEntryType =
 export const ListCashBookEntryType = {
   IN: "IN",
   OUT: "OUT",
+} as const;
+
+export type ListCashBookCategory =
+  (typeof ListCashBookCategory)[keyof typeof ListCashBookCategory];
+
+export const ListCashBookCategory = {
+  customer_payments: "customer_payments",
+  customer_dues: "customer_dues",
+  driver_advances: "driver_advances",
+  driver_loans: "driver_loans",
+  driver_salaries: "driver_salaries",
+  owner_loans: "owner_loans",
+  other_loans: "other_loans",
 } as const;
 
 export type GetCustomerReportParams = {
