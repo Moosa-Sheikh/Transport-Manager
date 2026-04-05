@@ -12,6 +12,7 @@ export interface CustomerReportRow {
   companyName?: string | null;
   totalTrips: number;
   totalFreight: number;
+  totalExpenses: number;
   totalReceived: number;
   totalDues: number;
   outstandingBalance: number;

@@ -194,12 +194,32 @@ export interface TripLoadsResponse {
   summary: TripIncomeSummary;
 }
 
+export type TripExpenseInputExpenseCategory =
+  (typeof TripExpenseInputExpenseCategory)[keyof typeof TripExpenseInputExpenseCategory];
+
+export const TripExpenseInputExpenseCategory = {
+  driver: "driver",
+  truck: "truck",
+  customer: "customer",
+} as const;
+
 export interface TripExpenseInput {
   expenseTypeId: number;
   amount: string;
   expenseDate: string;
+  expenseCategory: TripExpenseInputExpenseCategory;
+  customerId?: number | null;
   notes?: string;
 }
+
+export type TripExpenseWithTypeExpenseCategory =
+  (typeof TripExpenseWithTypeExpenseCategory)[keyof typeof TripExpenseWithTypeExpenseCategory];
+
+export const TripExpenseWithTypeExpenseCategory = {
+  driver: "driver",
+  truck: "truck",
+  customer: "customer",
+} as const;
 
 export interface TripExpenseWithType {
   id: number;
@@ -208,6 +228,9 @@ export interface TripExpenseWithType {
   expenseTypeName: string;
   amount: string;
   expenseDate: string;
+  expenseCategory: TripExpenseWithTypeExpenseCategory;
+  customerId?: number | null;
+  customerName?: string | null;
   notes?: string | null;
   createdAt?: string;
 }
@@ -613,6 +636,7 @@ export interface CustomerReportRow {
   companyName?: string | null;
   totalTrips: number;
   totalFreight: number;
+  totalExpenses: number;
   totalReceived: number;
   totalDues: number;
   outstandingBalance: number;

@@ -606,11 +606,15 @@ router.get("/:id/expenses", async (req: Request, res: Response) => {
         expenseTypeName: expenseTypesTable.name,
         amount: tripExpensesTable.amount,
         expenseDate: tripExpensesTable.expenseDate,
+        expenseCategory: tripExpensesTable.expenseCategory,
+        customerId: tripExpensesTable.customerId,
+        customerName: customersTable.name,
         notes: tripExpensesTable.notes,
         createdAt: tripExpensesTable.createdAt,
       })
       .from(tripExpensesTable)
       .innerJoin(expenseTypesTable, eq(tripExpensesTable.expenseTypeId, expenseTypesTable.id))
+      .leftJoin(customersTable, eq(tripExpensesTable.customerId, customersTable.id))
       .where(eq(tripExpensesTable.tripId, id))
       .orderBy(tripExpensesTable.expenseDate);
 
@@ -641,7 +645,7 @@ router.post("/:id/expenses", async (req: Request, res: Response) => {
       return;
     }
 
-    const { expenseTypeId, amount, expenseDate, notes } = req.body;
+    const { expenseTypeId, amount, expenseDate, expenseCategory, customerId, notes } = req.body;
 
     const numExpenseTypeId = Number(expenseTypeId);
     if (!Number.isInteger(numExpenseTypeId) || numExpenseTypeId <= 0) {
@@ -666,6 +670,30 @@ router.post("/:id/expenses", async (req: Request, res: Response) => {
       return;
     }
 
+    const validCategories = ["driver", "truck", "customer"];
+    if (!expenseCategory || !validCategories.includes(expenseCategory)) {
+      res.status(400).json({ error: "Expense category must be one of: driver, truck, customer" });
+      return;
+    }
+
+    let numCustomerId: number | null = null;
+    if (expenseCategory === "customer") {
+      numCustomerId = Number(customerId);
+      if (!Number.isInteger(numCustomerId) || numCustomerId <= 0) {
+        res.status(400).json({ error: "Customer is required when expense is for Customer" });
+        return;
+      }
+      const [cust] = await db
+        .select({ id: customersTable.id })
+        .from(customersTable)
+        .where(eq(customersTable.id, numCustomerId))
+        .limit(1);
+      if (!cust) {
+        res.status(400).json({ error: "Customer not found" });
+        return;
+      }
+    }
+
     const [expenseType] = await db
       .select({ id: expenseTypesTable.id })
       .from(expenseTypesTable)
@@ -683,6 +711,8 @@ router.post("/:id/expenses", async (req: Request, res: Response) => {
         expenseTypeId: numExpenseTypeId,
         amount: String(numAmount),
         expenseDate: expenseDate,
+        expenseCategory: expenseCategory,
+        customerId: numCustomerId,
         notes: notes ? String(notes) : null,
       })
       .returning();
@@ -695,11 +725,15 @@ router.post("/:id/expenses", async (req: Request, res: Response) => {
         expenseTypeName: expenseTypesTable.name,
         amount: tripExpensesTable.amount,
         expenseDate: tripExpensesTable.expenseDate,
+        expenseCategory: tripExpensesTable.expenseCategory,
+        customerId: tripExpensesTable.customerId,
+        customerName: customersTable.name,
         notes: tripExpensesTable.notes,
         createdAt: tripExpensesTable.createdAt,
       })
       .from(tripExpensesTable)
       .innerJoin(expenseTypesTable, eq(tripExpensesTable.expenseTypeId, expenseTypesTable.id))
+      .leftJoin(customersTable, eq(tripExpensesTable.customerId, customersTable.id))
       .where(eq(tripExpensesTable.id, inserted.id));
 
     res.status(201).json(row);

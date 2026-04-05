@@ -3,6 +3,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { tripsTable } from "./trips";
 import { expenseTypesTable } from "./expense-types";
+import { customersTable } from "./customers";
 
 export const tripExpensesTable = pgTable("trip_expenses", {
   id: serial("id").primaryKey(),
@@ -10,6 +11,8 @@ export const tripExpensesTable = pgTable("trip_expenses", {
   expenseTypeId: integer("expense_type_id").notNull().references(() => expenseTypesTable.id, { onDelete: "restrict" }),
   amount: numeric("amount", { precision: 12, scale: 2 }).notNull().default("0"),
   expenseDate: date("expense_date").notNull(),
+  expenseCategory: text("expense_category").notNull().default("truck"),
+  customerId: integer("customer_id").references(() => customersTable.id, { onDelete: "restrict" }),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
 });

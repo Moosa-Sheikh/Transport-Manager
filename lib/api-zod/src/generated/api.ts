@@ -551,6 +551,9 @@ export const ListTripExpensesResponse = zod.object({
       expenseTypeName: zod.string(),
       amount: zod.string(),
       expenseDate: zod.string(),
+      expenseCategory: zod.enum(["driver", "truck", "customer"]),
+      customerId: zod.number().nullish(),
+      customerName: zod.string().nullish(),
       notes: zod.string().nullish(),
       createdAt: zod.string().optional(),
     }),
@@ -569,6 +572,8 @@ export const AddTripExpenseBody = zod.object({
   expenseTypeId: zod.number(),
   amount: zod.string(),
   expenseDate: zod.coerce.date(),
+  expenseCategory: zod.enum(["driver", "truck", "customer"]),
+  customerId: zod.number().nullish(),
   notes: zod.string().optional(),
 });
 
@@ -780,6 +785,7 @@ export const GetCustomerReportResponseItem = zod.object({
   companyName: zod.string().nullish(),
   totalTrips: zod.number(),
   totalFreight: zod.number(),
+  totalExpenses: zod.number(),
   totalReceived: zod.number(),
   totalDues: zod.number(),
   outstandingBalance: zod.number(),

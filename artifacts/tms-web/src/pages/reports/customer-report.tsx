@@ -32,12 +32,13 @@ export default function CustomerReportPage() {
     (acc, r) => ({
       trips: acc.trips + r.totalTrips,
       freight: acc.freight + r.totalFreight,
+      expenses: acc.expenses + r.totalExpenses,
       received: acc.received + r.totalReceived,
       dues: acc.dues + r.totalDues,
       outstanding: acc.outstanding + r.outstandingBalance,
       netBalance: acc.netBalance + (r.totalFreight - r.totalReceived),
     }),
-    { trips: 0, freight: 0, received: 0, dues: 0, outstanding: 0, netBalance: 0 }
+    { trips: 0, freight: 0, expenses: 0, received: 0, dues: 0, outstanding: 0, netBalance: 0 }
   );
 
   const csvParams = new URLSearchParams();
@@ -78,6 +79,7 @@ export default function CustomerReportPage() {
                   <th className="text-left px-4 py-3 font-medium text-gray-600">Company</th>
                   <th className="text-right px-4 py-3 font-medium text-gray-600">Trips</th>
                   <th className="text-right px-4 py-3 font-medium text-blue-700">Total Freight</th>
+                  <th className="text-right px-4 py-3 font-medium text-orange-700">Total Expenses</th>
                   <th className="text-right px-4 py-3 font-medium text-green-700">Received</th>
                   <th className="text-right px-4 py-3 font-medium text-orange-700">Total Dues</th>
                   <th className="text-right px-4 py-3 font-medium text-red-700">Outstanding</th>
@@ -93,6 +95,7 @@ export default function CustomerReportPage() {
                       <td className="px-4 py-3 text-gray-600">{r.companyName ?? "-"}</td>
                       <td className="px-4 py-3 text-right text-gray-700">{r.totalTrips}</td>
                       <td className="px-4 py-3 text-right text-blue-700">{formatPKR(r.totalFreight)}</td>
+                      <td className="px-4 py-3 text-right text-orange-700">{formatPKR(r.totalExpenses)}</td>
                       <td className="px-4 py-3 text-right text-green-700">{formatPKR(r.totalReceived)}</td>
                       <td className="px-4 py-3 text-right text-orange-700">{formatPKR(r.totalDues)}</td>
                       <td className={`px-4 py-3 text-right font-semibold ${r.outstandingBalance > 0 ? "text-red-700" : "text-green-700"}`}>{formatPKR(r.outstandingBalance)}</td>
@@ -107,6 +110,7 @@ export default function CustomerReportPage() {
                   <td className="px-4 py-3"></td>
                   <td className="px-4 py-3 text-right text-gray-800">{totals.trips}</td>
                   <td className="px-4 py-3 text-right text-blue-800">{formatPKR(totals.freight)}</td>
+                  <td className="px-4 py-3 text-right text-orange-800">{formatPKR(totals.expenses)}</td>
                   <td className="px-4 py-3 text-right text-green-800">{formatPKR(totals.received)}</td>
                   <td className="px-4 py-3 text-right text-orange-800">{formatPKR(totals.dues)}</td>
                   <td className={`px-4 py-3 text-right ${totals.outstanding > 0 ? "text-red-800" : "text-green-800"}`}>{formatPKR(totals.outstanding)}</td>

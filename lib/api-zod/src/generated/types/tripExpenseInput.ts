@@ -5,10 +5,13 @@
  * API specification
  * OpenAPI spec version: 0.2.0
  */
+import type { TripExpenseInputExpenseCategory } from "./tripExpenseInputExpenseCategory";
 
 export interface TripExpenseInput {
   expenseTypeId: number;
   amount: string;
   expenseDate: Date;
+  expenseCategory: TripExpenseInputExpenseCategory;
+  customerId?: number | null;
   notes?: string;
 }

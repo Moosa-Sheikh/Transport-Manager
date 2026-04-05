@@ -2375,9 +2375,15 @@ components:
         expenseDate:
           type: string
           format: date
+        expenseCategory:
+          type: string
+          enum: [driver, truck, customer]
+        customerId:
+          type: integer
+          nullable: true
         notes:
           type: string
-      required: [expenseTypeId, amount, expenseDate]
+      required: [expenseTypeId, amount, expenseDate, expenseCategory]
 
     TripExpenseWithType:
       type: object
@@ -2394,12 +2400,21 @@ components:
           type: string
         expenseDate:
           type: string
+        expenseCategory:
+          type: string
+          enum: [driver, truck, customer]
+        customerId:
+          type: integer
+          nullable: true
+        customerName:
+          type: string
+          nullable: true
         notes:
           type: string
           nullable: true
         createdAt:
           type: string
-      required: [id, tripId, expenseTypeId, expenseTypeName, amount, expenseDate]
+      required: [id, tripId, expenseTypeId, expenseTypeName, amount, expenseDate, expenseCategory]
 
     TripExpensesResponse:
       type: object
@@ -3158,10 +3173,12 @@ components:
           type: integer
         totalFreight:
           type: number
+        totalExpenses:
+          type: number
         totalReceived:
           type: number
         totalDues:
           type: number
         outstandingBalance:
           type: number
-      required: [customerId, customerName, totalTrips, totalFreight, totalReceived, totalDues, outstandingBalance]
+      required: [customerId, customerName, totalTrips, totalFreight, totalExpenses, totalReceived, totalDues, outstandingBalance]

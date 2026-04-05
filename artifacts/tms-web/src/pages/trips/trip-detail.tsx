@@ -54,7 +54,7 @@ export default function TripDetailPage() {
   });
 
   const [expenseForm, setExpenseForm] = useState({
-    expenseTypeId: "", amount: "", expenseDate: "", notes: "",
+    expenseTypeId: "", amount: "", expenseDate: "", expenseCategory: "", customerId: "", notes: "",
   });
 
   const [paymentForm, setPaymentForm] = useState({
@@ -157,7 +157,7 @@ export default function TripDetailPage() {
     mutation: {
       onSuccess: () => {
         invalidateAll();
-        setExpenseForm({ expenseTypeId: "", amount: "", expenseDate: "", notes: "" });
+        setExpenseForm({ expenseTypeId: "", amount: "", expenseDate: "", expenseCategory: "", customerId: "", notes: "" });
         showSuccess("Expense added successfully");
       },
       onError: (err: Error & { message?: string }) => {
@@ -244,13 +244,16 @@ export default function TripDetailPage() {
 
   const handleAddExpense = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!expenseForm.expenseTypeId || !expenseForm.amount || !expenseForm.expenseDate) return;
+    if (!expenseForm.expenseTypeId || !expenseForm.amount || !expenseForm.expenseDate || !expenseForm.expenseCategory) return;
+    if (expenseForm.expenseCategory === "customer" && !expenseForm.customerId) return;
     addExpenseMutation.mutate({
       id: tripId,
       data: {
         expenseTypeId: Number(expenseForm.expenseTypeId),
         amount: expenseForm.amount,
         expenseDate: expenseForm.expenseDate,
+        expenseCategory: expenseForm.expenseCategory as "driver" | "truck" | "customer",
+        customerId: expenseForm.expenseCategory === "customer" ? Number(expenseForm.customerId) : undefined,
         notes: expenseForm.notes || undefined,
       },
     });
@@ -267,7 +270,7 @@ export default function TripDetailPage() {
         paymentDate: paymentForm.paymentDate,
         paymentMode: paymentForm.paymentMode || undefined,
         notes: paymentForm.notes || undefined,
-        customerId: effectiveCustomerId,
+        customerId: Number(effectiveCustomerId),
       },
     });
   };
@@ -681,7 +684,7 @@ export default function TripDetailPage() {
                 <Plus className="w-4 h-4" /> Add Expense
               </h3>
               <form onSubmit={handleAddExpense}>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Expense Type *</label>
                     <select value={expenseForm.expenseTypeId} onChange={(e) => setExpenseForm((f) => ({ ...f, expenseTypeId: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
@@ -689,6 +692,24 @@ export default function TripDetailPage() {
                       {expenseTypesQuery.data?.map((et) => (<option key={et.id} value={et.id}>{et.name}</option>))}
                     </select>
                   </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Expense For *</label>
+                    <select value={expenseForm.expenseCategory} onChange={(e) => setExpenseForm((f) => ({ ...f, expenseCategory: e.target.value, customerId: "" }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                      <option value="">Select</option>
+                      <option value="driver">Driver</option>
+                      <option value="truck">Truck</option>
+                      <option value="customer">Customer</option>
+                    </select>
+                  </div>
+                  {expenseForm.expenseCategory === "customer" && (
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Customer *</label>
+                      <select value={expenseForm.customerId} onChange={(e) => setExpenseForm((f) => ({ ...f, customerId: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        <option value="">Select Customer</option>
+                        {customersQuery.data?.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+                      </select>
+                    </div>
+                  )}
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Amount *</label>
                     <input type="number" step="0.01" min="0.01" value={expenseForm.amount} onChange={(e) => setExpenseForm((f) => ({ ...f, amount: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required />
@@ -732,29 +753,45 @@ export default function TripDetailPage() {
                     <tr className="bg-gray-50 border-b border-gray-200">
                       <th className="text-left px-4 py-3 font-medium text-gray-600">Date</th>
                       <th className="text-left px-4 py-3 font-medium text-gray-600">Expense Type</th>
+                      <th className="text-left px-4 py-3 font-medium text-gray-600">Expense For</th>
                       <th className="text-right px-4 py-3 font-medium text-gray-600">Amount</th>
                       <th className="text-left px-4 py-3 font-medium text-gray-600">Notes</th>
                       {trip.status === "Open" && <th className="text-right px-4 py-3 font-medium text-gray-600">Actions</th>}
                     </tr>
                   </thead>
                   <tbody>
-                    {expensesData.expenses.map((exp) => (
-                      <tr key={exp.id} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="px-4 py-3 text-gray-700">
-                          {new Date(exp.expenseDate + "T00:00:00").toLocaleDateString("en-PK", { day: "2-digit", month: "short", year: "numeric" })}
-                        </td>
-                        <td className="px-4 py-3 text-gray-900 font-medium">{exp.expenseTypeName}</td>
-                        <td className="px-4 py-3 text-right text-orange-700 font-semibold">{formatPKR(Number(exp.amount))}</td>
-                        <td className="px-4 py-3 text-gray-500">{exp.notes || "—"}</td>
-                        {trip.status === "Open" && (
-                          <td className="px-4 py-3 text-right">
-                            <button onClick={() => setDeleteExpenseConfirmId(exp.id)} className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded" title="Delete Expense">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                    {expensesData.expenses.map((exp) => {
+                      const catColors: Record<string, string> = {
+                        driver: "bg-purple-100 text-purple-700",
+                        truck: "bg-blue-100 text-blue-700",
+                        customer: "bg-green-100 text-green-700",
+                      };
+                      const catLabel = exp.expenseCategory
+                        ? exp.expenseCategory.charAt(0).toUpperCase() + exp.expenseCategory.slice(1)
+                        : "Truck";
+                      return (
+                        <tr key={exp.id} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="px-4 py-3 text-gray-700">
+                            {new Date(exp.expenseDate + "T00:00:00").toLocaleDateString("en-PK", { day: "2-digit", month: "short", year: "numeric" })}
                           </td>
-                        )}
-                      </tr>
-                    ))}
+                          <td className="px-4 py-3 text-gray-900 font-medium">{exp.expenseTypeName}</td>
+                          <td className="px-4 py-3">
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${catColors[exp.expenseCategory ?? "truck"] ?? catColors.truck}`}>
+                              {catLabel}{exp.expenseCategory === "customer" && exp.customerName ? `: ${exp.customerName}` : ""}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right text-orange-700 font-semibold">{formatPKR(Number(exp.amount))}</td>
+                          <td className="px-4 py-3 text-gray-500">{exp.notes || "—"}</td>
+                          {trip.status === "Open" && (
+                            <td className="px-4 py-3 text-right">
+                              <button onClick={() => setDeleteExpenseConfirmId(exp.id)} className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded" title="Delete Expense">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          )}
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
