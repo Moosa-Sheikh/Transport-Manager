@@ -458,6 +458,17 @@ export interface CustomerDue {
   createdAt?: string;
 }
 
+/**
+ * When a due already exists for this loadId — 'add' adds to existing amount, 'replace' replaces it
+ */
+export type CustomerDueInputAction =
+  (typeof CustomerDueInputAction)[keyof typeof CustomerDueInputAction];
+
+export const CustomerDueInputAction = {
+  add: "add",
+  replace: "replace",
+} as const;
+
 export interface CustomerDueInput {
   customerId: number;
   biltyNumber?: string;
@@ -466,6 +477,8 @@ export interface CustomerDueInput {
   notes?: string;
   tripId?: number;
   loadId?: number;
+  /** When a due already exists for this loadId — 'add' adds to existing amount, 'replace' replaces it */
+  action?: CustomerDueInputAction;
 }
 
 export interface DriverLoan {
@@ -561,7 +574,6 @@ export interface TripLoadSearchResult {
 export interface CustomerDueUpdate {
   dueAmount?: string;
   dueDate?: string;
-  biltyNumber?: string;
   notes?: string;
 }
 

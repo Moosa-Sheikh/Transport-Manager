@@ -9,6 +9,5 @@
 export interface CustomerDueUpdate {
   dueAmount?: string;
   dueDate?: Date;
-  biltyNumber?: string;
   notes?: string;
 }

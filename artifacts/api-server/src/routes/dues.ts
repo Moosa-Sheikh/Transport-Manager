@@ -110,7 +110,7 @@ router.get("/customers", async (req: Request, res: Response) => {
 
 router.post("/customers", async (req: Request, res: Response) => {
   try {
-    const { customerId, biltyNumber, dueAmount, dueDate, notes, tripId, loadId } = req.body;
+    const { customerId, biltyNumber, dueAmount, dueDate, notes, tripId, loadId, action } = req.body;
 
     const numCustomerId = Number(customerId);
     if (!Number.isInteger(numCustomerId) || numCustomerId <= 0) {
@@ -126,6 +126,7 @@ router.post("/customers", async (req: Request, res: Response) => {
       res.status(400).json({ error: "Valid due date is required (YYYY-MM-DD)" });
       return;
     }
+    const resolvedAction = action === "replace" ? "replace" : "add";
 
     const [customer] = await db.select({ id: customersTable.id, name: customersTable.name })
       .from(customersTable).where(eq(customersTable.id, numCustomerId));
@@ -136,6 +137,7 @@ router.post("/customers", async (req: Request, res: Response) => {
 
     let numTripId: number | null = null;
     let numLoadId: number | null = null;
+    let resolvedBiltyNumber: string | null = biltyNumber ? String(biltyNumber) : null;
 
     if (loadId) {
       numLoadId = Number(loadId);
@@ -158,6 +160,40 @@ router.post("/customers", async (req: Request, res: Response) => {
         return;
       }
       numTripId = load.tripId;
+      resolvedBiltyNumber = load.biltyNumber;
+
+      // Check if a due already exists for this loadId — if so, upsert instead of creating duplicate
+      const [existingDue] = await db.select()
+        .from(customerDuesTable)
+        .where(eq(customerDuesTable.loadId, numLoadId));
+
+      if (existingDue) {
+        const existingDueAmount = Number(existingDue.dueAmount);
+        const existingPaidAmount = Number(existingDue.paidAmount);
+        let newDueAmount: number;
+
+        if (resolvedAction === "replace") {
+          newDueAmount = numAmount;
+        } else {
+          newDueAmount = existingDueAmount + numAmount;
+        }
+
+        const newBalance = newDueAmount - existingPaidAmount;
+        const newStatus = newBalance <= 0 ? "Cleared" : existingPaidAmount > 0 ? "Partial" : "Pending";
+
+        const [updated] = await db.update(customerDuesTable).set({
+          dueAmount: String(newDueAmount),
+          notes: notes ? String(notes) : existingDue.notes,
+          status: newStatus,
+        }).where(eq(customerDuesTable.id, existingDue.id)).returning();
+
+        return res.json({
+          ...updated,
+          customerName: customer.name,
+          balance: newBalance,
+          upserted: true,
+        });
+      }
     } else if (tripId) {
       numTripId = Number(tripId);
       if (!Number.isInteger(numTripId) || numTripId <= 0) {
@@ -168,7 +204,7 @@ router.post("/customers", async (req: Request, res: Response) => {
 
     const [inserted] = await db.insert(customerDuesTable).values({
       customerId: numCustomerId,
-      biltyNumber: biltyNumber ? String(biltyNumber) : null,
+      biltyNumber: resolvedBiltyNumber,
       dueAmount: String(numAmount),
       dueDate,
       notes: notes ? String(notes) : null,
@@ -200,14 +236,13 @@ router.put("/customers/:id", async (req: Request, res: Response) => {
       return;
     }
 
-    const { dueAmount, dueDate, biltyNumber, notes } = req.body;
+    const { dueAmount, dueDate, notes } = req.body;
     const updates: Record<string, unknown> = {};
 
     if (dueAmount !== undefined) {
       const num = parsePositiveNum(dueAmount);
       if (!num) { res.status(400).json({ error: "Due amount must be greater than 0" }); return; }
       const paid = Number(existing.paidAmount);
-      if (num < paid) { res.status(400).json({ error: `Due amount cannot be less than already paid amount (${paid})` }); return; }
       updates.dueAmount = String(num);
       const newBalance = num - paid;
       updates.status = newBalance <= 0 ? "Cleared" : paid > 0 ? "Partial" : "Pending";
@@ -216,7 +251,6 @@ router.put("/customers/:id", async (req: Request, res: Response) => {
       if (!isValidDate(dueDate)) { res.status(400).json({ error: "Valid due date is required (YYYY-MM-DD)" }); return; }
       updates.dueDate = dueDate;
     }
-    if (biltyNumber !== undefined) updates.biltyNumber = biltyNumber || null;
     if (notes !== undefined) updates.notes = notes || null;
 
     if (Object.keys(updates).length === 0) {

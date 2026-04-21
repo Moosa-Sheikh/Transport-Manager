@@ -24,7 +24,7 @@ const statusColors: Record<string, string> = {
 export default function CustomerDuesPage() {
   const [filters, setFilters] = useState<Record<string, string>>({});
   const [showAdd, setShowAdd] = useState(false);
-  const [editItem, setEditItem] = useState<{ id: number; dueAmount: string; dueDate: string; biltyNumber: string; notes: string } | null>(null);
+  const [editItem, setEditItem] = useState<{ id: number; dueAmount: string; dueDate: string; notes: string } | null>(null);
   const [repayId, setRepayId] = useState<number | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
 
@@ -33,6 +33,7 @@ export default function CustomerDuesPage() {
   const [selectedLoad, setSelectedLoad] = useState<{ loadId: number; tripId: number; biltyNumber: string; customerId: number; customerName: string; freight: string | null } | null>(null);
   const [addFormCustomerId, setAddFormCustomerId] = useState("");
   const [addFormAmount, setAddFormAmount] = useState("");
+  const [addFormAction, setAddFormAction] = useState<"add" | "replace">("add");
   const biltyDropdownRef = useRef<HTMLDivElement>(null);
 
   const biltySearchQuery = useSearchTripLoads(
@@ -72,6 +73,7 @@ export default function CustomerDuesPage() {
     setBiltySearch("");
     setAddFormCustomerId("");
     setAddFormAmount("");
+    setAddFormAction("add");
   };
 
   const params: Record<string, unknown> = {};
@@ -102,10 +104,10 @@ export default function CustomerDuesPage() {
         customerId: Number(addFormCustomerId),
         dueAmount: fd.get("dueAmount") as string,
         dueDate: fd.get("dueDate") as string,
-        biltyNumber: biltySearch || undefined,
         notes: (fd.get("notes") as string) || undefined,
         tripId: selectedLoad?.tripId,
         loadId: selectedLoad?.loadId,
+        action: selectedLoad ? addFormAction : undefined,
       },
     });
     resetAddForm();
@@ -137,7 +139,6 @@ export default function CustomerDuesPage() {
       data: {
         dueAmount: fd.get("dueAmount") as string,
         dueDate: fd.get("dueDate") as string,
-        biltyNumber: (fd.get("biltyNumber") as string) || undefined,
         notes: (fd.get("notes") as string) || undefined,
       },
     });
@@ -222,7 +223,12 @@ export default function CustomerDuesPage() {
                   <td className="px-4 py-3 text-sm">{d.tripId ? <Link href={`/trips/${d.tripId}`} className="text-blue-600 hover:underline font-medium">#{d.tripId}</Link> : "-"}</td>
                   <td className="px-4 py-3 text-sm text-gray-900 text-right">{formatPKR(Number(d.dueAmount))}</td>
                   <td className="px-4 py-3 text-sm text-green-700 text-right">{formatPKR(Number(d.paidAmount))}</td>
-                  <td className="px-4 py-3 text-sm font-medium text-red-700 text-right">{formatPKR(d.balance ?? 0)}</td>
+                  <td className="px-4 py-3 text-sm font-medium text-right">
+                    {(d.balance ?? 0) < 0
+                      ? <span className="text-emerald-600">{formatPKR(Math.abs(d.balance ?? 0))} <span className="text-xs font-normal">(profit)</span></span>
+                      : <span className="text-red-700">{formatPKR(d.balance ?? 0)}</span>
+                    }
+                  </td>
                   <td className="px-4 py-3 text-sm text-gray-600">{d.dueDate}</td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[d.status] ?? "bg-gray-100 text-gray-800"}`}>
@@ -235,7 +241,7 @@ export default function CustomerDuesPage() {
                       <Link href={`/dues/customers/${d.id}`} className="p-1.5 text-gray-600 hover:bg-gray-100 rounded" title="View Details">
                         <Eye className="w-4 h-4" />
                       </Link>
-                      <button onClick={() => setEditItem({ id: d.id, dueAmount: String(d.dueAmount), dueDate: d.dueDate, biltyNumber: d.biltyNumber ?? "", notes: d.notes ?? "" })} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Edit">
+                      <button onClick={() => setEditItem({ id: d.id, dueAmount: String(d.dueAmount), dueDate: d.dueDate, notes: d.notes ?? "" })} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded" title="Edit">
                         <Pencil className="w-4 h-4" />
                       </button>
                       {d.status !== "Cleared" && (
@@ -318,9 +324,38 @@ export default function CustomerDuesPage() {
                   </div>
                 )}
                 {selectedLoad && (
-                  <div className="mt-1.5 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800">
-                    Linked to Trip #{selectedLoad.tripId} — {selectedLoad.customerName} — Freight: {selectedLoad.freight ? formatPKR(Number(selectedLoad.freight)) : "N/A"}
-                  </div>
+                  <>
+                    <div className="mt-1.5 px-3 py-2 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800">
+                      Linked to Trip #{selectedLoad.tripId} — {selectedLoad.customerName} — Freight: {selectedLoad.freight ? formatPKR(Number(selectedLoad.freight)) : "N/A"}
+                    </div>
+                    <div className="mt-2">
+                      <p className="text-xs font-medium text-gray-700 mb-1.5">If a due already exists for this bilty:</p>
+                      <div className="flex gap-4">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="action"
+                            value="add"
+                            checked={addFormAction === "add"}
+                            onChange={() => setAddFormAction("add")}
+                            className="accent-blue-600"
+                          />
+                          <span className="text-sm text-gray-700">Add to existing amount</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="radio"
+                            name="action"
+                            value="replace"
+                            checked={addFormAction === "replace"}
+                            onChange={() => setAddFormAction("replace")}
+                            className="accent-blue-600"
+                          />
+                          <span className="text-sm text-gray-700">Replace existing amount</span>
+                        </label>
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
               <div>
@@ -383,10 +418,6 @@ export default function CustomerDuesPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
                 <input name="dueDate" type="date" required defaultValue={editItem.dueDate} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Bilty Number (optional)</label>
-                <input name="biltyNumber" type="text" defaultValue={editItem.biltyNumber} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
