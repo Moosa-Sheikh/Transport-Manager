@@ -35,12 +35,11 @@ export default function DriverReportPage() {
       advances: acc.advances + r.totalAdvances,
       salary: acc.salary + r.totalSalary,
       netPaid: acc.netPaid + r.netPaid,
-      profit: acc.profit + r.profitGenerated,
       loans: acc.loans + r.totalLoans,
       loanReturned: acc.loanReturned + r.totalLoanReturned,
       loanBalance: acc.loanBalance + r.outstandingLoanBalance,
     }),
-    { trips: 0, income: 0, expenses: 0, advances: 0, salary: 0, netPaid: 0, profit: 0, loans: 0, loanReturned: 0, loanBalance: 0 }
+    { trips: 0, income: 0, expenses: 0, advances: 0, salary: 0, netPaid: 0, loans: 0, loanReturned: 0, loanBalance: 0 }
   );
 
   const csvParams = new URLSearchParams();
@@ -83,7 +82,6 @@ export default function DriverReportPage() {
                   <th className="text-right px-4 py-3 font-medium text-purple-700">Advances</th>
                   <th className="text-right px-4 py-3 font-medium text-indigo-700">Salary</th>
                   <th className="text-right px-4 py-3 font-medium text-red-700">Net Paid</th>
-                  <th className="text-right px-4 py-3 font-medium text-gray-600">Profit</th>
                   <th className="text-right px-4 py-3 font-medium text-cyan-700">Loans</th>
                   <th className="text-right px-4 py-3 font-medium text-teal-700">Returned</th>
                   <th className="text-right px-4 py-3 font-medium text-amber-700">Loan Bal.</th>
@@ -99,7 +97,6 @@ export default function DriverReportPage() {
                     <td className="px-4 py-3 text-right text-purple-700">{formatPKR(r.totalAdvances)}</td>
                     <td className="px-4 py-3 text-right text-indigo-700">{formatPKR(r.totalSalary)}</td>
                     <td className="px-4 py-3 text-right text-red-700 font-medium">{formatPKR(r.netPaid)}</td>
-                    <td className={`px-4 py-3 text-right font-semibold ${r.profitGenerated >= 0 ? "text-green-700" : "text-red-700"}`}>{formatPKR(r.profitGenerated)}</td>
                     <td className="px-4 py-3 text-right text-cyan-700">{formatPKR(r.totalLoans)}</td>
                     <td className="px-4 py-3 text-right text-teal-700">{formatPKR(r.totalLoanReturned)}</td>
                     <td className={`px-4 py-3 text-right font-medium ${r.outstandingLoanBalance > 0 ? "text-amber-700" : "text-green-700"}`}>{formatPKR(r.outstandingLoanBalance)}</td>
@@ -115,7 +112,6 @@ export default function DriverReportPage() {
                   <td className="px-4 py-3 text-right text-purple-800">{formatPKR(totals.advances)}</td>
                   <td className="px-4 py-3 text-right text-indigo-800">{formatPKR(totals.salary)}</td>
                   <td className="px-4 py-3 text-right text-red-800">{formatPKR(totals.netPaid)}</td>
-                  <td className={`px-4 py-3 text-right ${totals.profit >= 0 ? "text-green-800" : "text-red-800"}`}>{formatPKR(totals.profit)}</td>
                   <td className="px-4 py-3 text-right text-cyan-800">{formatPKR(totals.loans)}</td>
                   <td className="px-4 py-3 text-right text-teal-800">{formatPKR(totals.loanReturned)}</td>
                   <td className={`px-4 py-3 text-right ${totals.loanBalance > 0 ? "text-amber-800" : "text-green-800"}`}>{formatPKR(totals.loanBalance)}</td>
