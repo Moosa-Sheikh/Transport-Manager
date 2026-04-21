@@ -111,7 +111,7 @@ async function buildDriverReportData(dateFrom?: string | null, dateTo?: string |
   const salaryDateCondition = [];
   if (dateFrom) salaryDateCondition.push(sql`ds.payment_date >= ${dateFrom}`);
   if (dateTo) salaryDateCondition.push(sql`ds.payment_date <= ${dateTo}`);
-  const salaryWhere = salaryDateCondition.length ? sql`WHERE ${sql.join(salaryDateCondition, sql` AND `)}` : sql``;
+  const salaryWhere = salaryDateCondition.length ? sql`AND ${sql.join(salaryDateCondition, sql` AND `)}` : sql``;
 
   const loanDateCondition = [];
   if (dateFrom) loanDateCondition.push(sql`dl.loan_date >= ${dateFrom}`);
