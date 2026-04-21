@@ -7,7 +7,7 @@ import {
   customerPaymentsTable, driverAdvancesTable, cashBookTable,
   customerDuesTable,
 } from "@workspace/db/schema";
-import { eq, and, gte, lte, sql, type SQL } from "drizzle-orm";
+import { eq, and, gte, lte, sql, inArray, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { parseId } from "../lib/validate-id.js";
 
@@ -311,16 +311,27 @@ router.delete("/:id", async (req: Request, res: Response) => {
     }
 
     await db.transaction(async (tx) => {
+      const payments = await tx.select({ id: customerPaymentsTable.id }).from(customerPaymentsTable).where(eq(customerPaymentsTable.tripId, id));
+      const advances = await tx.select({ id: driverAdvancesTable.id }).from(driverAdvancesTable).where(eq(driverAdvancesTable.tripId, id));
+      const expenses = await tx.select({ id: tripExpensesTable.id }).from(tripExpensesTable).where(eq(tripExpensesTable.tripId, id));
+
+      if (payments.length > 0) {
+        const paymentIds = payments.map((p) => p.id);
+        await tx.delete(cashBookTable).where(and(eq(cashBookTable.referenceTable, "customer_payments"), inArray(cashBookTable.referenceId, paymentIds)));
+      }
+      if (advances.length > 0) {
+        const advanceIds = advances.map((a) => a.id);
+        await tx.delete(cashBookTable).where(and(eq(cashBookTable.referenceTable, "driver_advances"), inArray(cashBookTable.referenceId, advanceIds)));
+      }
+      if (expenses.length > 0) {
+        const expenseIds = expenses.map((e) => e.id);
+        await tx.delete(cashBookTable).where(and(eq(cashBookTable.referenceTable, "trip_expenses"), inArray(cashBookTable.referenceId, expenseIds)));
+      }
+
       await tx.delete(customerPaymentsTable).where(eq(customerPaymentsTable.tripId, id));
       await tx.delete(driverAdvancesTable).where(eq(driverAdvancesTable.tripId, id));
       await tx.delete(tripExpensesTable).where(eq(tripExpensesTable.tripId, id));
       await tx.delete(tripLoadsTable).where(eq(tripLoadsTable.tripId, id));
-      await tx.delete(cashBookTable).where(
-        and(
-          eq(cashBookTable.referenceTable, "trips"),
-          eq(cashBookTable.referenceId, id)
-        )
-      );
       await tx.delete(tripsTable).where(eq(tripsTable.id, id));
     });
 
@@ -695,7 +706,7 @@ router.post("/:id/expenses", async (req: Request, res: Response) => {
     }
 
     const [expenseType] = await db
-      .select({ id: expenseTypesTable.id })
+      .select({ id: expenseTypesTable.id, name: expenseTypesTable.name })
       .from(expenseTypesTable)
       .where(eq(expenseTypesTable.id, numExpenseTypeId))
       .limit(1);
@@ -704,18 +715,31 @@ router.post("/:id/expenses", async (req: Request, res: Response) => {
       return;
     }
 
-    const [inserted] = await db
-      .insert(tripExpensesTable)
-      .values({
-        tripId: id,
-        expenseTypeId: numExpenseTypeId,
+    const inserted = await db.transaction(async (tx) => {
+      const [expense] = await tx
+        .insert(tripExpensesTable)
+        .values({
+          tripId: id,
+          expenseTypeId: numExpenseTypeId,
+          amount: String(numAmount),
+          expenseDate: expenseDate,
+          expenseCategory: expenseCategory,
+          customerId: numCustomerId,
+          notes: notes ? String(notes) : null,
+        })
+        .returning();
+
+      await tx.insert(cashBookTable).values({
+        entryType: "OUT",
+        referenceTable: "trip_expenses",
+        referenceId: expense.id,
         amount: String(numAmount),
-        expenseDate: expenseDate,
-        expenseCategory: expenseCategory,
-        customerId: numCustomerId,
-        notes: notes ? String(notes) : null,
-      })
-      .returning();
+        entryDate: expenseDate,
+        description: `Trip #${id} expense — ${expenseType.name} (${expenseCategory})`,
+      });
+
+      return expense;
+    });
 
     const [row] = await db
       .select({
@@ -765,14 +789,21 @@ router.delete("/:id/expenses/:expenseId", async (req: Request, res: Response) =>
     }
 
     const [deleted] = await db
-      .delete(tripExpensesTable)
-      .where(and(eq(tripExpensesTable.id, expenseIdRaw), eq(tripExpensesTable.tripId, id)))
-      .returning();
+      .select({ id: tripExpensesTable.id })
+      .from(tripExpensesTable)
+      .where(and(eq(tripExpensesTable.id, expenseIdRaw), eq(tripExpensesTable.tripId, id)));
 
     if (!deleted) {
       res.status(404).json({ error: "Expense not found" });
       return;
     }
+
+    await db.transaction(async (tx) => {
+      await tx.delete(cashBookTable).where(
+        and(eq(cashBookTable.referenceTable, "trip_expenses"), eq(cashBookTable.referenceId, expenseIdRaw))
+      );
+      await tx.delete(tripExpensesTable).where(eq(tripExpensesTable.id, expenseIdRaw));
+    });
 
     res.json({ message: "Expense deleted successfully" });
   } catch (err) {
