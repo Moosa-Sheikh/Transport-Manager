@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { UserCog, Loader2 } from "lucide-react";
+import { Link } from "wouter";
 import { useGetDriverReport } from "@workspace/api-client-react";
 import ReportFilterBar, { type ReportFilters } from "./report-filters";
 import ReportActions from "./report-actions";
@@ -30,16 +31,15 @@ export default function DriverReportPage() {
   const totals = data.reduce(
     (acc, r) => ({
       trips: acc.trips + r.totalTrips,
-      income: acc.income + r.totalIncome,
       expenses: acc.expenses + r.totalExpenses,
       advances: acc.advances + r.totalAdvances,
       salary: acc.salary + r.totalSalary,
-      netPaid: acc.netPaid + r.netPaid,
+      netPaid: acc.netPaid + (r.totalSalary - r.totalAdvances),
       loans: acc.loans + r.totalLoans,
       loanReturned: acc.loanReturned + r.totalLoanReturned,
       loanBalance: acc.loanBalance + r.outstandingLoanBalance,
     }),
-    { trips: 0, income: 0, expenses: 0, advances: 0, salary: 0, netPaid: 0, loans: 0, loanReturned: 0, loanBalance: 0 }
+    { trips: 0, expenses: 0, advances: 0, salary: 0, netPaid: 0, loans: 0, loanReturned: 0, loanBalance: 0 }
   );
 
   const csvParams = new URLSearchParams();
@@ -47,6 +47,14 @@ export default function DriverReportPage() {
   if (filters.date_from) csvParams.set("date_from", filters.date_from);
   if (filters.date_to) csvParams.set("date_to", filters.date_to);
   if (filters.driver_id) csvParams.set("driver_id", String(filters.driver_id));
+
+  function buildTripsLink(driverId: number) {
+    const p = new URLSearchParams();
+    p.set("driver_id", String(driverId));
+    if (filters.date_from) p.set("date_from", filters.date_from!);
+    if (filters.date_to) p.set("date_to", filters.date_to!);
+    return `/trips?${p}`;
+  }
 
   return (
     <div className="max-w-6xl">
@@ -77,7 +85,6 @@ export default function DriverReportPage() {
                 <tr className="bg-gray-50 border-b border-gray-200">
                   <th className="text-left px-4 py-3 font-medium text-gray-600">Driver</th>
                   <th className="text-right px-4 py-3 font-medium text-gray-600">Trips</th>
-                  <th className="text-right px-4 py-3 font-medium text-blue-700">Income</th>
                   <th className="text-right px-4 py-3 font-medium text-orange-700">Expenses</th>
                   <th className="text-right px-4 py-3 font-medium text-purple-700">Advances</th>
                   <th className="text-right px-4 py-3 font-medium text-indigo-700">Salary</th>
@@ -88,30 +95,38 @@ export default function DriverReportPage() {
                 </tr>
               </thead>
               <tbody>
-                {data.map((r) => (
-                  <tr key={r.driverId} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-900">{r.driverName}</td>
-                    <td className="px-4 py-3 text-right text-gray-700">{r.totalTrips}</td>
-                    <td className="px-4 py-3 text-right text-blue-700">{formatPKR(r.totalIncome)}</td>
-                    <td className="px-4 py-3 text-right text-orange-700">{formatPKR(r.totalExpenses)}</td>
-                    <td className="px-4 py-3 text-right text-purple-700">{formatPKR(r.totalAdvances)}</td>
-                    <td className="px-4 py-3 text-right text-indigo-700">{formatPKR(r.totalSalary)}</td>
-                    <td className="px-4 py-3 text-right text-red-700 font-medium">{formatPKR(r.netPaid)}</td>
-                    <td className="px-4 py-3 text-right text-cyan-700">{formatPKR(r.totalLoans)}</td>
-                    <td className="px-4 py-3 text-right text-teal-700">{formatPKR(r.totalLoanReturned)}</td>
-                    <td className={`px-4 py-3 text-right font-medium ${r.outstandingLoanBalance > 0 ? "text-amber-700" : "text-green-700"}`}>{formatPKR(r.outstandingLoanBalance)}</td>
-                  </tr>
-                ))}
+                {data.map((r) => {
+                  const netPaid = r.totalSalary - r.totalAdvances;
+                  return (
+                    <tr key={r.driverId} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-gray-900">{r.driverName}</td>
+                      <td className="px-4 py-3 text-right">
+                        <Link
+                          href={buildTripsLink(r.driverId)}
+                          className="font-semibold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                        >
+                          {r.totalTrips}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-right text-orange-700">{formatPKR(r.totalExpenses)}</td>
+                      <td className="px-4 py-3 text-right text-purple-700">{formatPKR(r.totalAdvances)}</td>
+                      <td className="px-4 py-3 text-right text-indigo-700">{formatPKR(r.totalSalary)}</td>
+                      <td className={`px-4 py-3 text-right font-medium ${netPaid >= 0 ? "text-green-700" : "text-red-700"}`}>{formatPKR(netPaid)}</td>
+                      <td className="px-4 py-3 text-right text-cyan-700">{formatPKR(r.totalLoans)}</td>
+                      <td className="px-4 py-3 text-right text-teal-700">{formatPKR(r.totalLoanReturned)}</td>
+                      <td className={`px-4 py-3 text-right font-medium ${r.outstandingLoanBalance > 0 ? "text-amber-700" : "text-green-700"}`}>{formatPKR(r.outstandingLoanBalance)}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
               <tfoot>
                 <tr className="bg-gray-100 border-t-2 border-gray-300 font-semibold">
                   <td className="px-4 py-3 text-gray-700">Totals</td>
                   <td className="px-4 py-3 text-right text-gray-800">{totals.trips}</td>
-                  <td className="px-4 py-3 text-right text-blue-800">{formatPKR(totals.income)}</td>
                   <td className="px-4 py-3 text-right text-orange-800">{formatPKR(totals.expenses)}</td>
                   <td className="px-4 py-3 text-right text-purple-800">{formatPKR(totals.advances)}</td>
                   <td className="px-4 py-3 text-right text-indigo-800">{formatPKR(totals.salary)}</td>
-                  <td className="px-4 py-3 text-right text-red-800">{formatPKR(totals.netPaid)}</td>
+                  <td className={`px-4 py-3 text-right ${totals.netPaid >= 0 ? "text-green-800" : "text-red-800"}`}>{formatPKR(totals.netPaid)}</td>
                   <td className="px-4 py-3 text-right text-cyan-800">{formatPKR(totals.loans)}</td>
                   <td className="px-4 py-3 text-right text-teal-800">{formatPKR(totals.loanReturned)}</td>
                   <td className={`px-4 py-3 text-right ${totals.loanBalance > 0 ? "text-amber-800" : "text-green-800"}`}>{formatPKR(totals.loanBalance)}</td>

@@ -20,9 +20,9 @@ import {
   getListTripsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-export default function TripListPage() {
-  const queryClient = useQueryClient();
-  const [filters, setFilters] = useState<{
+function getInitialFilters() {
+  const params = new URLSearchParams(window.location.search);
+  const f: {
     date_from?: string;
     date_to?: string;
     truck_id?: number;
@@ -31,8 +31,20 @@ export default function TripListPage() {
     profit?: "positive" | "negative";
     from_city_id?: number;
     to_city_id?: number;
-  }>({});
-  const [showFilters, setShowFilters] = useState(false);
+  } = {};
+  if (params.get("driver_id")) f.driver_id = Number(params.get("driver_id"));
+  if (params.get("date_from")) f.date_from = params.get("date_from")!;
+  if (params.get("date_to")) f.date_to = params.get("date_to")!;
+  if (params.get("truck_id")) f.truck_id = Number(params.get("truck_id"));
+  if (params.get("status")) f.status = params.get("status") as "Open" | "Closed";
+  return f;
+}
+
+export default function TripListPage() {
+  const queryClient = useQueryClient();
+  const initialFilters = getInitialFilters();
+  const [filters, setFilters] = useState(initialFilters);
+  const [showFilters, setShowFilters] = useState(Object.keys(initialFilters).length > 0);
   const [successMsg, setSuccessMsg] = useState("");
   const [closeConfirmId, setCloseConfirmId] = useState<number | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
