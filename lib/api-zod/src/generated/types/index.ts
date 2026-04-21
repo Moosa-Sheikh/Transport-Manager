@@ -16,7 +16,6 @@ export * from "./cityInput";
 export * from "./customer";
 export * from "./customerDue";
 export * from "./customerDueInput";
-export * from "./customerDueInputAction";
 export * from "./customerDueUpdate";
 export * from "./customerInput";
 export * from "./customerPayment";

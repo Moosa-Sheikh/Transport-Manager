@@ -1002,12 +1002,6 @@ export const CreateCustomerDueBody = zod.object({
   notes: zod.string().optional(),
   tripId: zod.number().optional(),
   loadId: zod.number().optional(),
-  action: zod
-    .enum(["add", "replace"])
-    .optional()
-    .describe(
-      "When a due already exists for this loadId — 'add' adds to existing amount, 'replace' replaces it",
-    ),
 });
 
 /**
@@ -1020,6 +1014,7 @@ export const UpdateCustomerDueParams = zod.object({
 export const UpdateCustomerDueBody = zod.object({
   dueAmount: zod.string().optional(),
   dueDate: zod.coerce.date().optional(),
+  biltyNumber: zod.string().optional(),
   notes: zod.string().optional(),
 });
 

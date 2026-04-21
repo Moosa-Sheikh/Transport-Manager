@@ -2861,10 +2861,6 @@ components:
           type: integer
         loadId:
           type: integer
-        action:
-          type: string
-          enum: [add, replace]
-          description: When a due already exists for this loadId — 'add' adds to existing amount, 'replace' replaces it
       required: [customerId, dueAmount, dueDate]
 
     DriverLoan:
@@ -3045,6 +3041,8 @@ components:
         dueDate:
           type: string
           format: date
+        biltyNumber:
+          type: string
         notes:
           type: string
 

@@ -5,7 +5,6 @@
  * API specification
  * OpenAPI spec version: 0.2.0
  */
-import type { CustomerDueInputAction } from "./customerDueInputAction";
 
 export interface CustomerDueInput {
   customerId: number;
@@ -15,6 +14,4 @@ export interface CustomerDueInput {
   notes?: string;
   tripId?: number;
   loadId?: number;
-  /** When a due already exists for this loadId — 'add' adds to existing amount, 'replace' replaces it */
-  action?: CustomerDueInputAction;
 }
