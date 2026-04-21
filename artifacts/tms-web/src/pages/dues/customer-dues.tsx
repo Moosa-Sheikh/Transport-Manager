@@ -99,7 +99,7 @@ export default function CustomerDuesPage() {
     const fd = new FormData(e.currentTarget);
     await createMutation.mutateAsync({
       data: {
-        customerId: Number(fd.get("customerId")),
+        customerId: Number(addFormCustomerId),
         dueAmount: fd.get("dueAmount") as string,
         dueDate: fd.get("dueDate") as string,
         biltyNumber: biltySearch || undefined,
