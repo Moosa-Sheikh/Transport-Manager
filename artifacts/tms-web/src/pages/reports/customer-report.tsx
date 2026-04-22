@@ -1,10 +1,26 @@
 import { useState, useMemo } from "react";
-import { Users, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Users, Loader2, ChevronLeft, ChevronRight, ChevronsUpDown, ChevronUp, ChevronDown } from "lucide-react";
 import { useGetCustomerReport } from "@workspace/api-client-react";
 import ReportFilterBar, { type ReportFilters } from "./report-filters";
 import ReportActions from "./report-actions";
 
 const PAGE_SIZE = 10;
+
+type SortKey =
+  | "customerName"
+  | "openTrips"
+  | "closedTrips"
+  | "totalFreight"
+  | "totalExpenses"
+  | "totalReceived"
+  | "netBalance"
+  | "totalDues"
+  | "outstandingBalance"
+  | "totalLoans"
+  | "loanBalance";
+
+type SortDir = "asc" | "desc";
+type TripFilter = "Mix" | "Open" | "Closed";
 
 function formatPKR(val: number) {
   return new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val);
@@ -23,14 +39,35 @@ function TripLink({ count, customerId, status, dateFrom, dateTo }: { count: numb
   );
 }
 
-function currentMonthRange(): { date_from: string; date_to: string } {
+function SortIcon({ col, sortKey, sortDir }: { col: SortKey; sortKey: SortKey; sortDir: SortDir }) {
+  if (col !== sortKey) return <ChevronsUpDown className="w-3 h-3 opacity-30 inline ml-0.5" />;
+  return sortDir === "asc"
+    ? <ChevronUp className="w-3 h-3 inline ml-0.5 text-blue-600" />
+    : <ChevronDown className="w-3 h-3 inline ml-0.5 text-blue-600" />;
+}
+
+function dateStr(d: Date) {
+  return d.toISOString().slice(0, 10);
+}
+
+function getDatePresets(): Record<string, { date_from: string; date_to: string; label: string }> {
   const now = new Date();
   const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, "0");
-  const lastDay = new Date(y, now.getMonth() + 1, 0).getDate();
+  const m = now.getMonth();
+
+  const thisMonthStart = new Date(y, m, 1);
+  const thisMonthEnd = new Date(y, m + 1, 0);
+
+  const lastMonthStart = new Date(y, m - 1, 1);
+  const lastMonthEnd = new Date(y, m, 0);
+
+  const thisYearStart = new Date(y, 0, 1);
+  const thisYearEnd = new Date(y, 11, 31);
+
   return {
-    date_from: `${y}-${m}-01`,
-    date_to: `${y}-${m}-${String(lastDay).padStart(2, "0")}`,
+    thisMonth: { label: "This Month", date_from: dateStr(thisMonthStart), date_to: dateStr(thisMonthEnd) },
+    lastMonth: { label: "Last Month", date_from: dateStr(lastMonthStart), date_to: dateStr(lastMonthEnd) },
+    thisYear: { label: "This Year", date_from: dateStr(thisYearStart), date_to: dateStr(thisYearEnd) },
   };
 }
 
@@ -42,20 +79,22 @@ function getInitialFilters(): ReportFilters {
     f.date_from = params.get("date_from")!;
     f.date_to = params.get("date_to") ?? undefined;
   } else {
-    const { date_from, date_to } = currentMonthRange();
-    f.date_from = date_from;
-    f.date_to = date_to;
+    const presets = getDatePresets();
+    f.date_from = presets.thisMonth.date_from;
+    f.date_to = presets.thisMonth.date_to;
   }
   return f;
 }
-
-type TripFilter = "Mix" | "Open" | "Closed";
 
 export default function CustomerReportPage() {
   const [filters, setFilters] = useState<ReportFilters>(getInitialFilters);
   const [tripFilter, setTripFilter] = useState<TripFilter>("Mix");
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("netBalance");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  const presets = getDatePresets();
 
   const query = useGetCustomerReport({
     date_from: filters.date_from,
@@ -67,13 +106,32 @@ export default function CustomerReportPage() {
 
   const allData = query.data || [];
 
+  const activePreset = useMemo(() => {
+    return Object.values(presets).find(
+      (p) => p.date_from === filters.date_from && p.date_to === filters.date_to
+    )?.label ?? null;
+  }, [filters.date_from, filters.date_to]);
+
+  const sorted = useMemo(() => {
+    const copy = [...allData];
+    copy.sort((a, b) => {
+      const av = a[sortKey] as number | string;
+      const bv = b[sortKey] as number | string;
+      if (typeof av === "string" && typeof bv === "string") {
+        return sortDir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
+      }
+      return sortDir === "asc" ? (av as number) - (bv as number) : (bv as number) - (av as number);
+    });
+    return copy;
+  }, [allData, sortKey, sortDir]);
+
   const filtered = useMemo(() => {
-    if (!search.trim()) return allData;
+    if (!search.trim()) return sorted;
     const q = search.trim().toLowerCase();
-    return allData.filter(
+    return sorted.filter(
       (r) => r.customerName.toLowerCase().includes(q) || (r.companyName ?? "").toLowerCase().includes(q)
     );
-  }, [allData, search]);
+  }, [sorted, search]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -95,8 +153,23 @@ export default function CustomerReportPage() {
     { openTrips: 0, closedTrips: 0, freight: 0, expenses: 0, received: 0, netBalance: 0, dues: 0, outstanding: 0, totalLoans: 0, loanBalance: 0 }
   );
 
+  const handleSort = (key: SortKey) => {
+    if (key === sortKey) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("desc");
+    }
+    setPage(1);
+  };
+
   const handleFiltersChange = (f: ReportFilters) => {
     setFilters(f);
+    setPage(1);
+  };
+
+  const applyPreset = (key: keyof typeof presets) => {
+    setFilters((f) => ({ ...f, date_from: presets[key].date_from, date_to: presets[key].date_to }));
     setPage(1);
   };
 
@@ -117,6 +190,18 @@ export default function CustomerReportPage() {
   if (filters.customer_id) csvParams.set("customer_id", String(filters.customer_id));
   if (filters.status) csvParams.set("status", filters.status);
 
+  function Th({ col, children, className = "" }: { col: SortKey; children: React.ReactNode; className?: string }) {
+    return (
+      <th
+        onClick={() => handleSort(col)}
+        className={`px-3 py-2 font-medium cursor-pointer select-none hover:bg-gray-100 transition-colors ${className}`}
+      >
+        {children}
+        <SortIcon col={col} sortKey={sortKey} sortDir={sortDir} />
+      </th>
+    );
+  }
+
   return (
     <div className="max-w-7xl">
       <div className="flex items-center justify-between mb-6 print:mb-2">
@@ -127,10 +212,27 @@ export default function CustomerReportPage() {
         <ReportActions csvUrl={`/reports/export/csv?${csvParams}`} title="customer-report" />
       </div>
 
-      <div className="print:hidden">
+      <div className="print:hidden space-y-3">
         <ReportFilterBar filters={filters} onChange={handleFiltersChange} showCustomer showStatus statusOptions={[{ value: "Outstanding", label: "Outstanding" }, { value: "Cleared", label: "Cleared" }]} />
 
-        <div className="mt-3 flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap -mt-2">
+          <span className="text-xs text-gray-500 font-medium">Quick date:</span>
+          {(Object.entries(presets) as [keyof typeof presets, { label: string; date_from: string; date_to: string }][]).map(([key, p]) => (
+            <button
+              key={key}
+              onClick={() => applyPreset(key)}
+              className={`px-2.5 py-1 text-xs rounded-md border transition-colors ${
+                activePreset === p.label
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-medium text-gray-600">Calculate data for:</span>
           {(["Mix", "Open", "Closed"] as TripFilter[]).map((v) => {
             const labels: Record<TripFilter, string> = { Mix: "Mix (Open + Closed)", Open: "Open Trips Only", Closed: "Closed Trips Only" };
@@ -150,14 +252,9 @@ export default function CustomerReportPage() {
               </button>
             );
           })}
-          {tripFilter !== "Mix" && (
-            <span className="text-xs text-gray-400 ml-1">
-              — showing {tripFilter === "Open" ? "open" : "closed"} trip data only for all customers
-            </span>
-          )}
         </div>
 
-        <div className="mt-3">
+        <div>
           <input
             type="text"
             value={search}
@@ -169,11 +266,11 @@ export default function CustomerReportPage() {
       </div>
 
       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-md px-4 py-2.5 print:hidden">
-        <span><span className="font-semibold text-amber-700">Open</span> = trips still in progress (clickable → opens trip list)</span>
-        <span><span className="font-semibold text-green-700">Closed</span> = completed trips (clickable → opens trip list)</span>
-        <span><span className="font-semibold text-purple-700">Net Balance</span> = Total Billed − Received &nbsp;(red = customer still owes you)</span>
-        <span><span className="font-semibold text-orange-700">Dues Outstanding</span> = unpaid from dues/IOU system</span>
-        <span><span className="font-semibold text-red-700">Loan Balance</span> = money given to customer not yet returned</span>
+        <span><span className="font-semibold text-red-600">Red row</span> = customer still owes money (Net Balance &gt; 0)</span>
+        <span><span className="font-semibold text-amber-700">Open</span> = trips in progress · <span className="font-semibold text-green-700">Closed</span> = completed (both clickable)</span>
+        <span><span className="font-semibold text-purple-700">Net Balance</span> = Total Billed − Received</span>
+        <span><span className="font-semibold text-orange-700">Outstanding</span> = unpaid dues · <span className="font-semibold text-red-700">Loan Balance</span> = money not returned</span>
+        <span className="text-gray-400">Click any column header to sort ↑↓</span>
       </div>
 
       <div className="mt-3 bg-white border border-gray-200 rounded-lg overflow-hidden">
@@ -184,7 +281,7 @@ export default function CustomerReportPage() {
           </div>
         ) : !filtered.length ? (
           <div className="p-8 text-center text-gray-500">
-            {search ? `No customers match "${search}".` : "No customer data found."}
+            {search ? `No customers match "${search}".` : "No customer data found for the selected period."}
           </div>
         ) : (
           <>
@@ -193,59 +290,67 @@ export default function CustomerReportPage() {
                 <thead>
                   <tr className="bg-gray-50 border-b-2 border-gray-200 text-xs uppercase tracking-wide">
                     <th className="text-left px-3 py-3 font-semibold text-gray-600" rowSpan={2}>Customer</th>
-                    <th className="text-left px-3 py-3 font-semibold text-gray-600" rowSpan={2}>Company</th>
+                    <th className="text-left px-3 py-3 font-semibold text-gray-600 hidden md:table-cell" rowSpan={2}>Company</th>
                     <th colSpan={2} className="text-center px-3 py-1.5 font-semibold text-indigo-700 border-b border-indigo-200 bg-indigo-50">Trips</th>
                     <th colSpan={4} className="text-center px-3 py-1.5 font-semibold text-blue-700 border-b border-blue-200 bg-blue-50">Billing</th>
                     <th colSpan={2} className="text-center px-3 py-1.5 font-semibold text-orange-700 border-b border-orange-200 bg-orange-50">Dues</th>
                     <th colSpan={2} className="text-center px-3 py-1.5 font-semibold text-purple-700 border-b border-purple-200 bg-purple-50">Loans</th>
                   </tr>
                   <tr className="bg-gray-50 border-b border-gray-200 text-xs">
-                    <th className="text-center px-3 py-2 font-medium text-amber-700 bg-amber-50">Open</th>
-                    <th className="text-center px-3 py-2 font-medium text-green-700 bg-green-50">Closed</th>
-                    <th className="text-right px-3 py-2 font-medium text-blue-700">Total Billed</th>
-                    <th className="text-right px-3 py-2 font-medium text-gray-600">Expenses</th>
-                    <th className="text-right px-3 py-2 font-medium text-green-700">Received</th>
-                    <th className="text-right px-3 py-2 font-medium text-purple-700">Net Balance</th>
-                    <th className="text-right px-3 py-2 font-medium text-orange-600">Total Dues</th>
-                    <th className="text-right px-3 py-2 font-medium text-red-700">Outstanding</th>
-                    <th className="text-right px-3 py-2 font-medium text-purple-600">Total Loans</th>
-                    <th className="text-right px-3 py-2 font-medium text-red-700">Loan Balance</th>
+                    <Th col="openTrips" className="text-center text-amber-700 bg-amber-50">Open</Th>
+                    <Th col="closedTrips" className="text-center text-green-700 bg-green-50">Closed</Th>
+                    <Th col="totalFreight" className="text-right text-blue-700">Total Billed</Th>
+                    <Th col="totalExpenses" className="text-right text-gray-600">Expenses</Th>
+                    <Th col="totalReceived" className="text-right text-green-700">Received</Th>
+                    <Th col="netBalance" className="text-right text-purple-700">Net Balance</Th>
+                    <Th col="totalDues" className="text-right text-orange-600">Total Dues</Th>
+                    <Th col="outstandingBalance" className="text-right text-red-700">Outstanding</Th>
+                    <Th col="totalLoans" className="text-right text-purple-600">Total Loans</Th>
+                    <Th col="loanBalance" className="text-right text-red-700">Loan Balance</Th>
                   </tr>
                 </thead>
                 <tbody>
-                  {pageData.map((r) => (
-                    <tr key={r.customerId} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="px-3 py-3 font-medium text-gray-900">{r.customerName}</td>
-                      <td className="px-3 py-3 text-gray-600 text-xs">{r.companyName ?? "-"}</td>
-                      <td className="px-3 py-3 text-center">
-                        <TripLink count={r.openTrips} customerId={r.customerId} status="Open" dateFrom={filters.date_from} dateTo={filters.date_to} />
-                      </td>
-                      <td className="px-3 py-3 text-center">
-                        <TripLink count={r.closedTrips} customerId={r.customerId} status="Closed" dateFrom={filters.date_from} dateTo={filters.date_to} />
-                      </td>
-                      <td className="px-3 py-3 text-right text-blue-700">{formatPKR(r.totalFreight)}</td>
-                      <td className="px-3 py-3 text-right text-gray-600">{formatPKR(r.totalExpenses)}</td>
-                      <td className="px-3 py-3 text-right text-green-700">{formatPKR(r.totalReceived)}</td>
-                      <td className={`px-3 py-3 text-right font-semibold ${r.netBalance > 0 ? "text-red-700" : r.netBalance < 0 ? "text-green-700" : "text-gray-500"}`}>
-                        {formatPKR(r.netBalance)}
-                      </td>
-                      <td className="px-3 py-3 text-right text-orange-700">{formatPKR(r.totalDues)}</td>
-                      <td className={`px-3 py-3 text-right font-semibold ${r.outstandingBalance > 0 ? "text-red-700" : "text-green-600"}`}>
-                        {formatPKR(r.outstandingBalance)}
-                      </td>
-                      <td className="px-3 py-3 text-right text-purple-700">{formatPKR(r.totalLoans)}</td>
-                      <td className={`px-3 py-3 text-right font-semibold ${r.loanBalance > 0 ? "text-red-700" : "text-green-600"}`}>
-                        {formatPKR(r.loanBalance)}
-                      </td>
-                    </tr>
-                  ))}
+                  {pageData.map((r) => {
+                    const isOwing = r.netBalance > 0;
+                    const rowBase = isOwing ? "bg-red-50 border-red-100" : "border-gray-100";
+                    const rowHover = isOwing ? "hover:bg-red-100" : "hover:bg-gray-50";
+                    return (
+                      <tr key={r.customerId} className={`border-b ${rowBase} ${rowHover} transition-colors`}>
+                        <td className="px-3 py-3 font-medium text-gray-900">
+                          {r.customerName}
+                          {isOwing && <span className="ml-1.5 inline-block w-1.5 h-1.5 rounded-full bg-red-500 align-middle" title="Owes money" />}
+                        </td>
+                        <td className="px-3 py-3 text-gray-600 text-xs hidden md:table-cell">{r.companyName ?? "-"}</td>
+                        <td className="px-3 py-3 text-center">
+                          <TripLink count={r.openTrips} customerId={r.customerId} status="Open" dateFrom={filters.date_from} dateTo={filters.date_to} />
+                        </td>
+                        <td className="px-3 py-3 text-center">
+                          <TripLink count={r.closedTrips} customerId={r.customerId} status="Closed" dateFrom={filters.date_from} dateTo={filters.date_to} />
+                        </td>
+                        <td className="px-3 py-3 text-right text-blue-700">{formatPKR(r.totalFreight)}</td>
+                        <td className="px-3 py-3 text-right text-gray-600">{formatPKR(r.totalExpenses)}</td>
+                        <td className="px-3 py-3 text-right text-green-700">{formatPKR(r.totalReceived)}</td>
+                        <td className={`px-3 py-3 text-right font-semibold ${r.netBalance > 0 ? "text-red-700" : r.netBalance < 0 ? "text-green-700" : "text-gray-500"}`}>
+                          {formatPKR(r.netBalance)}
+                        </td>
+                        <td className="px-3 py-3 text-right text-orange-700">{formatPKR(r.totalDues)}</td>
+                        <td className={`px-3 py-3 text-right font-semibold ${r.outstandingBalance > 0 ? "text-red-700" : "text-green-600"}`}>
+                          {formatPKR(r.outstandingBalance)}
+                        </td>
+                        <td className="px-3 py-3 text-right text-purple-700">{formatPKR(r.totalLoans)}</td>
+                        <td className={`px-3 py-3 text-right font-semibold ${r.loanBalance > 0 ? "text-red-700" : "text-green-600"}`}>
+                          {formatPKR(r.loanBalance)}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
                 <tfoot>
                   <tr className="bg-gray-100 border-t-2 border-gray-300 font-semibold text-sm">
                     <td className="px-3 py-3 text-gray-700" colSpan={2}>
                       Totals
-                      {filtered.length !== allData.length && (
-                        <span className="ml-1 text-xs font-normal text-gray-500">({filtered.length} matching)</span>
+                      {search && (
+                        <span className="ml-1 text-xs font-normal text-gray-500">({filtered.length} customers)</span>
                       )}
                     </td>
                     <td className="px-3 py-3 text-center text-amber-800">{totals.openTrips}</td>
@@ -263,11 +368,15 @@ export default function CustomerReportPage() {
               </table>
             </div>
 
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50 print:hidden">
-                <span className="text-sm text-gray-500">
-                  Showing {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} of {filtered.length} customers
-                </span>
+            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50 print:hidden">
+              <span className="text-sm text-gray-500">
+                {filtered.length === 1
+                  ? "1 customer"
+                  : totalPages > 1
+                  ? `Showing ${(safePage - 1) * PAGE_SIZE + 1}–${Math.min(safePage * PAGE_SIZE, filtered.length)} of ${filtered.length} customers`
+                  : `${filtered.length} customers`}
+              </span>
+              {totalPages > 1 && (
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -297,8 +406,8 @@ export default function CustomerReportPage() {
                     <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </>
         )}
       </div>
