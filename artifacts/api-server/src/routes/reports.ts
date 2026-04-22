@@ -184,6 +184,11 @@ async function buildCustomerReportData(dateFrom?: string | null, dateTo?: string
   if (dateTo) dateCondition.push(sql`t.trip_date <= ${dateTo}`);
   const dateWhere = dateCondition.length ? sql`AND ${sql.join(dateCondition, sql` AND `)}` : sql``;
 
+  const paymentDateCondition = [];
+  if (dateFrom) paymentDateCondition.push(sql`cp.payment_date >= ${dateFrom}`);
+  if (dateTo) paymentDateCondition.push(sql`cp.payment_date <= ${dateTo}`);
+  const paymentDateWhere = paymentDateCondition.length ? sql`AND ${sql.join(paymentDateCondition, sql` AND `)}` : sql``;
+
   const dueDateCondition = [];
   if (dateFrom) dueDateCondition.push(sql`cd.due_date >= ${dateFrom}`);
   if (dateTo) dueDateCondition.push(sql`cd.due_date <= ${dateTo}`);
@@ -202,7 +207,7 @@ async function buildCustomerReportData(dateFrom?: string | null, dateTo?: string
         WHERE tl.customer_id = c.id ${dateWhere}
       ), 0) AS "totalTrips",
       COALESCE((
-        SELECT SUM(COALESCE(tl.freight, 0))
+        SELECT SUM(COALESCE(tl.freight, 0) + COALESCE(tl.loading_charges, 0) + COALESCE(tl.unloading_charges, 0))
         FROM trip_loads tl JOIN trips t ON t.id = tl.trip_id
         WHERE tl.customer_id = c.id ${dateWhere}
       ), 0)::double precision AS "totalFreight",
@@ -216,8 +221,8 @@ async function buildCustomerReportData(dateFrom?: string | null, dateTo?: string
       ), 0)::double precision AS "totalExpenses",
       COALESCE((
         SELECT SUM(COALESCE(cp.amount, 0)::numeric)
-        FROM customer_payments cp JOIN trips t ON t.id = cp.trip_id
-        WHERE cp.customer_id = c.id ${dateWhere}
+        FROM customer_payments cp
+        WHERE cp.customer_id = c.id ${paymentDateWhere}
       ), 0)::double precision AS "totalReceived",
       COALESCE((
         SELECT SUM(COALESCE(cd.due_amount, 0)::numeric)

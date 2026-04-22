@@ -78,7 +78,7 @@ export default function CustomerReportPage() {
                   <th className="text-left px-4 py-3 font-medium text-gray-600">Customer</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600">Company</th>
                   <th className="text-right px-4 py-3 font-medium text-gray-600">Trips</th>
-                  <th className="text-right px-4 py-3 font-medium text-blue-700">Total Freight</th>
+                  <th className="text-right px-4 py-3 font-medium text-blue-700">Total Billed</th>
                   <th className="text-right px-4 py-3 font-medium text-orange-700">Total Expenses</th>
                   <th className="text-right px-4 py-3 font-medium text-green-700">Received</th>
                   <th className="text-right px-4 py-3 font-medium text-orange-700">Total Dues</th>
