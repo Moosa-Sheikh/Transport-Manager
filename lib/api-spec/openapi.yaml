@@ -2911,13 +2911,19 @@ components:
           type: string
         totalTrips:
           type: integer
+        openTrips:
+          type: integer
+        closedTrips:
+          type: integer
         totalIncome:
           type: number
         totalExpenses:
           type: number
+        driverCommission:
+          type: number
         profit:
           type: number
-      required: [truckId, truckNumber, totalTrips, totalIncome, totalExpenses, profit]
+      required: [truckId, truckNumber, totalTrips, openTrips, closedTrips, totalIncome, totalExpenses, driverCommission, profit]
 
     CashFlowReportRow:
       type: object

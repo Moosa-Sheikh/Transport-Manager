@@ -311,25 +311,43 @@ async function buildTruckReportData(dateFrom?: string | null, dateTo?: string | 
         SELECT COUNT(*)::integer FROM trips t WHERE t.truck_id = tr.id ${dateWhere}
       ), 0) AS "totalTrips",
       COALESCE((
+        SELECT COUNT(*)::integer FROM trips t WHERE t.truck_id = tr.id AND t.status = 'Open' ${dateWhere}
+      ), 0) AS "openTrips",
+      COALESCE((
+        SELECT COUNT(*)::integer FROM trips t WHERE t.truck_id = tr.id AND t.status = 'Closed' ${dateWhere}
+      ), 0) AS "closedTrips",
+      COALESCE((
         SELECT SUM(COALESCE(l.freight, 0) + COALESCE(l.loading_charges, 0) + COALESCE(l.unloading_charges, 0) - COALESCE(l.broker_commission, 0))
         FROM trip_loads l JOIN trips t ON t.id = l.trip_id WHERE t.truck_id = tr.id ${dateWhere}
       ), 0)::double precision AS "totalIncome",
       COALESCE((
         SELECT SUM(COALESCE(e.amount, 0)::numeric)
         FROM trip_expenses e JOIN trips t ON t.id = e.trip_id WHERE t.truck_id = tr.id AND e.expense_category = 'truck' ${dateWhere}
-      ), 0)::double precision AS "totalExpenses"
+      ), 0)::double precision AS "totalExpenses",
+      COALESCE((
+        SELECT SUM(COALESCE(t.driver_commission, 0)::numeric)
+        FROM trips t WHERE t.truck_id = tr.id ${dateWhere}
+      ), 0)::double precision AS "driverCommission"
     FROM trucks tr
     ORDER BY tr.truck_number
   `);
 
-  return (rows.rows as Record<string, unknown>[]).map((r) => ({
-    truckId: Number(r.truckId),
-    truckNumber: String(r.truckNumber),
-    totalTrips: Number(r.totalTrips),
-    totalIncome: Number(r.totalIncome),
-    totalExpenses: Number(r.totalExpenses),
-    profit: Number(r.totalIncome) - Number(r.totalExpenses),
-  }));
+  return (rows.rows as Record<string, unknown>[]).map((r) => {
+    const totalIncome = Number(r.totalIncome);
+    const totalExpenses = Number(r.totalExpenses);
+    const driverCommission = Number(r.driverCommission);
+    return {
+      truckId: Number(r.truckId),
+      truckNumber: String(r.truckNumber),
+      totalTrips: Number(r.totalTrips),
+      openTrips: Number(r.openTrips),
+      closedTrips: Number(r.closedTrips),
+      totalIncome,
+      totalExpenses,
+      driverCommission,
+      profit: totalIncome - totalExpenses - driverCommission,
+    };
+  });
 }
 
 async function buildCashFlowData(dateFrom?: string | null, dateTo?: string | null) {

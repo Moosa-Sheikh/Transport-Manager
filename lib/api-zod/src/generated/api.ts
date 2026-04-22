@@ -870,8 +870,11 @@ export const GetTruckReportResponseItem = zod.object({
   truckId: zod.number(),
   truckNumber: zod.string(),
   totalTrips: zod.number(),
+  openTrips: zod.number(),
+  closedTrips: zod.number(),
   totalIncome: zod.number(),
   totalExpenses: zod.number(),
+  driverCommission: zod.number(),
   profit: zod.number(),
 });
 export const GetTruckReportResponse = zod.array(GetTruckReportResponseItem);

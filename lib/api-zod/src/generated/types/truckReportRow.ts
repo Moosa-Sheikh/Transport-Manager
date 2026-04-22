@@ -10,7 +10,10 @@ export interface TruckReportRow {
   truckId: number;
   truckNumber: string;
   totalTrips: number;
+  openTrips: number;
+  closedTrips: number;
   totalIncome: number;
   totalExpenses: number;
+  driverCommission: number;
   profit: number;
 }
