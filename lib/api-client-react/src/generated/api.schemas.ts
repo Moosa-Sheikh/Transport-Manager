@@ -771,6 +771,7 @@ export type GetCustomerReportParams = {
   date_to?: string;
   customer_id?: number;
   status?: GetCustomerReportStatus;
+  trip_status?: GetCustomerReportTripStatus;
 };
 
 export type GetCustomerReportStatus =
@@ -779,6 +780,14 @@ export type GetCustomerReportStatus =
 export const GetCustomerReportStatus = {
   Outstanding: "Outstanding",
   Cleared: "Cleared",
+} as const;
+
+export type GetCustomerReportTripStatus =
+  (typeof GetCustomerReportTripStatus)[keyof typeof GetCustomerReportTripStatus];
+
+export const GetCustomerReportTripStatus = {
+  Open: "Open",
+  Closed: "Closed",
 } as const;
 
 export type GetTripReportParams = {

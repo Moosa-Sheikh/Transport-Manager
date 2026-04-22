@@ -1239,6 +1239,11 @@ paths:
           schema:
             type: string
             enum: [Outstanding, Cleared]
+        - name: trip_status
+          in: query
+          schema:
+            type: string
+            enum: [Open, Closed]
       responses:
         "200":
           description: Customer report data

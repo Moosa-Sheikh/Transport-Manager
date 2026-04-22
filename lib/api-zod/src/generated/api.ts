@@ -778,6 +778,7 @@ export const GetCustomerReportQueryParams = zod.object({
   date_to: zod.coerce.string().optional(),
   customer_id: zod.coerce.number().optional(),
   status: zod.enum(["Outstanding", "Cleared"]).optional(),
+  trip_status: zod.enum(["Open", "Closed"]).optional(),
 });
 
 export const GetCustomerReportResponseItem = zod.object({

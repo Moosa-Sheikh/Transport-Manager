@@ -48,6 +48,7 @@ export * from "./exportReportCsvType";
 export * from "./getCashFlowReportParams";
 export * from "./getCustomerReportParams";
 export * from "./getCustomerReportStatus";
+export * from "./getCustomerReportTripStatus";
 export * from "./getDriverReportParams";
 export * from "./getProfitReportParams";
 export * from "./getTripReportParams";

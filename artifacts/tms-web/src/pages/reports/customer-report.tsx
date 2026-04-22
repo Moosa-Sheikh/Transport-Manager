@@ -30,25 +30,21 @@ function getInitialFilters(): ReportFilters {
   return f;
 }
 
-type TripFilter = "all" | "open" | "closed";
+type TripFilter = "Mix" | "Open" | "Closed";
 
 export default function CustomerReportPage() {
   const [filters, setFilters] = useState<ReportFilters>(getInitialFilters);
-  const [tripFilter, setTripFilter] = useState<TripFilter>("all");
+  const [tripFilter, setTripFilter] = useState<TripFilter>("Mix");
 
   const query = useGetCustomerReport({
     date_from: filters.date_from,
     date_to: filters.date_to,
     customer_id: filters.customer_id,
     status: filters.status as "Outstanding" | "Cleared" | undefined,
+    trip_status: tripFilter === "Mix" ? undefined : (tripFilter as "Open" | "Closed"),
   });
 
-  const rawData = query.data || [];
-  const data = rawData.filter((r) => {
-    if (tripFilter === "open") return r.openTrips > 0;
-    if (tripFilter === "closed") return r.closedTrips > 0;
-    return true;
-  });
+  const data = query.data || [];
   const totals = data.reduce(
     (acc, r) => ({
       openTrips: acc.openTrips + r.openTrips,
@@ -85,21 +81,31 @@ export default function CustomerReportPage() {
       <div className="print:hidden">
         <ReportFilterBar filters={filters} onChange={setFilters} showCustomer showStatus statusOptions={[{ value: "Outstanding", label: "Outstanding" }, { value: "Cleared", label: "Cleared" }]} />
 
-        <div className="mt-3 flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-600">Show customers with:</span>
-          {(["all", "open", "closed"] as TripFilter[]).map((v) => {
-            const labels: Record<TripFilter, string> = { all: "All Trips", open: "Open Trips Only", closed: "Closed Trips Only" };
-            const colors: Record<TripFilter, string> = {
-              all: tripFilter === "all" ? "bg-gray-700 text-white" : "bg-white text-gray-600 border border-gray-300 hover:bg-gray-50",
-              open: tripFilter === "open" ? "bg-amber-600 text-white" : "bg-white text-amber-700 border border-amber-300 hover:bg-amber-50",
-              closed: tripFilter === "closed" ? "bg-green-700 text-white" : "bg-white text-green-700 border border-green-300 hover:bg-green-50",
+        <div className="mt-3 flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-medium text-gray-600">Calculate data for:</span>
+          {(["Mix", "Open", "Closed"] as TripFilter[]).map((v) => {
+            const labels: Record<TripFilter, string> = { Mix: "Mix (Open + Closed)", Open: "Open Trips Only", Closed: "Closed Trips Only" };
+            const active: Record<TripFilter, string> = {
+              Mix: "bg-gray-700 text-white shadow-sm",
+              Open: "bg-amber-600 text-white shadow-sm",
+              Closed: "bg-green-700 text-white shadow-sm",
+            };
+            const inactive: Record<TripFilter, string> = {
+              Mix: "bg-white text-gray-600 border border-gray-300 hover:bg-gray-50",
+              Open: "bg-white text-amber-700 border border-amber-300 hover:bg-amber-50",
+              Closed: "bg-white text-green-700 border border-green-300 hover:bg-green-50",
             };
             return (
-              <button key={v} onClick={() => setTripFilter(v)} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${colors[v]}`}>
+              <button key={v} onClick={() => setTripFilter(v)} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${tripFilter === v ? active[v] : inactive[v]}`}>
                 {labels[v]}
               </button>
             );
           })}
+          {tripFilter !== "Mix" && (
+            <span className="text-xs text-gray-400 ml-1">
+              — showing {tripFilter === "Open" ? "open" : "closed"} trip data only for all customers
+            </span>
+          )}
         </div>
       </div>
 

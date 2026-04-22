@@ -6,10 +6,12 @@
  * OpenAPI spec version: 0.2.0
  */
 import type { GetCustomerReportStatus } from "./getCustomerReportStatus";
+import type { GetCustomerReportTripStatus } from "./getCustomerReportTripStatus";
 
 export type GetCustomerReportParams = {
   date_from?: string;
   date_to?: string;
   customer_id?: number;
   status?: GetCustomerReportStatus;
+  trip_status?: GetCustomerReportTripStatus;
 };

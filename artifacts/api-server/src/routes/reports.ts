@@ -178,7 +178,10 @@ async function buildDriverReportData(dateFrom?: string | null, dateTo?: string |
   });
 }
 
-async function buildCustomerReportData(dateFrom?: string | null, dateTo?: string | null, customerId?: number, status?: string) {
+async function buildCustomerReportData(dateFrom?: string | null, dateTo?: string | null, customerId?: number, status?: string, tripStatus?: string | null) {
+  const validTripStatus = tripStatus === "Open" || tripStatus === "Closed" ? tripStatus : null;
+  const tripStatusWhere = validTripStatus ? sql`AND t.status = ${validTripStatus}` : sql``;
+
   const dateCondition = [];
   if (dateFrom) dateCondition.push(sql`t.trip_date >= ${dateFrom}`);
   if (dateTo) dateCondition.push(sql`t.trip_date <= ${dateTo}`);
@@ -219,12 +222,12 @@ async function buildCustomerReportData(dateFrom?: string | null, dateTo?: string
       COALESCE((
         SELECT COUNT(DISTINCT tl.trip_id)::integer
         FROM trip_loads tl JOIN trips t ON t.id = tl.trip_id
-        WHERE tl.customer_id = c.id ${dateWhere}
+        WHERE tl.customer_id = c.id ${dateWhere} ${tripStatusWhere}
       ), 0) AS "totalTrips",
       COALESCE((
         SELECT SUM(COALESCE(tl.freight, 0) + COALESCE(tl.loading_charges, 0) + COALESCE(tl.unloading_charges, 0))
         FROM trip_loads tl JOIN trips t ON t.id = tl.trip_id
-        WHERE tl.customer_id = c.id ${dateWhere}
+        WHERE tl.customer_id = c.id ${dateWhere} ${tripStatusWhere}
       ), 0)::double precision AS "totalFreight",
       COALESCE((
         SELECT SUM(COALESCE(e.amount, 0)::numeric)
@@ -232,12 +235,13 @@ async function buildCustomerReportData(dateFrom?: string | null, dateTo?: string
         JOIN trips t ON t.id = e.trip_id
         WHERE e.expense_category = 'customer'
           AND e.customer_id = c.id
-          ${dateWhere}
+          ${dateWhere} ${tripStatusWhere}
       ), 0)::double precision AS "totalExpenses",
       COALESCE((
         SELECT SUM(COALESCE(cp.amount, 0)::numeric)
         FROM customer_payments cp
-        WHERE cp.customer_id = c.id ${paymentDateWhere}
+        JOIN trips t ON t.id = cp.trip_id
+        WHERE cp.customer_id = c.id ${paymentDateWhere} ${tripStatusWhere}
       ), 0)::double precision AS "totalReceived",
       COALESCE((
         SELECT SUM(COALESCE(cd.due_amount, 0)::numeric)
@@ -431,7 +435,8 @@ router.get("/customers", async (req: Request, res: Response) => {
     const dateTo = validateDateParam(req.query.date_to);
     const custId = req.query.customer_id ? Number(req.query.customer_id) : undefined;
     const custStatus = req.query.status === "Outstanding" || req.query.status === "Cleared" ? String(req.query.status) : undefined;
-    const data = await buildCustomerReportData(dateFrom, dateTo, Number.isInteger(custId) && custId! > 0 ? custId : undefined, custStatus);
+    const tripStatus = req.query.trip_status === "Open" || req.query.trip_status === "Closed" ? String(req.query.trip_status) : null;
+    const data = await buildCustomerReportData(dateFrom, dateTo, Number.isInteger(custId) && custId! > 0 ? custId : undefined, custStatus, tripStatus);
     res.json(data);
   } catch (err) {
     req.log.error({ err }, "Customer report error");
@@ -601,7 +606,8 @@ router.get("/export/csv", async (req: Request, res: Response) => {
       case "customers": {
         const custIdCsv = req.query.customer_id ? Number(req.query.customer_id) : undefined;
         const custStatusCsv = req.query.status === "Outstanding" || req.query.status === "Cleared" ? String(req.query.status) : undefined;
-        const data = await buildCustomerReportData(dateFrom, dateTo, Number.isInteger(custIdCsv) && custIdCsv! > 0 ? custIdCsv : undefined, custStatusCsv);
+        const tripStatusCsv = req.query.trip_status === "Open" || req.query.trip_status === "Closed" ? String(req.query.trip_status) : null;
+        const data = await buildCustomerReportData(dateFrom, dateTo, Number.isInteger(custIdCsv) && custIdCsv! > 0 ? custIdCsv : undefined, custStatusCsv, tripStatusCsv);
         const header = ["Customer ID", "Customer", "Company", "Total Trips", "Total Freight", "Total Expenses", "Total Received", "Total Dues", "Outstanding Balance"];
         csvContent = toCsvRow(header) + "\n" + data.map((r) =>
           toCsvRow([r.customerId, r.customerName, r.companyName ?? "", r.totalTrips, r.totalFreight, r.totalExpenses, r.totalReceived, r.totalDues, r.outstandingBalance])
