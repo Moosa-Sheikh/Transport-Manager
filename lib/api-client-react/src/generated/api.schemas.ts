@@ -706,6 +706,7 @@ export type ListTripsParams = {
   profit?: ListTripsProfit;
   from_city_id?: number;
   to_city_id?: number;
+  customer_id?: number;
 };
 
 export type ListTripsStatus =

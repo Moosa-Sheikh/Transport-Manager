@@ -332,6 +332,7 @@ export const ListTripsQueryParams = zod.object({
   profit: zod.enum(["positive", "negative"]).optional(),
   from_city_id: zod.coerce.number().optional(),
   to_city_id: zod.coerce.number().optional(),
+  customer_id: zod.coerce.number().optional(),
 });
 
 export const ListTripsResponseItem = zod.object({

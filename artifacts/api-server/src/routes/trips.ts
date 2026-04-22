@@ -68,7 +68,7 @@ function buildTripQuery() {
 
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const { date_from, date_to, truck_id, driver_id, status, profit, from_city_id, to_city_id } = req.query;
+    const { date_from, date_to, truck_id, driver_id, status, profit, from_city_id, to_city_id, customer_id } = req.query;
     const conditions: SQL[] = [];
 
     if (typeof date_from === "string" && date_from) {
@@ -103,6 +103,12 @@ router.get("/", async (req: Request, res: Response) => {
     }
     if (typeof status === "string" && (status === "Open" || status === "Closed")) {
       conditions.push(eq(tripsTable.status, status));
+    }
+    if (typeof customer_id === "string" && customer_id) {
+      const cid = Number(customer_id);
+      if (Number.isFinite(cid) && cid > 0) {
+        conditions.push(sql`EXISTS (SELECT 1 FROM trip_loads WHERE trip_loads.trip_id = ${tripsTable.id} AND trip_loads.customer_id = ${cid})`);
+      }
     }
 
     const query = buildTripQuery();

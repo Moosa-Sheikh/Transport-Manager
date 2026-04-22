@@ -628,6 +628,10 @@ paths:
           in: query
           schema:
             type: integer
+        - name: customer_id
+          in: query
+          schema:
+            type: integer
       responses:
         "200":
           description: Trip list

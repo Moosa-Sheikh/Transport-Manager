@@ -17,6 +17,7 @@ import {
   useListTrucks,
   useListDrivers,
   useListCities,
+  useListCustomers,
   getListTripsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -31,12 +32,14 @@ function getInitialFilters() {
     profit?: "positive" | "negative";
     from_city_id?: number;
     to_city_id?: number;
+    customer_id?: number;
   } = {};
   if (params.get("driver_id")) f.driver_id = Number(params.get("driver_id"));
   if (params.get("date_from")) f.date_from = params.get("date_from")!;
   if (params.get("date_to")) f.date_to = params.get("date_to")!;
   if (params.get("truck_id")) f.truck_id = Number(params.get("truck_id"));
   if (params.get("status")) f.status = params.get("status") as "Open" | "Closed";
+  if (params.get("customer_id")) f.customer_id = Number(params.get("customer_id"));
   return f;
 }
 
@@ -53,6 +56,7 @@ export default function TripListPage() {
   const trucksQuery = useListTrucks({});
   const driversQuery = useListDrivers({});
   const citiesQuery = useListCities({});
+  const customersQuery = useListCustomers({});
 
   const closeMutation = useCloseTrip({
     mutation: {
@@ -119,6 +123,32 @@ export default function TripListPage() {
         {successMsg && (
           <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-lg border border-green-200 text-sm">
             {successMsg}
+          </div>
+        )}
+
+        {filters.customer_id && (
+          <div className="mb-4 flex items-center gap-3 px-4 py-2.5 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+            <span className="font-medium">
+              Filtered for customer:{" "}
+              <span className="text-blue-900 font-semibold">
+                {customersQuery.data?.find((c) => c.id === filters.customer_id)?.name ?? `#${filters.customer_id}`}
+              </span>
+              {filters.status && (
+                <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-semibold ${filters.status === "Open" ? "bg-amber-100 text-amber-800" : "bg-green-100 text-green-800"}`}>
+                  {filters.status} trips only
+                </span>
+              )}
+            </span>
+            <a href="/reports/customers" className="ml-auto text-blue-600 hover:text-blue-800 underline text-xs">
+              ← Back to Customer Report
+            </a>
+            <button
+              onClick={() => setFilters((f) => { const { customer_id, status, ...rest } = f; return rest; })}
+              className="text-blue-500 hover:text-blue-800"
+              title="Clear customer filter"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
         )}
 
