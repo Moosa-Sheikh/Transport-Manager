@@ -10,10 +10,16 @@ export interface CustomerReportRow {
   customerId: number;
   customerName: string;
   companyName?: string | null;
+  openTrips: number;
+  closedTrips: number;
   totalTrips: number;
   totalFreight: number;
   totalExpenses: number;
   totalReceived: number;
+  netBalance: number;
   totalDues: number;
   outstandingBalance: number;
+  totalLoans: number;
+  loansReturned: number;
+  loanBalance: number;
 }

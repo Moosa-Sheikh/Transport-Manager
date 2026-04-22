@@ -738,6 +738,7 @@ export const ListCashBookQueryParams = zod.object({
     .enum([
       "customer_payments",
       "customer_dues",
+      "customer_loans",
       "driver_advances",
       "driver_loans",
       "driver_salaries",
@@ -783,12 +784,18 @@ export const GetCustomerReportResponseItem = zod.object({
   customerId: zod.number(),
   customerName: zod.string(),
   companyName: zod.string().nullish(),
+  openTrips: zod.number(),
+  closedTrips: zod.number(),
   totalTrips: zod.number(),
   totalFreight: zod.number(),
   totalExpenses: zod.number(),
   totalReceived: zod.number(),
+  netBalance: zod.number(),
   totalDues: zod.number(),
   outstandingBalance: zod.number(),
+  totalLoans: zod.number(),
+  loansReturned: zod.number(),
+  loanBalance: zod.number(),
 });
 export const GetCustomerReportResponse = zod.array(
   GetCustomerReportResponseItem,
@@ -1082,6 +1089,138 @@ export const GetCustomerDueHistoryParams = zod.object({
 });
 
 export const GetCustomerDueHistoryResponse = zod.object({
+  id: zod.number(),
+  label: zod.string(),
+  personId: zod.number().optional(),
+  amount: zod.string(),
+  amountReturned: zod.string(),
+  balance: zod.number(),
+  date: zod.string(),
+  status: zod.string(),
+  notes: zod.string().nullish(),
+  repayments: zod.array(
+    zod.object({
+      id: zod.number(),
+      amount: zod.string(),
+      paymentDate: zod.string(),
+      notes: zod.string().nullish(),
+      createdAt: zod.string().optional(),
+    }),
+  ),
+});
+
+/**
+ * @summary List customer loans with filters
+ */
+export const ListCustomerLoansQueryParams = zod.object({
+  customer_id: zod.coerce.number().optional(),
+  status: zod.enum(["Outstanding", "Partial", "Cleared"]).optional(),
+  date_from: zod.date().optional(),
+  date_to: zod.date().optional(),
+});
+
+export const ListCustomerLoansResponseItem = zod.object({
+  id: zod.number(),
+  customerId: zod.number(),
+  customerName: zod.string(),
+  amount: zod.string(),
+  amountReturned: zod.string(),
+  balance: zod.number(),
+  loanDate: zod.string(),
+  returnDate: zod.string().nullish(),
+  status: zod.string(),
+  notes: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+});
+export const ListCustomerLoansResponse = zod.array(
+  ListCustomerLoansResponseItem,
+);
+
+/**
+ * @summary Create a customer loan record
+ */
+export const CreateCustomerLoanBody = zod.object({
+  customerId: zod.number(),
+  amount: zod.string(),
+  loanDate: zod.coerce.date(),
+  returnDate: zod.coerce.date().optional(),
+  notes: zod.string().optional(),
+});
+
+/**
+ * @summary Update a customer loan
+ */
+export const UpdateCustomerLoanParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateCustomerLoanBody = zod.object({
+  amount: zod.string().optional(),
+  loanDate: zod.coerce.date().optional(),
+  returnDate: zod.coerce.date().optional(),
+  notes: zod.string().optional(),
+});
+
+export const UpdateCustomerLoanResponse = zod.object({
+  id: zod.number(),
+  customerId: zod.number(),
+  customerName: zod.string(),
+  amount: zod.string(),
+  amountReturned: zod.string(),
+  balance: zod.number(),
+  loanDate: zod.string(),
+  returnDate: zod.string().nullish(),
+  status: zod.string(),
+  notes: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+});
+
+/**
+ * @summary Delete a customer loan
+ */
+export const DeleteCustomerLoanParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteCustomerLoanResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary Record a repayment against a customer loan
+ */
+export const RepayCustomerLoanParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const RepayCustomerLoanBody = zod.object({
+  amount: zod.string(),
+  paymentDate: zod.coerce.date(),
+  notes: zod.string().optional(),
+});
+
+export const RepayCustomerLoanResponse = zod.object({
+  id: zod.number(),
+  customerId: zod.number(),
+  customerName: zod.string(),
+  amount: zod.string(),
+  amountReturned: zod.string(),
+  balance: zod.number(),
+  loanDate: zod.string(),
+  returnDate: zod.string().nullish(),
+  status: zod.string(),
+  notes: zod.string().nullish(),
+  createdAt: zod.string().optional(),
+});
+
+/**
+ * @summary Get repayment history for a customer loan
+ */
+export const GetCustomerLoanHistoryParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetCustomerLoanHistoryResponse = zod.object({
   id: zod.number(),
   label: zod.string(),
   personId: zod.number().optional(),

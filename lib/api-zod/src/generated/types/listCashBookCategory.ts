@@ -12,6 +12,7 @@ export type ListCashBookCategory =
 export const ListCashBookCategory = {
   customer_payments: "customer_payments",
   customer_dues: "customer_dues",
+  customer_loans: "customer_loans",
   driver_advances: "driver_advances",
   driver_loans: "driver_loans",
   driver_salaries: "driver_salaries",

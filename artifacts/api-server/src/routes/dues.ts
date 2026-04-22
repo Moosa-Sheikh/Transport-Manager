@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
 import {
-  customerDuesTable, driverLoansTable, otherLoansTable, ownerLoansTable,
+  customerDuesTable, customerLoansTable, driverLoansTable, otherLoansTable, ownerLoansTable,
   dueRepaymentsTable, cashBookTable, customersTable, driversTable,
   tripLoadsTable, tripsTable,
 } from "@workspace/db/schema";
@@ -681,6 +681,276 @@ router.get("/drivers/:id/history", async (req: Request, res: Response) => {
     });
   } catch (err) {
     req.log.error({ err }, "Driver loan history error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/customer-loans", async (req: Request, res: Response) => {
+  try {
+    const { customer_id, status, date_from, date_to } = req.query;
+    const conditions: SQL[] = [];
+
+    if (customer_id) {
+      const cid = Number(customer_id);
+      if (Number.isInteger(cid) && cid > 0) conditions.push(eq(customerLoansTable.customerId, cid));
+    }
+    if (status && typeof status === "string" && ["Outstanding", "Partial", "Cleared"].includes(status)) {
+      conditions.push(eq(customerLoansTable.status, status));
+    }
+    if (isValidDate(date_from)) conditions.push(gte(customerLoansTable.loanDate, date_from));
+    if (isValidDate(date_to)) conditions.push(lte(customerLoansTable.loanDate, date_to));
+
+    const rows = await db
+      .select({
+        id: customerLoansTable.id,
+        customerId: customerLoansTable.customerId,
+        customerName: customersTable.name,
+        amount: customerLoansTable.amount,
+        amountReturned: customerLoansTable.amountReturned,
+        balance: sql<number>`(${customerLoansTable.amount}::numeric - ${customerLoansTable.amountReturned}::numeric)::double precision`.as("balance"),
+        loanDate: customerLoansTable.loanDate,
+        returnDate: customerLoansTable.returnDate,
+        status: customerLoansTable.status,
+        notes: customerLoansTable.notes,
+        createdAt: customerLoansTable.createdAt,
+      })
+      .from(customerLoansTable)
+      .innerJoin(customersTable, eq(customerLoansTable.customerId, customersTable.id))
+      .where(conditions.length ? and(...conditions) : undefined)
+      .orderBy(sql`${customerLoansTable.loanDate} DESC`);
+
+    res.json(rows);
+  } catch (err) {
+    req.log.error({ err }, "List customer loans error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/customer-loans", async (req: Request, res: Response) => {
+  try {
+    const { customerId, amount, loanDate, returnDate, notes } = req.body;
+
+    const numCustomerId = Number(customerId);
+    if (!Number.isInteger(numCustomerId) || numCustomerId <= 0) {
+      res.status(400).json({ error: "Valid customer is required" });
+      return;
+    }
+    const numAmount = parsePositiveNum(amount);
+    if (!numAmount) {
+      res.status(400).json({ error: "Amount must be greater than 0" });
+      return;
+    }
+    if (!isValidDate(loanDate)) {
+      res.status(400).json({ error: "Valid loan date is required (YYYY-MM-DD)" });
+      return;
+    }
+
+    const [customer] = await db.select({ id: customersTable.id, name: customersTable.name })
+      .from(customersTable).where(eq(customersTable.id, numCustomerId));
+    if (!customer) {
+      res.status(400).json({ error: "Customer not found" });
+      return;
+    }
+
+    const result = await db.transaction(async (tx) => {
+      const [inserted] = await tx.insert(customerLoansTable).values({
+        customerId: numCustomerId,
+        amount: String(numAmount),
+        loanDate,
+        returnDate: isValidDate(returnDate) ? returnDate : null,
+        notes: notes ? String(notes) : null,
+      }).returning();
+
+      await tx.insert(cashBookTable).values({
+        entryType: "OUT",
+        referenceTable: "customer_loans",
+        referenceId: inserted.id,
+        amount: String(numAmount),
+        entryDate: loanDate,
+        description: `Loan given to customer ${customer.name}`,
+      });
+
+      return inserted;
+    });
+
+    res.status(201).json({
+      ...result,
+      customerName: customer.name,
+      balance: numAmount,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Create customer loan error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.put("/customer-loans/:id", async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params["id"]);
+    if (!Number.isInteger(id) || id <= 0) { res.status(400).json({ error: "Invalid ID" }); return; }
+    const [existing] = await db.select().from(customerLoansTable).where(eq(customerLoansTable.id, id));
+    if (!existing) { res.status(404).json({ error: "Customer loan not found" }); return; }
+
+    const { amount, loanDate, returnDate, notes } = req.body;
+    const updates: Record<string, unknown> = {};
+    let amountChanged = false;
+
+    if (amount !== undefined) {
+      const num = parsePositiveNum(amount);
+      if (!num) { res.status(400).json({ error: "Amount must be greater than 0" }); return; }
+      const returned = Number(existing.amountReturned);
+      if (num < returned) { res.status(400).json({ error: `Amount cannot be less than already returned amount (${returned})` }); return; }
+      updates.amount = String(num);
+      const newBalance = num - returned;
+      updates.status = newBalance <= 0 ? "Cleared" : returned > 0 ? "Partial" : "Outstanding";
+      amountChanged = true;
+    }
+    if (loanDate !== undefined) {
+      if (!isValidDate(loanDate)) { res.status(400).json({ error: "Valid loan date is required" }); return; }
+      updates.loanDate = loanDate;
+    }
+    if (returnDate !== undefined) updates.returnDate = isValidDate(returnDate) ? returnDate : null;
+    if (notes !== undefined) updates.notes = notes || null;
+
+    if (Object.keys(updates).length === 0) { res.status(400).json({ error: "No fields to update" }); return; }
+
+    const result = await db.transaction(async (tx) => {
+      const [upd] = await tx.update(customerLoansTable).set(updates).where(eq(customerLoansTable.id, id)).returning();
+      if (amountChanged) {
+        await tx.update(cashBookTable).set({ amount: updates.amount as string }).where(
+          sql`${cashBookTable.referenceTable} = 'customer_loans' AND ${cashBookTable.referenceId} = ${id} AND ${cashBookTable.entryType} = 'OUT'`
+        );
+      }
+      return upd;
+    });
+
+    const [customer] = await db.select({ name: customersTable.name }).from(customersTable).where(eq(customersTable.id, result.customerId));
+    res.json({ ...result, customerName: customer?.name ?? "Unknown", balance: Number(result.amount) - Number(result.amountReturned) });
+  } catch (err) {
+    req.log.error({ err }, "Update customer loan error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.delete("/customer-loans/:id", async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params["id"]);
+    if (!Number.isInteger(id) || id <= 0) { res.status(400).json({ error: "Invalid ID" }); return; }
+    const [existing] = await db.select({ id: customerLoansTable.id }).from(customerLoansTable).where(eq(customerLoansTable.id, id));
+    if (!existing) { res.status(404).json({ error: "Customer loan not found" }); return; }
+
+    await db.transaction(async (tx) => {
+      await tx.delete(cashBookTable).where(and(eq(cashBookTable.referenceTable, "customer_loans"), eq(cashBookTable.referenceId, id)));
+      await tx.delete(dueRepaymentsTable).where(and(eq(dueRepaymentsTable.dueType, "customer_loan"), eq(dueRepaymentsTable.dueId, id)));
+      await tx.delete(customerLoansTable).where(eq(customerLoansTable.id, id));
+    });
+    res.json({ message: "Customer loan deleted successfully" });
+  } catch (err) {
+    req.log.error({ err }, "Delete customer loan error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/customer-loans/:id/repay", async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params["id"]);
+    if (!Number.isInteger(id) || id <= 0) { res.status(400).json({ error: "Invalid ID" }); return; }
+
+    const { amount, paymentDate, notes } = req.body;
+    const numAmount = parsePositiveNum(amount);
+    if (!numAmount) { res.status(400).json({ error: "Amount must be greater than 0" }); return; }
+    if (!isValidDate(paymentDate)) { res.status(400).json({ error: "Valid payment date is required (YYYY-MM-DD)" }); return; }
+
+    const [loan] = await db.select().from(customerLoansTable).where(eq(customerLoansTable.id, id));
+    if (!loan) { res.status(404).json({ error: "Customer loan not found" }); return; }
+    if (loan.status === "Cleared") { res.status(400).json({ error: "This loan is already cleared" }); return; }
+
+    const currentBalance = Number(loan.amount) - Number(loan.amountReturned);
+    if (numAmount > currentBalance) { res.status(400).json({ error: `Payment exceeds remaining balance of ${currentBalance}` }); return; }
+
+    const [customer] = await db.select({ name: customersTable.name }).from(customersTable).where(eq(customersTable.id, loan.customerId));
+
+    const newReturned = Number(loan.amountReturned) + numAmount;
+    const newBalance = Number(loan.amount) - newReturned;
+    const newStatus = newBalance <= 0 ? "Cleared" : "Partial";
+
+    const result = await db.transaction(async (tx) => {
+      await tx.insert(dueRepaymentsTable).values({
+        dueId: id,
+        dueType: "customer_loan",
+        amount: String(numAmount),
+        paymentDate,
+        notes: notes ? String(notes) : null,
+      });
+
+      const [updated] = await tx.update(customerLoansTable).set({
+        amountReturned: String(newReturned),
+        status: newStatus,
+      }).where(eq(customerLoansTable.id, id)).returning();
+
+      await tx.insert(cashBookTable).values({
+        entryType: "IN",
+        referenceTable: "customer_loans",
+        referenceId: id,
+        amount: String(numAmount),
+        entryDate: paymentDate,
+        description: `Loan repayment from customer ${customer?.name ?? "Unknown"}`,
+      });
+
+      return updated;
+    });
+
+    res.json({ ...result, customerName: customer?.name ?? "", balance: newBalance });
+  } catch (err) {
+    req.log.error({ err }, "Repay customer loan error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/customer-loans/:id/history", async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params["id"]);
+    if (!Number.isInteger(id) || id <= 0) { res.status(400).json({ error: "Invalid ID" }); return; }
+
+    const [loan] = await db.select({
+      id: customerLoansTable.id,
+      customerId: customerLoansTable.customerId,
+      customerName: customersTable.name,
+      amount: customerLoansTable.amount,
+      amountReturned: customerLoansTable.amountReturned,
+      loanDate: customerLoansTable.loanDate,
+      status: customerLoansTable.status,
+      notes: customerLoansTable.notes,
+    }).from(customerLoansTable)
+      .leftJoin(customersTable, eq(customersTable.id, customerLoansTable.customerId))
+      .where(eq(customerLoansTable.id, id));
+
+    if (!loan) { res.status(404).json({ error: "Customer loan not found" }); return; }
+
+    const repayments = await db.select({
+      id: dueRepaymentsTable.id,
+      amount: dueRepaymentsTable.amount,
+      paymentDate: dueRepaymentsTable.paymentDate,
+      notes: dueRepaymentsTable.notes,
+      createdAt: dueRepaymentsTable.createdAt,
+    }).from(dueRepaymentsTable)
+      .where(and(eq(dueRepaymentsTable.dueId, id), eq(dueRepaymentsTable.dueType, "customer_loan")))
+      .orderBy(sql`${dueRepaymentsTable.paymentDate} ASC`);
+
+    res.json({
+      id: loan.id,
+      label: loan.customerName ?? "Unknown Customer",
+      personId: loan.customerId,
+      amount: loan.amount,
+      amountReturned: loan.amountReturned,
+      balance: Number(loan.amount) - Number(loan.amountReturned),
+      date: loan.loanDate,
+      status: loan.status,
+      notes: loan.notes,
+      repayments,
+    });
+  } catch (err) {
+    req.log.error({ err }, "Customer loan history error");
     res.status(500).json({ error: "Internal server error" });
   }
 });

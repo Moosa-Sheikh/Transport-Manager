@@ -12,6 +12,7 @@ export * from "./driver-advances";
 export * from "./driver-salaries";
 export * from "./cash-book";
 export * from "./customer-dues";
+export * from "./customer-loans";
 export * from "./driver-loans";
 export * from "./other-loans";
 export * from "./owner-loans";

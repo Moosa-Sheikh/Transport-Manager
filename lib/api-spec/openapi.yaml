@@ -1195,7 +1195,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [customer_payments, customer_dues, driver_advances, driver_loans, driver_salaries, owner_loans, other_loans]
+            enum: [customer_payments, customer_dues, customer_loans, driver_advances, driver_loans, driver_salaries, owner_loans, other_loans]
         - name: customer_id
           in: query
           schema:
@@ -1595,6 +1595,144 @@ paths:
       operationId: getCustomerDueHistory
       tags: [dues]
       summary: Get repayment history for a customer due
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Repayment history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DueDetailWithHistory"
+
+  /dues/customer-loans:
+    get:
+      operationId: listCustomerLoans
+      tags: [dues]
+      summary: List customer loans with filters
+      parameters:
+        - name: customer_id
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [Outstanding, Partial, Cleared]
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: List of customer loans
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CustomerLoan"
+    post:
+      operationId: createCustomerLoan
+      tags: [dues]
+      summary: Create a customer loan record
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerLoanInput"
+      responses:
+        "201":
+          description: Created customer loan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerLoan"
+
+  /dues/customer-loans/{id}:
+    put:
+      operationId: updateCustomerLoan
+      tags: [dues]
+      summary: Update a customer loan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerLoanUpdate"
+      responses:
+        "200":
+          description: Updated customer loan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerLoan"
+    delete:
+      operationId: deleteCustomerLoan
+      tags: [dues]
+      summary: Delete a customer loan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /dues/customer-loans/{id}/repay:
+    post:
+      operationId: repayCustomerLoan
+      tags: [dues]
+      summary: Record a repayment against a customer loan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RepaymentInput"
+      responses:
+        "200":
+          description: Updated loan after repayment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerLoan"
+
+  /dues/customer-loans/{id}/history:
+    get:
+      operationId: getCustomerLoanHistory
+      tags: [dues]
+      summary: Get repayment history for a customer loan
       parameters:
         - name: id
           in: path
@@ -3169,6 +3307,10 @@ components:
         companyName:
           type: string
           nullable: true
+        openTrips:
+          type: integer
+        closedTrips:
+          type: integer
         totalTrips:
           type: integer
         totalFreight:
@@ -3177,8 +3319,76 @@ components:
           type: number
         totalReceived:
           type: number
+        netBalance:
+          type: number
         totalDues:
           type: number
         outstandingBalance:
           type: number
-      required: [customerId, customerName, totalTrips, totalFreight, totalExpenses, totalReceived, totalDues, outstandingBalance]
+        totalLoans:
+          type: number
+        loansReturned:
+          type: number
+        loanBalance:
+          type: number
+      required: [customerId, customerName, openTrips, closedTrips, totalTrips, totalFreight, totalExpenses, totalReceived, netBalance, totalDues, outstandingBalance, totalLoans, loansReturned, loanBalance]
+
+    CustomerLoan:
+      type: object
+      properties:
+        id:
+          type: integer
+        customerId:
+          type: integer
+        customerName:
+          type: string
+        amount:
+          type: string
+        amountReturned:
+          type: string
+        balance:
+          type: number
+        loanDate:
+          type: string
+        returnDate:
+          type: string
+          nullable: true
+        status:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+      required: [id, customerId, customerName, amount, amountReturned, balance, loanDate, status]
+
+    CustomerLoanInput:
+      type: object
+      properties:
+        customerId:
+          type: integer
+        amount:
+          type: string
+        loanDate:
+          type: string
+          format: date
+        returnDate:
+          type: string
+          format: date
+        notes:
+          type: string
+      required: [customerId, amount, loanDate]
+
+    CustomerLoanUpdate:
+      type: object
+      properties:
+        amount:
+          type: string
+        loanDate:
+          type: string
+          format: date
+        returnDate:
+          type: string
+          format: date
+        notes:
+          type: string

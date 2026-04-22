@@ -634,12 +634,47 @@ export interface CustomerReportRow {
   customerId: number;
   customerName: string;
   companyName?: string | null;
+  openTrips: number;
+  closedTrips: number;
   totalTrips: number;
   totalFreight: number;
   totalExpenses: number;
   totalReceived: number;
+  netBalance: number;
   totalDues: number;
   outstandingBalance: number;
+  totalLoans: number;
+  loansReturned: number;
+  loanBalance: number;
+}
+
+export interface CustomerLoan {
+  id: number;
+  customerId: number;
+  customerName: string;
+  amount: string;
+  amountReturned: string;
+  balance: number;
+  loanDate: string;
+  returnDate?: string | null;
+  status: string;
+  notes?: string | null;
+  createdAt?: string;
+}
+
+export interface CustomerLoanInput {
+  customerId: number;
+  amount: string;
+  loanDate: string;
+  returnDate?: string;
+  notes?: string;
+}
+
+export interface CustomerLoanUpdate {
+  amount?: string;
+  loanDate?: string;
+  returnDate?: string;
+  notes?: string;
 }
 
 export type ListCustomersParams = {
@@ -723,6 +758,7 @@ export type ListCashBookCategory =
 export const ListCashBookCategory = {
   customer_payments: "customer_payments",
   customer_dues: "customer_dues",
+  customer_loans: "customer_loans",
   driver_advances: "driver_advances",
   driver_loans: "driver_loans",
   driver_salaries: "driver_salaries",
@@ -830,6 +866,22 @@ export type ListCustomerDuesStatus =
 
 export const ListCustomerDuesStatus = {
   Pending: "Pending",
+  Partial: "Partial",
+  Cleared: "Cleared",
+} as const;
+
+export type ListCustomerLoansParams = {
+  customer_id?: number;
+  status?: ListCustomerLoansStatus;
+  date_from?: string;
+  date_to?: string;
+};
+
+export type ListCustomerLoansStatus =
+  (typeof ListCustomerLoansStatus)[keyof typeof ListCustomerLoansStatus];
+
+export const ListCustomerLoansStatus = {
+  Outstanding: "Outstanding",
   Partial: "Partial",
   Cleared: "Cleared",
 } as const;

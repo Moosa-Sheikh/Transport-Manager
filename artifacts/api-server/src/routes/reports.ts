@@ -196,11 +196,26 @@ async function buildCustomerReportData(dateFrom?: string | null, dateTo?: string
 
   const customerCondition = customerId ? sql`WHERE c.id = ${customerId}` : sql``;
 
+  const loanDateCondition = [];
+  if (dateFrom) loanDateCondition.push(sql`cl.loan_date >= ${dateFrom}`);
+  if (dateTo) loanDateCondition.push(sql`cl.loan_date <= ${dateTo}`);
+  const loanDateWhere = loanDateCondition.length ? sql`AND ${sql.join(loanDateCondition, sql` AND `)}` : sql``;
+
   const rows = await db.execute(sql`
     SELECT
       c.id AS "customerId",
       c.name AS "customerName",
       c.company_name AS "companyName",
+      COALESCE((
+        SELECT COUNT(DISTINCT tl.trip_id)::integer
+        FROM trip_loads tl JOIN trips t ON t.id = tl.trip_id
+        WHERE tl.customer_id = c.id AND t.status = 'Open' ${dateWhere}
+      ), 0) AS "openTrips",
+      COALESCE((
+        SELECT COUNT(DISTINCT tl.trip_id)::integer
+        FROM trip_loads tl JOIN trips t ON t.id = tl.trip_id
+        WHERE tl.customer_id = c.id AND t.status = 'Closed' ${dateWhere}
+      ), 0) AS "closedTrips",
       COALESCE((
         SELECT COUNT(DISTINCT tl.trip_id)::integer
         FROM trip_loads tl JOIN trips t ON t.id = tl.trip_id
@@ -233,26 +248,48 @@ async function buildCustomerReportData(dateFrom?: string | null, dateTo?: string
         SELECT SUM(COALESCE(cd.due_amount, 0)::numeric - COALESCE(cd.paid_amount, 0)::numeric)
         FROM customer_dues cd
         WHERE cd.customer_id = c.id AND cd.status != 'Cleared' ${dueWhere}
-      ), 0)::double precision AS "outstandingBalance"
+      ), 0)::double precision AS "outstandingBalance",
+      COALESCE((
+        SELECT SUM(COALESCE(cl.amount, 0)::numeric)
+        FROM customer_loans cl
+        WHERE cl.customer_id = c.id ${loanDateWhere}
+      ), 0)::double precision AS "totalLoans",
+      COALESCE((
+        SELECT SUM(COALESCE(cl.amount_returned, 0)::numeric)
+        FROM customer_loans cl
+        WHERE cl.customer_id = c.id ${loanDateWhere}
+      ), 0)::double precision AS "loansReturned"
     FROM customers c
     ${customerCondition}
     ORDER BY c.name
   `);
 
-  const mapped = (rows.rows as Record<string, unknown>[]).map((r) => ({
-    customerId: Number(r.customerId),
-    customerName: String(r.customerName),
-    companyName: r.companyName ? String(r.companyName) : null,
-    totalTrips: Number(r.totalTrips),
-    totalFreight: Number(r.totalFreight),
-    totalExpenses: Number(r.totalExpenses),
-    totalReceived: Number(r.totalReceived),
-    totalDues: Number(r.totalDues),
-    outstandingBalance: Number(r.outstandingBalance),
-  }));
+  const mapped = (rows.rows as Record<string, unknown>[]).map((r) => {
+    const totalLoans = Number(r.totalLoans);
+    const loansReturned = Number(r.loansReturned);
+    const totalFreight = Number(r.totalFreight);
+    const totalReceived = Number(r.totalReceived);
+    return {
+      customerId: Number(r.customerId),
+      customerName: String(r.customerName),
+      companyName: r.companyName ? String(r.companyName) : null,
+      openTrips: Number(r.openTrips),
+      closedTrips: Number(r.closedTrips),
+      totalTrips: Number(r.totalTrips),
+      totalFreight,
+      totalExpenses: Number(r.totalExpenses),
+      totalReceived,
+      netBalance: totalFreight - totalReceived,
+      totalDues: Number(r.totalDues),
+      outstandingBalance: Number(r.outstandingBalance),
+      totalLoans,
+      loansReturned,
+      loanBalance: totalLoans - loansReturned,
+    };
+  });
 
-  if (status === "Outstanding") return mapped.filter((r) => r.outstandingBalance > 0);
-  if (status === "Cleared") return mapped.filter((r) => r.outstandingBalance <= 0);
+  if (status === "Outstanding") return mapped.filter((r) => r.outstandingBalance > 0 || r.loanBalance > 0 || r.netBalance > 0);
+  if (status === "Cleared") return mapped.filter((r) => r.outstandingBalance <= 0 && r.loanBalance <= 0 && r.netBalance <= 0);
   return mapped;
 }
 
