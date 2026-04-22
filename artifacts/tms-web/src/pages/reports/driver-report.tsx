@@ -34,7 +34,7 @@ export default function DriverReportPage() {
       expenses: acc.expenses + r.totalExpenses,
       advances: acc.advances + r.totalAdvances,
       salary: acc.salary + r.totalSalary,
-      netPaid: acc.netPaid + (r.totalSalary - r.totalAdvances),
+      netPaid: acc.netPaid + (r.totalSalary - r.totalAdvances - r.totalExpenses),
       loans: acc.loans + r.totalLoans,
       loanReturned: acc.loanReturned + r.totalLoanReturned,
       loanBalance: acc.loanBalance + r.outstandingLoanBalance,
@@ -96,7 +96,7 @@ export default function DriverReportPage() {
               </thead>
               <tbody>
                 {data.map((r) => {
-                  const netPaid = r.totalSalary - r.totalAdvances;
+                  const netPaid = r.totalSalary - r.totalAdvances - r.totalExpenses;
                   return (
                     <tr key={r.driverId} className="border-b border-gray-100 hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium text-gray-900">{r.driverName}</td>
