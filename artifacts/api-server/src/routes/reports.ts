@@ -297,36 +297,39 @@ async function buildCustomerReportData(dateFrom?: string | null, dateTo?: string
   return mapped;
 }
 
-async function buildTruckReportData(dateFrom?: string | null, dateTo?: string | null) {
+async function buildTruckReportData(dateFrom?: string | null, dateTo?: string | null, tripStatus?: string | null) {
   const dateCondition = [];
   if (dateFrom) dateCondition.push(sql`t.trip_date >= ${dateFrom}`);
   if (dateTo) dateCondition.push(sql`t.trip_date <= ${dateTo}`);
   const dateWhere = dateCondition.length ? sql`AND ${sql.join(dateCondition, sql` AND `)}` : sql``;
+
+  const validTripStatus = tripStatus === "Open" || tripStatus === "Closed" ? tripStatus : null;
+  const tripStatusWhere = validTripStatus ? sql`AND t.status = ${validTripStatus}` : sql``;
 
   const rows = await db.execute(sql`
     SELECT
       tr.id AS "truckId",
       tr.truck_number AS "truckNumber",
       COALESCE((
-        SELECT COUNT(*)::integer FROM trips t WHERE t.truck_id = tr.id ${dateWhere}
+        SELECT COUNT(*)::integer FROM trips t WHERE t.truck_id = tr.id ${dateWhere} ${tripStatusWhere}
       ), 0) AS "totalTrips",
       COALESCE((
-        SELECT COUNT(*)::integer FROM trips t WHERE t.truck_id = tr.id AND t.status = 'Open' ${dateWhere}
+        SELECT COUNT(*)::integer FROM trips t WHERE t.truck_id = tr.id AND t.status = 'Open' ${dateWhere} ${tripStatusWhere}
       ), 0) AS "openTrips",
       COALESCE((
-        SELECT COUNT(*)::integer FROM trips t WHERE t.truck_id = tr.id AND t.status = 'Closed' ${dateWhere}
+        SELECT COUNT(*)::integer FROM trips t WHERE t.truck_id = tr.id AND t.status = 'Closed' ${dateWhere} ${tripStatusWhere}
       ), 0) AS "closedTrips",
       COALESCE((
         SELECT SUM(COALESCE(l.freight, 0) + COALESCE(l.loading_charges, 0) + COALESCE(l.unloading_charges, 0) - COALESCE(l.broker_commission, 0))
-        FROM trip_loads l JOIN trips t ON t.id = l.trip_id WHERE t.truck_id = tr.id ${dateWhere}
+        FROM trip_loads l JOIN trips t ON t.id = l.trip_id WHERE t.truck_id = tr.id ${dateWhere} ${tripStatusWhere}
       ), 0)::double precision AS "totalIncome",
       COALESCE((
         SELECT SUM(COALESCE(e.amount, 0)::numeric)
-        FROM trip_expenses e JOIN trips t ON t.id = e.trip_id WHERE t.truck_id = tr.id AND e.expense_category = 'truck' ${dateWhere}
+        FROM trip_expenses e JOIN trips t ON t.id = e.trip_id WHERE t.truck_id = tr.id AND e.expense_category = 'truck' ${dateWhere} ${tripStatusWhere}
       ), 0)::double precision AS "totalExpenses",
       COALESCE((
         SELECT SUM(COALESCE(t.driver_commission, 0)::numeric)
-        FROM trips t WHERE t.truck_id = tr.id ${dateWhere}
+        FROM trips t WHERE t.truck_id = tr.id ${dateWhere} ${tripStatusWhere}
       ), 0)::double precision AS "driverCommission"
     FROM trucks tr
     ORDER BY tr.truck_number
@@ -506,7 +509,8 @@ router.get("/trucks", async (req: Request, res: Response) => {
   try {
     const dateFrom = validateDateParam(req.query.date_from);
     const dateTo = validateDateParam(req.query.date_to);
-    const data = await buildTruckReportData(dateFrom, dateTo);
+    const tripStatus = req.query.trip_status === "Open" || req.query.trip_status === "Closed" ? String(req.query.trip_status) : null;
+    const data = await buildTruckReportData(dateFrom, dateTo, tripStatus);
     res.json(data);
   } catch (err) {
     req.log.error({ err }, "Truck report error");

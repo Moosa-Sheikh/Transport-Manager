@@ -819,7 +819,16 @@ export type GetDriverReportParams = {
 export type GetTruckReportParams = {
   date_from?: string;
   date_to?: string;
+  trip_status?: GetTruckReportTripStatus;
 };
+
+export type GetTruckReportTripStatus =
+  (typeof GetTruckReportTripStatus)[keyof typeof GetTruckReportTripStatus];
+
+export const GetTruckReportTripStatus = {
+  Open: "Open",
+  Closed: "Closed",
+} as const;
 
 export type GetCashFlowReportParams = {
   date_from?: string;

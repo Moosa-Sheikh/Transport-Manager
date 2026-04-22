@@ -5,8 +5,10 @@
  * API specification
  * OpenAPI spec version: 0.2.0
  */
+import type { GetTruckReportTripStatus } from "./getTruckReportTripStatus";
 
 export type GetTruckReportParams = {
   date_from?: string;
   date_to?: string;
+  trip_status?: GetTruckReportTripStatus;
 };

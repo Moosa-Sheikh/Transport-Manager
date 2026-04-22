@@ -54,6 +54,7 @@ export * from "./getProfitReportParams";
 export * from "./getTripReportParams";
 export * from "./getTripReportStatus";
 export * from "./getTruckReportParams";
+export * from "./getTruckReportTripStatus";
 export * from "./healthStatus";
 export * from "./listCashBookCategory";
 export * from "./listCashBookEntryType";

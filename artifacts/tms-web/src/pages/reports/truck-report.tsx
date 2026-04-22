@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { Truck, Loader2, Filter, ChevronDown, X, ChevronUp, ChevronsUpDown } from "lucide-react";
+import { Truck, Loader2, Filter, ChevronDown, X, ChevronUp, ChevronsUpDown, Info } from "lucide-react";
 import { Link } from "wouter";
 import { useGetTruckReport, useListTrucks } from "@workspace/api-client-react";
 import ReportActions from "./report-actions";
+
+type TripFilter = "Mix" | "Open" | "Closed";
 
 function formatPKR(val: number) {
   return new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(val);
@@ -52,6 +54,7 @@ export default function TruckReportPage() {
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [page, setPage] = useState(1);
   const [activePreset, setActivePreset] = useState<string>("thisMonth");
+  const [tripFilter, setTripFilter] = useState<TripFilter>("Mix");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const trucksQuery = useListTrucks({});
@@ -60,6 +63,7 @@ export default function TruckReportPage() {
   const reportQuery = useGetTruckReport({
     date_from: dateFrom || undefined,
     date_to: dateTo || undefined,
+    trip_status: tripFilter === "Mix" ? undefined : (tripFilter as "Open" | "Closed"),
   });
 
   const reportData = reportQuery.data || [];
@@ -218,10 +222,37 @@ export default function TruckReportPage() {
           )}
         </div>
 
-        <div className="flex gap-2 flex-wrap">
-          <button onClick={() => applyPreset("thisMonth")} className={presetBtnClass("thisMonth")}>This Month</button>
-          <button onClick={() => applyPreset("lastMonth")} className={presetBtnClass("lastMonth")}>Last Month</button>
-          <button onClick={() => applyPreset("thisYear")} className={presetBtnClass("thisYear")}>This Year</button>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex gap-2">
+            <button onClick={() => applyPreset("thisMonth")} className={presetBtnClass("thisMonth")}>This Month</button>
+            <button onClick={() => applyPreset("lastMonth")} className={presetBtnClass("lastMonth")}>Last Month</button>
+            <button onClick={() => applyPreset("thisYear")} className={presetBtnClass("thisYear")}>This Year</button>
+          </div>
+          <div className="h-5 w-px bg-gray-300" />
+          <div className="flex rounded-lg overflow-hidden border border-gray-300">
+            {(["Mix", "Open", "Closed"] as TripFilter[]).map((v) => {
+              const labels: Record<TripFilter, string> = { Mix: "Mix (Open + Closed)", Open: "Open Trips Only", Closed: "Closed Trips Only" };
+              const active: Record<TripFilter, string> = {
+                Mix: "bg-gray-700 text-white shadow-sm",
+                Open: "bg-amber-600 text-white shadow-sm",
+                Closed: "bg-green-700 text-white shadow-sm",
+              };
+              const inactive: Record<TripFilter, string> = {
+                Mix: "bg-white text-gray-600 hover:bg-gray-50",
+                Open: "bg-white text-amber-700 hover:bg-amber-50",
+                Closed: "bg-white text-green-700 hover:bg-green-50",
+              };
+              return (
+                <button
+                  key={v}
+                  onClick={() => { setTripFilter(v); setPage(1); }}
+                  className={`px-3 py-1.5 text-xs font-medium transition-colors border-r border-gray-300 last:border-r-0 ${tripFilter === v ? active[v] : inactive[v]}`}
+                >
+                  {labels[v]}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -324,6 +355,11 @@ export default function TruckReportPage() {
             ))}
           </div>
         )}
+
+        <div className="flex items-center gap-1.5 text-xs text-gray-500 pt-1 border-t border-gray-100">
+          <Info className="w-3.5 h-3.5 flex-shrink-0" />
+          <span><span className="font-semibold text-amber-700">Open</span> = trips in progress · <span className="font-semibold text-green-700">Closed</span> = completed · Numbers are clickable links to the trip list</span>
+        </div>
       </div>
 
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">

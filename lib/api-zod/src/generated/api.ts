@@ -864,6 +864,7 @@ export const GetDriverReportResponse = zod.array(GetDriverReportResponseItem);
 export const GetTruckReportQueryParams = zod.object({
   date_from: zod.coerce.string().optional(),
   date_to: zod.coerce.string().optional(),
+  trip_status: zod.enum(["Open", "Closed"]).optional(),
 });
 
 export const GetTruckReportResponseItem = zod.object({

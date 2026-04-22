@@ -1337,6 +1337,11 @@ paths:
           in: query
           schema:
             type: string
+        - name: trip_status
+          in: query
+          schema:
+            type: string
+            enum: [Open, Closed]
       responses:
         "200":
           description: Truck report data
