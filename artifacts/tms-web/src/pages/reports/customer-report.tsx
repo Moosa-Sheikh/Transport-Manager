@@ -30,8 +30,11 @@ function getInitialFilters(): ReportFilters {
   return f;
 }
 
+type TripFilter = "all" | "open" | "closed";
+
 export default function CustomerReportPage() {
   const [filters, setFilters] = useState<ReportFilters>(getInitialFilters);
+  const [tripFilter, setTripFilter] = useState<TripFilter>("all");
 
   const query = useGetCustomerReport({
     date_from: filters.date_from,
@@ -40,7 +43,12 @@ export default function CustomerReportPage() {
     status: filters.status as "Outstanding" | "Cleared" | undefined,
   });
 
-  const data = query.data || [];
+  const rawData = query.data || [];
+  const data = rawData.filter((r) => {
+    if (tripFilter === "open") return r.openTrips > 0;
+    if (tripFilter === "closed") return r.closedTrips > 0;
+    return true;
+  });
   const totals = data.reduce(
     (acc, r) => ({
       openTrips: acc.openTrips + r.openTrips,
@@ -76,9 +84,34 @@ export default function CustomerReportPage() {
 
       <div className="print:hidden">
         <ReportFilterBar filters={filters} onChange={setFilters} showCustomer showStatus statusOptions={[{ value: "Outstanding", label: "Outstanding" }, { value: "Cleared", label: "Cleared" }]} />
+
+        <div className="mt-3 flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-600">Show customers with:</span>
+          {(["all", "open", "closed"] as TripFilter[]).map((v) => {
+            const labels: Record<TripFilter, string> = { all: "All Trips", open: "Open Trips Only", closed: "Closed Trips Only" };
+            const colors: Record<TripFilter, string> = {
+              all: tripFilter === "all" ? "bg-gray-700 text-white" : "bg-white text-gray-600 border border-gray-300 hover:bg-gray-50",
+              open: tripFilter === "open" ? "bg-amber-600 text-white" : "bg-white text-amber-700 border border-amber-300 hover:bg-amber-50",
+              closed: tripFilter === "closed" ? "bg-green-700 text-white" : "bg-white text-green-700 border border-green-300 hover:bg-green-50",
+            };
+            return (
+              <button key={v} onClick={() => setTripFilter(v)} className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${colors[v]}`}>
+                {labels[v]}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-md px-4 py-2.5 print:hidden">
+        <span><span className="font-semibold text-amber-700">Open</span> = trips still in progress (clickable → opens trip list)</span>
+        <span><span className="font-semibold text-green-700">Closed</span> = completed trips (clickable → opens trip list)</span>
+        <span><span className="font-semibold text-purple-700">Net Balance</span> = Total Billed − Received &nbsp;(red = customer still owes you)</span>
+        <span><span className="font-semibold text-orange-700">Dues Outstanding</span> = unpaid from dues/IOU system</span>
+        <span><span className="font-semibold text-red-700">Loan Balance</span> = money given to customer not yet returned</span>
+      </div>
+
+      <div className="mt-3 bg-white border border-gray-200 rounded-lg overflow-hidden">
         {query.isLoading ? (
           <div className="p-8 text-center text-gray-500">
             <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
@@ -172,13 +205,6 @@ export default function CustomerReportPage() {
         )}
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-4 text-xs text-gray-500 print:hidden">
-        <span><span className="font-semibold text-amber-700">Open</span> = ongoing trips (clickable)</span>
-        <span><span className="font-semibold text-green-700">Closed</span> = completed trips (clickable)</span>
-        <span><span className="font-semibold text-purple-700">Net Balance</span> = Billed − Received (red = customer owes you)</span>
-        <span><span className="font-semibold text-red-700">Dues Outstanding</span> = unpaid dues from dues system</span>
-        <span><span className="font-semibold text-red-700">Loan Balance</span> = unpaid loans given to customer</span>
-      </div>
     </div>
   );
 }
