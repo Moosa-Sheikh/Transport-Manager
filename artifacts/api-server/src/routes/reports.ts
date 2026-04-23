@@ -229,12 +229,12 @@ async function buildCustomerReportData(dateFrom?: string | null, dateTo?: string
       COALESCE((
         SELECT COUNT(DISTINCT tl.trip_id)::integer
         FROM trip_loads tl JOIN trips t ON t.id = tl.trip_id
-        WHERE tl.customer_id = c.id AND t.status = 'Open' ${dateWhere}
+        WHERE tl.customer_id = c.id AND t.status = 'Open' ${dateWhere} ${tripStatusWhere}
       ), 0) AS "openTrips",
       COALESCE((
         SELECT COUNT(DISTINCT tl.trip_id)::integer
         FROM trip_loads tl JOIN trips t ON t.id = tl.trip_id
-        WHERE tl.customer_id = c.id AND t.status = 'Closed' ${dateWhere}
+        WHERE tl.customer_id = c.id AND t.status = 'Closed' ${dateWhere} ${tripStatusWhere}
       ), 0) AS "closedTrips",
       COALESCE((
         SELECT COUNT(DISTINCT tl.trip_id)::integer
