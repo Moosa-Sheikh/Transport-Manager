@@ -13,7 +13,6 @@ import cashBookRouter from "./cash-book";
 import dashboardRouter from "./dashboard";
 import reportsRouter from "./reports";
 import duesRouter from "./dues";
-import adminClearRouter from "./admin-clear";
 
 const router: IRouter = Router();
 
@@ -32,6 +31,5 @@ router.use("/cash-book", requireAuth, cashBookRouter);
 router.use("/dashboard", requireAuth, dashboardRouter);
 router.use("/reports", requireAuth, reportsRouter);
 router.use("/dues", requireAuth, duesRouter);
-router.use("/admin", adminClearRouter);
 
 export default router;
