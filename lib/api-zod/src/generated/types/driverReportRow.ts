@@ -10,9 +10,12 @@ export interface DriverReportRow {
   driverId: number;
   driverName: string;
   totalTrips: number;
+  openTrips: number;
+  closedTrips: number;
   totalIncome: number;
   totalExpenses: number;
   totalAdvances: number;
+  driverCommission: number;
   totalSalary: number;
   netPaid: number;
   profitGenerated: number;

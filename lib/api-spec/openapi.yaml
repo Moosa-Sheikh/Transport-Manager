@@ -1313,6 +1313,11 @@ paths:
           in: query
           schema:
             type: integer
+        - name: trip_status
+          in: query
+          schema:
+            type: string
+            enum: [Open, Closed]
       responses:
         "200":
           description: Driver report data
@@ -2887,11 +2892,17 @@ components:
           type: string
         totalTrips:
           type: integer
+        openTrips:
+          type: integer
+        closedTrips:
+          type: integer
         totalIncome:
           type: number
         totalExpenses:
           type: number
         totalAdvances:
+          type: number
+        driverCommission:
           type: number
         totalSalary:
           type: number
@@ -2905,7 +2916,7 @@ components:
           type: number
         outstandingLoanBalance:
           type: number
-      required: [driverId, driverName, totalTrips, totalIncome, totalExpenses, totalAdvances, totalSalary, netPaid, profitGenerated, totalLoans, totalLoanReturned, outstandingLoanBalance]
+      required: [driverId, driverName, totalTrips, openTrips, closedTrips, totalIncome, totalExpenses, totalAdvances, driverCommission, totalSalary, netPaid, profitGenerated, totalLoans, totalLoanReturned, outstandingLoanBalance]
 
     TruckReportRow:
       type: object

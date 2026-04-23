@@ -840,15 +840,19 @@ export const GetDriverReportQueryParams = zod.object({
   date_from: zod.coerce.string().optional(),
   date_to: zod.coerce.string().optional(),
   driver_id: zod.coerce.number().optional(),
+  trip_status: zod.enum(["Open", "Closed"]).optional(),
 });
 
 export const GetDriverReportResponseItem = zod.object({
   driverId: zod.number(),
   driverName: zod.string(),
   totalTrips: zod.number(),
+  openTrips: zod.number(),
+  closedTrips: zod.number(),
   totalIncome: zod.number(),
   totalExpenses: zod.number(),
   totalAdvances: zod.number(),
+  driverCommission: zod.number(),
   totalSalary: zod.number(),
   netPaid: zod.number(),
   profitGenerated: zod.number(),

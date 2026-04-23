@@ -5,9 +5,11 @@
  * API specification
  * OpenAPI spec version: 0.2.0
  */
+import type { GetDriverReportTripStatus } from "./getDriverReportTripStatus";
 
 export type GetDriverReportParams = {
   date_from?: string;
   date_to?: string;
   driver_id?: number;
+  trip_status?: GetDriverReportTripStatus;
 };

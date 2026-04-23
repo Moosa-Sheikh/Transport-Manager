@@ -50,6 +50,7 @@ export * from "./getCustomerReportParams";
 export * from "./getCustomerReportStatus";
 export * from "./getCustomerReportTripStatus";
 export * from "./getDriverReportParams";
+export * from "./getDriverReportTripStatus";
 export * from "./getProfitReportParams";
 export * from "./getTripReportParams";
 export * from "./getTripReportStatus";

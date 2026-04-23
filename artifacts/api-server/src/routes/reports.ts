@@ -102,11 +102,14 @@ async function buildTripReportData(filters: {
   });
 }
 
-async function buildDriverReportData(dateFrom?: string | null, dateTo?: string | null, driverId?: number) {
+async function buildDriverReportData(dateFrom?: string | null, dateTo?: string | null, driverId?: number, tripStatus?: string | null) {
   const dateCondition = [];
   if (dateFrom) dateCondition.push(sql`t.trip_date >= ${dateFrom}`);
   if (dateTo) dateCondition.push(sql`t.trip_date <= ${dateTo}`);
   const dateWhere = dateCondition.length ? sql`AND ${sql.join(dateCondition, sql` AND `)}` : sql``;
+
+  const validTripStatus = tripStatus === "Open" || tripStatus === "Closed" ? tripStatus : null;
+  const tripStatusWhere = validTripStatus ? sql`AND t.status = ${validTripStatus}` : sql``;
 
   const salaryDateCondition = [];
   if (dateFrom) salaryDateCondition.push(sql`ds.payment_date >= ${dateFrom}`);
@@ -123,20 +126,30 @@ async function buildDriverReportData(dateFrom?: string | null, dateTo?: string |
       d.id AS "driverId",
       d.name AS "driverName",
       COALESCE((
-        SELECT COUNT(*)::integer FROM trips t WHERE t.driver_id = d.id ${dateWhere}
+        SELECT COUNT(*)::integer FROM trips t WHERE t.driver_id = d.id ${dateWhere} ${tripStatusWhere}
       ), 0) AS "totalTrips",
       COALESCE((
+        SELECT COUNT(*)::integer FROM trips t WHERE t.driver_id = d.id AND t.status = 'Open' ${dateWhere} ${tripStatusWhere}
+      ), 0) AS "openTrips",
+      COALESCE((
+        SELECT COUNT(*)::integer FROM trips t WHERE t.driver_id = d.id AND t.status = 'Closed' ${dateWhere} ${tripStatusWhere}
+      ), 0) AS "closedTrips",
+      COALESCE((
         SELECT SUM(COALESCE(l.freight, 0) + COALESCE(l.loading_charges, 0) + COALESCE(l.unloading_charges, 0) - COALESCE(l.broker_commission, 0))
-        FROM trip_loads l JOIN trips t ON t.id = l.trip_id WHERE t.driver_id = d.id ${dateWhere}
+        FROM trip_loads l JOIN trips t ON t.id = l.trip_id WHERE t.driver_id = d.id ${dateWhere} ${tripStatusWhere}
       ), 0)::double precision AS "totalIncome",
       COALESCE((
         SELECT SUM(COALESCE(e.amount, 0)::numeric)
-        FROM trip_expenses e JOIN trips t ON t.id = e.trip_id WHERE t.driver_id = d.id AND e.expense_category = 'driver' ${dateWhere}
+        FROM trip_expenses e JOIN trips t ON t.id = e.trip_id WHERE t.driver_id = d.id AND e.expense_category = 'driver' ${dateWhere} ${tripStatusWhere}
       ), 0)::double precision AS "totalExpenses",
       COALESCE((
         SELECT SUM(COALESCE(da.amount, 0)::numeric)
-        FROM driver_advances da JOIN trips t ON t.id = da.trip_id WHERE t.driver_id = d.id ${dateWhere}
+        FROM driver_advances da JOIN trips t ON t.id = da.trip_id WHERE t.driver_id = d.id ${dateWhere} ${tripStatusWhere}
       ), 0)::double precision AS "totalAdvances",
+      COALESCE((
+        SELECT SUM(COALESCE(t.driver_commission, 0)::numeric)
+        FROM trips t WHERE t.driver_id = d.id ${dateWhere} ${tripStatusWhere}
+      ), 0)::double precision AS "driverCommission",
       COALESCE((
         SELECT SUM(COALESCE(ds.amount, 0)::numeric)
         FROM driver_salaries ds WHERE ds.driver_id = d.id ${salaryWhere}
@@ -158,6 +171,7 @@ async function buildDriverReportData(dateFrom?: string | null, dateTo?: string |
     const totalIncome = Number(r.totalIncome);
     const totalExpenses = Number(r.totalExpenses);
     const totalAdvances = Number(r.totalAdvances);
+    const driverCommission = Number(r.driverCommission);
     const totalSalary = Number(r.totalSalary);
     const totalLoans = Number(r.totalLoans);
     const totalLoanReturned = Number(r.totalLoanReturned);
@@ -165,9 +179,12 @@ async function buildDriverReportData(dateFrom?: string | null, dateTo?: string |
       driverId: Number(r.driverId),
       driverName: String(r.driverName),
       totalTrips: Number(r.totalTrips),
+      openTrips: Number(r.openTrips),
+      closedTrips: Number(r.closedTrips),
       totalIncome,
       totalExpenses,
       totalAdvances,
+      driverCommission,
       totalSalary,
       netPaid: totalAdvances + totalSalary,
       profitGenerated: totalIncome - totalExpenses,
@@ -497,7 +514,8 @@ router.get("/drivers", async (req: Request, res: Response) => {
     const dateTo = validateDateParam(req.query.date_to);
     const driverIdRaw = req.query.driver_id ? Number(req.query.driver_id) : undefined;
     const driverId = driverIdRaw && Number.isInteger(driverIdRaw) && driverIdRaw > 0 ? driverIdRaw : undefined;
-    const data = await buildDriverReportData(dateFrom, dateTo, driverId);
+    const tripStatus = req.query.trip_status === "Open" || req.query.trip_status === "Closed" ? String(req.query.trip_status) : null;
+    const data = await buildDriverReportData(dateFrom, dateTo, driverId, tripStatus);
     res.json(data);
   } catch (err) {
     req.log.error({ err }, "Driver report error");

@@ -403,9 +403,12 @@ export interface DriverReportRow {
   driverId: number;
   driverName: string;
   totalTrips: number;
+  openTrips: number;
+  closedTrips: number;
   totalIncome: number;
   totalExpenses: number;
   totalAdvances: number;
+  driverCommission: number;
   totalSalary: number;
   netPaid: number;
   profitGenerated: number;
@@ -814,7 +817,16 @@ export type GetDriverReportParams = {
   date_from?: string;
   date_to?: string;
   driver_id?: number;
+  trip_status?: GetDriverReportTripStatus;
 };
+
+export type GetDriverReportTripStatus =
+  (typeof GetDriverReportTripStatus)[keyof typeof GetDriverReportTripStatus];
+
+export const GetDriverReportTripStatus = {
+  Open: "Open",
+  Closed: "Closed",
+} as const;
 
 export type GetTruckReportParams = {
   date_from?: string;
