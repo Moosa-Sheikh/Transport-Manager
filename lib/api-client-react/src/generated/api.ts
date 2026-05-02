@@ -56,6 +56,7 @@ import type {
   GetCustomerReportParams,
   GetDriverReportParams,
   GetProfitReportParams,
+  GetShiftingReportParams,
   GetTripReportParams,
   GetTruckReportParams,
   HealthStatus,
@@ -83,6 +84,7 @@ import type {
   ProfitReportSummary,
   RepaymentInput,
   SearchTripLoadsParams,
+  ShiftingReportRow,
   TripCommissionInput,
   TripCustomerDuesResponse,
   TripExpenseInput,
@@ -4396,6 +4398,103 @@ export function useGetCashFlowReport<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetCashFlowReportQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary In-house shifting report
+ */
+export const getGetShiftingReportUrl = (params?: GetShiftingReportParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/reports/shifting?${stringifiedParams}`
+    : `/api/reports/shifting`;
+};
+
+export const getShiftingReport = async (
+  params?: GetShiftingReportParams,
+  options?: RequestInit,
+): Promise<ShiftingReportRow[]> => {
+  return customFetch<ShiftingReportRow[]>(getGetShiftingReportUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetShiftingReportQueryKey = (
+  params?: GetShiftingReportParams,
+) => {
+  return [`/api/reports/shifting`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetShiftingReportQueryOptions = <
+  TData = Awaited<ReturnType<typeof getShiftingReport>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetShiftingReportParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getShiftingReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetShiftingReportQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getShiftingReport>>
+  > = ({ signal }) => getShiftingReport(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getShiftingReport>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetShiftingReportQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getShiftingReport>>
+>;
+export type GetShiftingReportQueryError = ErrorType<unknown>;
+
+/**
+ * @summary In-house shifting report
+ */
+
+export function useGetShiftingReport<
+  TData = Awaited<ReturnType<typeof getShiftingReport>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetShiftingReportParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getShiftingReport>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetShiftingReportQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

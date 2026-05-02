@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.2.0
  */
+import type { ListTripsMovementType } from "./listTripsMovementType";
 import type { ListTripsProfit } from "./listTripsProfit";
 import type { ListTripsStatus } from "./listTripsStatus";
 
@@ -18,4 +19,5 @@ export type ListTripsParams = {
   from_city_id?: number;
   to_city_id?: number;
   customer_id?: number;
+  movement_type?: ListTripsMovementType;
 };

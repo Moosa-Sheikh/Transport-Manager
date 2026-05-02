@@ -333,6 +333,7 @@ export const ListTripsQueryParams = zod.object({
   from_city_id: zod.coerce.number().optional(),
   to_city_id: zod.coerce.number().optional(),
   customer_id: zod.coerce.number().optional(),
+  movement_type: zod.enum(["customer_trip", "in_house_shifting"]).optional(),
 });
 
 export const ListTripsResponseItem = zod.object({
@@ -348,6 +349,8 @@ export const ListTripsResponseItem = zod.object({
   toCityName: zod.string(),
   driverCommission: zod.string().optional(),
   status: zod.enum(["Open", "Closed"]),
+  movementType: zod.enum(["customer_trip", "in_house_shifting"]),
+  notes: zod.string().nullish(),
   createdAt: zod.string().optional(),
   income: zod.number(),
   expense: zod.number(),
@@ -368,6 +371,8 @@ export const CreateTripBody = zod.object({
   fromCityId: zod.number(),
   toCityId: zod.number(),
   driverCommission: zod.string().optional(),
+  movementType: zod.enum(["customer_trip", "in_house_shifting"]).optional(),
+  notes: zod.string().nullish(),
 });
 
 /**
@@ -390,6 +395,8 @@ export const GetTripResponse = zod.object({
   toCityName: zod.string(),
   driverCommission: zod.string().optional(),
   status: zod.enum(["Open", "Closed"]),
+  movementType: zod.enum(["customer_trip", "in_house_shifting"]),
+  notes: zod.string().nullish(),
   createdAt: zod.string().optional(),
   income: zod.number(),
   expense: zod.number(),
@@ -430,6 +437,8 @@ export const CloseTripResponse = zod.object({
   toCityName: zod.string(),
   driverCommission: zod.string().optional(),
   status: zod.enum(["Open", "Closed"]),
+  movementType: zod.enum(["customer_trip", "in_house_shifting"]),
+  notes: zod.string().nullish(),
   createdAt: zod.string().optional(),
   income: zod.number(),
   expense: zod.number(),
@@ -463,6 +472,8 @@ export const UpdateTripCommissionResponse = zod.object({
   toCityName: zod.string(),
   driverCommission: zod.string().optional(),
   status: zod.enum(["Open", "Closed"]),
+  movementType: zod.enum(["customer_trip", "in_house_shifting"]),
+  notes: zod.string().nullish(),
   createdAt: zod.string().optional(),
   income: zod.number(),
   expense: zod.number(),
@@ -901,6 +912,38 @@ export const GetCashFlowReportResponseItem = zod.object({
 });
 export const GetCashFlowReportResponse = zod.array(
   GetCashFlowReportResponseItem,
+);
+
+/**
+ * @summary In-house shifting report
+ */
+export const GetShiftingReportQueryParams = zod.object({
+  date_from: zod.coerce.string().optional(),
+  date_to: zod.coerce.string().optional(),
+  truck_id: zod.coerce.number().optional(),
+  driver_id: zod.coerce.number().optional(),
+  status: zod.enum(["Open", "Closed"]).optional(),
+});
+
+export const GetShiftingReportResponseItem = zod.object({
+  tripId: zod.number(),
+  tripDate: zod.string(),
+  truckId: zod.number(),
+  truckNumber: zod.string(),
+  driverId: zod.number(),
+  driverName: zod.string(),
+  fromCityId: zod.number(),
+  fromCityName: zod.string(),
+  toCityId: zod.number(),
+  toCityName: zod.string(),
+  status: zod.string(),
+  notes: zod.string().nullish(),
+  totalExpenses: zod.number(),
+  driverCommission: zod.number(),
+  totalCost: zod.number(),
+});
+export const GetShiftingReportResponse = zod.array(
+  GetShiftingReportResponseItem,
 );
 
 /**

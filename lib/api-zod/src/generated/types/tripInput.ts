@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.2.0
  */
+import type { TripInputMovementType } from "./tripInputMovementType";
 
 export interface TripInput {
   tripDate: Date;
@@ -13,4 +14,6 @@ export interface TripInput {
   fromCityId: number;
   toCityId: number;
   driverCommission?: string;
+  movementType?: TripInputMovementType;
+  notes?: string | null;
 }

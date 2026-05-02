@@ -30,6 +30,7 @@ import DriverLoanDetailPage from "@/pages/dues/driver-loan-detail";
 import OtherLoanDetailPage from "@/pages/dues/other-loan-detail";
 import OwnerLoanDetailPage from "@/pages/dues/owner-loan-detail";
 import CustomerReportPage from "@/pages/reports/customer-report";
+import ShiftingReportPage from "@/pages/reports/shifting-report";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -126,6 +127,9 @@ function Router() {
       </Route>
       <Route path="/reports/profit">
         <ProtectedRoute component={ProfitReportPage} />
+      </Route>
+      <Route path="/reports/shifting">
+        <ProtectedRoute component={ShiftingReportPage} />
       </Route>
       <Route path="/reports">
         <ProtectedRoute component={ReportsIndexPage} />

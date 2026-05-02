@@ -33,6 +33,7 @@ function getInitialFilters() {
     from_city_id?: number;
     to_city_id?: number;
     customer_id?: number;
+    movement_type?: "customer_trip" | "in_house_shifting";
   } = {};
   if (params.get("driver_id")) f.driver_id = Number(params.get("driver_id"));
   if (params.get("date_from")) f.date_from = params.get("date_from")!;
@@ -40,6 +41,7 @@ function getInitialFilters() {
   if (params.get("truck_id")) f.truck_id = Number(params.get("truck_id"));
   if (params.get("status")) f.status = params.get("status") as "Open" | "Closed";
   if (params.get("customer_id")) f.customer_id = Number(params.get("customer_id"));
+  if (params.get("movement_type")) f.movement_type = params.get("movement_type") as "customer_trip" | "in_house_shifting";
   return f;
 }
 
@@ -91,8 +93,30 @@ export default function TripListPage() {
 
   return (
       <div>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Trips</h2>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-bold text-gray-900">Trips</h2>
+            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 text-sm">
+              <button
+                onClick={() => setFilters((f) => { const { movement_type, ...rest } = f; return rest; })}
+                className={`px-3 py-1 rounded-md font-medium transition-colors ${!filters.movement_type ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setFilters((f) => ({ ...f, movement_type: "customer_trip" }))}
+                className={`px-3 py-1 rounded-md font-medium transition-colors ${filters.movement_type === "customer_trip" ? "bg-white shadow text-blue-700" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                Customer
+              </button>
+              <button
+                onClick={() => setFilters((f) => ({ ...f, movement_type: "in_house_shifting" }))}
+                className={`px-3 py-1 rounded-md font-medium transition-colors ${filters.movement_type === "in_house_shifting" ? "bg-white shadow text-orange-700" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                In-House
+              </button>
+            </div>
+          </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -472,15 +496,22 @@ export default function TripListPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                            trip.status === "Open"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-gray-100 text-gray-600"
-                          }`}
-                        >
-                          {trip.status}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                              trip.status === "Open"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {trip.status}
+                          </span>
+                          {trip.movementType === "in_house_shifting" && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                              In-House
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-right font-medium text-blue-700">
                         {new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(trip.income)}

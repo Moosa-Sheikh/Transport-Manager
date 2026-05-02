@@ -23,6 +23,8 @@ import {
   CircleDollarSign,
   UserRound,
   Building,
+  MoveHorizontal,
+  FileBarChart2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -37,6 +39,7 @@ const mastersLinks = [
 const tripsLinks = [
   { href: "/trips", label: "Trip List", icon: List },
   { href: "/trips/create", label: "Create Trip", icon: Plus },
+  { href: "/trips?movement_type=in_house_shifting", label: "In-House Shifts", icon: MoveHorizontal },
 ];
 
 const financeLinks = [
@@ -57,6 +60,7 @@ const reportsLinks = [
   { href: "/reports/drivers", label: "Driver Report", icon: UserCog },
   { href: "/reports/trucks", label: "Truck Report", icon: Truck },
   { href: "/reports/customers", label: "Customer Report", icon: Users },
+  { href: "/reports/shifting", label: "Shifting Report", icon: FileBarChart2 },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {

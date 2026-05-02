@@ -560,6 +560,82 @@ router.get("/profit", async (req: Request, res: Response) => {
   }
 });
 
+router.get("/shifting", async (req: Request, res: Response) => {
+  try {
+    const dateFrom = validateDateParam(req.query.date_from);
+    const dateTo = validateDateParam(req.query.date_to);
+    const rawTruckId = req.query.truck_id ? Number(req.query.truck_id) : undefined;
+    const rawDriverId = req.query.driver_id ? Number(req.query.driver_id) : undefined;
+    const status = req.query.status === "Open" || req.query.status === "Closed" ? String(req.query.status) : undefined;
+
+    const truckId = rawTruckId && Number.isInteger(rawTruckId) && rawTruckId > 0 ? rawTruckId : undefined;
+    const driverId = rawDriverId && Number.isInteger(rawDriverId) && rawDriverId > 0 ? rawDriverId : undefined;
+
+    const conditions: SQL[] = [sql`t.movement_type = 'in_house_shifting'`];
+    if (dateFrom) conditions.push(sql`t.trip_date >= ${dateFrom}`);
+    if (dateTo) conditions.push(sql`t.trip_date <= ${dateTo}`);
+    if (truckId) conditions.push(sql`t.truck_id = ${truckId}`);
+    if (driverId) conditions.push(sql`t.driver_id = ${driverId}`);
+    if (status) conditions.push(sql`t.status = ${status}`);
+    const whereClause = sql`WHERE ${sql.join(conditions, sql` AND `)}`;
+
+    const rows = await db.execute(sql`
+      SELECT
+        t.id AS "tripId",
+        t.trip_date AS "tripDate",
+        t.truck_id AS "truckId",
+        tr.truck_number AS "truckNumber",
+        t.driver_id AS "driverId",
+        d.name AS "driverName",
+        t.from_city_id AS "fromCityId",
+        fc.name AS "fromCityName",
+        t.to_city_id AS "toCityId",
+        tc.name AS "toCityName",
+        t.status AS "status",
+        t.notes AS "notes",
+        COALESCE(t.driver_commission::numeric, 0)::double precision AS "driverCommission",
+        COALESCE((
+          SELECT SUM(COALESCE(amount, 0)::numeric)
+          FROM trip_expenses WHERE trip_id = t.id
+        ), 0)::double precision AS "totalExpenses"
+      FROM trips t
+      JOIN trucks tr ON tr.id = t.truck_id
+      JOIN drivers d ON d.id = t.driver_id
+      JOIN cities fc ON fc.id = t.from_city_id
+      JOIN cities tc ON tc.id = t.to_city_id
+      ${whereClause}
+      ORDER BY t.trip_date DESC
+    `);
+
+    const data = (rows.rows as Record<string, unknown>[]).map((r) => {
+      const totalExpenses = Number(r.totalExpenses);
+      const driverCommission = Number(r.driverCommission);
+      return {
+        tripId: Number(r.tripId),
+        tripDate: String(r.tripDate),
+        truckId: Number(r.truckId),
+        truckNumber: String(r.truckNumber),
+        driverId: Number(r.driverId),
+        driverName: String(r.driverName),
+        fromCityId: Number(r.fromCityId),
+        fromCityName: String(r.fromCityName),
+        toCityId: Number(r.toCityId),
+        toCityName: String(r.toCityName),
+        status: String(r.status),
+        notes: r.notes ? String(r.notes) : null,
+        totalExpenses,
+        driverCommission,
+        totalCost: totalExpenses + driverCommission,
+      };
+    });
+
+    res.json(data);
+  } catch (err) {
+    req.log.error({ err }, "Shifting report error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 function sanitizeCsvCell(val: string): string {
   let s = val;
   if (/^[=+\-@\t\r]/.test(s)) {

@@ -1,4 +1,4 @@
-import { pgTable, serial, date, integer, varchar, timestamp, numeric } from "drizzle-orm/pg-core";
+import { pgTable, serial, date, integer, varchar, timestamp, numeric, text } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { trucksTable } from "./trucks";
@@ -14,6 +14,8 @@ export const tripsTable = pgTable("trips", {
   toCityId: integer("to_city_id").notNull().references(() => citiesTable.id, { onDelete: "restrict" }),
   driverCommission: numeric("driver_commission", { precision: 12, scale: 2 }).default("0"),
   status: varchar("status", { length: 20 }).notNull().default("Open"),
+  movementType: varchar("movement_type", { length: 30 }).notNull().default("customer_trip"),
+  notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

@@ -114,6 +114,14 @@ export interface TripCommissionInput {
   driverCommission: string;
 }
 
+export type TripInputMovementType =
+  (typeof TripInputMovementType)[keyof typeof TripInputMovementType];
+
+export const TripInputMovementType = {
+  customer_trip: "customer_trip",
+  in_house_shifting: "in_house_shifting",
+} as const;
+
 export interface TripInput {
   tripDate: string;
   truckId: number;
@@ -121,6 +129,8 @@ export interface TripInput {
   fromCityId: number;
   toCityId: number;
   driverCommission?: string;
+  movementType?: TripInputMovementType;
+  notes?: string | null;
 }
 
 export type TripWithDetailsStatus =
@@ -129,6 +139,14 @@ export type TripWithDetailsStatus =
 export const TripWithDetailsStatus = {
   Open: "Open",
   Closed: "Closed",
+} as const;
+
+export type TripWithDetailsMovementType =
+  (typeof TripWithDetailsMovementType)[keyof typeof TripWithDetailsMovementType];
+
+export const TripWithDetailsMovementType = {
+  customer_trip: "customer_trip",
+  in_house_shifting: "in_house_shifting",
 } as const;
 
 export interface TripWithDetails {
@@ -144,6 +162,8 @@ export interface TripWithDetails {
   toCityName: string;
   driverCommission?: string;
   status: TripWithDetailsStatus;
+  movementType: TripWithDetailsMovementType;
+  notes?: string | null;
   createdAt?: string;
   income: number;
   expense: number;
@@ -668,6 +688,24 @@ export interface CustomerLoan {
   createdAt?: string;
 }
 
+export interface ShiftingReportRow {
+  tripId: number;
+  tripDate: string;
+  truckId: number;
+  truckNumber: string;
+  driverId: number;
+  driverName: string;
+  fromCityId: number;
+  fromCityName: string;
+  toCityId: number;
+  toCityName: string;
+  status: string;
+  notes?: string | null;
+  totalExpenses: number;
+  driverCommission: number;
+  totalCost: number;
+}
+
 export interface CustomerLoanInput {
   customerId: number;
   amount: string;
@@ -713,6 +751,7 @@ export type ListTripsParams = {
   from_city_id?: number;
   to_city_id?: number;
   customer_id?: number;
+  movement_type?: ListTripsMovementType;
 };
 
 export type ListTripsStatus =
@@ -729,6 +768,14 @@ export type ListTripsProfit =
 export const ListTripsProfit = {
   positive: "positive",
   negative: "negative",
+} as const;
+
+export type ListTripsMovementType =
+  (typeof ListTripsMovementType)[keyof typeof ListTripsMovementType];
+
+export const ListTripsMovementType = {
+  customer_trip: "customer_trip",
+  in_house_shifting: "in_house_shifting",
 } as const;
 
 export type DeleteTrip200 = {
@@ -846,6 +893,22 @@ export type GetCashFlowReportParams = {
   date_from?: string;
   date_to?: string;
 };
+
+export type GetShiftingReportParams = {
+  date_from?: string;
+  date_to?: string;
+  truck_id?: number;
+  driver_id?: number;
+  status?: GetShiftingReportStatus;
+};
+
+export type GetShiftingReportStatus =
+  (typeof GetShiftingReportStatus)[keyof typeof GetShiftingReportStatus];
+
+export const GetShiftingReportStatus = {
+  Open: "Open",
+  Closed: "Closed",
+} as const;
 
 export type GetProfitReportParams = {
   date_from?: string;

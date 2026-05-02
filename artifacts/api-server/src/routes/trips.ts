@@ -51,6 +51,8 @@ function buildTripQuery() {
       toCityName: toCities.name,
       driverCommission: tripsTable.driverCommission,
       status: tripsTable.status,
+      movementType: tripsTable.movementType,
+      notes: tripsTable.notes,
       createdAt: tripsTable.createdAt,
       income: incomeSubquery.as("income"),
       expense: expenseSubquery.as("expense"),
@@ -68,7 +70,7 @@ function buildTripQuery() {
 
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const { date_from, date_to, truck_id, driver_id, status, profit, from_city_id, to_city_id, customer_id } = req.query;
+    const { date_from, date_to, truck_id, driver_id, status, profit, from_city_id, to_city_id, customer_id, movement_type } = req.query;
     const conditions: SQL[] = [];
 
     if (typeof date_from === "string" && date_from) {
@@ -110,6 +112,9 @@ router.get("/", async (req: Request, res: Response) => {
         conditions.push(sql`EXISTS (SELECT 1 FROM trip_loads WHERE trip_loads.trip_id = ${tripsTable.id} AND trip_loads.customer_id = ${cid})`);
       }
     }
+    if (typeof movement_type === "string" && (movement_type === "customer_trip" || movement_type === "in_house_shifting")) {
+      conditions.push(eq(tripsTable.movementType, movement_type));
+    }
 
     const query = buildTripQuery();
     let rows = conditions.length > 0
@@ -133,7 +138,7 @@ router.get("/", async (req: Request, res: Response) => {
 
 router.post("/", async (req: Request, res: Response) => {
   try {
-    const { tripDate, truckId, driverId, fromCityId, toCityId, driverCommission } = req.body;
+    const { tripDate, truckId, driverId, fromCityId, toCityId, driverCommission, movementType, notes } = req.body;
 
     if (!tripDate || !truckId || !driverId || !fromCityId || !toCityId) {
       res.status(400).json({ error: "All fields are required" });
@@ -155,8 +160,15 @@ router.post("/", async (req: Request, res: Response) => {
       return;
     }
 
-    if (numFromCityId === numToCityId) {
+    const resolvedMovementType = movementType === "in_house_shifting" ? "in_house_shifting" : "customer_trip";
+
+    if (numFromCityId === numToCityId && resolvedMovementType === "customer_trip") {
       res.status(400).json({ error: "From city and To city cannot be the same" });
+      return;
+    }
+
+    if (resolvedMovementType === "in_house_shifting" && (!notes || String(notes).trim() === "")) {
+      res.status(400).json({ error: "Notes/purpose is required for in-house shifting" });
       return;
     }
 
@@ -172,6 +184,8 @@ router.post("/", async (req: Request, res: Response) => {
         fromCityId: numFromCityId,
         toCityId: numToCityId,
         driverCommission: commissionVal,
+        movementType: resolvedMovementType,
+        notes: notes ? String(notes).trim() : null,
       })
       .returning();
 

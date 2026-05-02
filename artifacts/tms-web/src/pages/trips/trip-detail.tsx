@@ -315,6 +315,11 @@ export default function TripDetailPage() {
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <h2 className="text-2xl font-bold text-gray-900">Trip #{tripId}</h2>
+        {trip?.movementType === "in_house_shifting" && (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-800 border border-orange-200">
+            In-House Shift
+          </span>
+        )}
         {trip?.status === "Open" && (
           <div className="ml-auto flex items-center gap-2">
             <button
@@ -462,6 +467,12 @@ export default function TripDetailPage() {
                 <div className="text-xs font-medium text-gray-500 uppercase mb-1">Driver</div>
                 <div className="text-sm text-gray-900">{trip.driverName}</div>
               </div>
+              {trip.movementType === "in_house_shifting" && trip.notes && (
+                <div className="sm:col-span-2 lg:col-span-3">
+                  <div className="text-xs font-medium text-gray-500 uppercase mb-1">Purpose / Notes</div>
+                  <div className="text-sm text-orange-800 bg-orange-50 border border-orange-200 rounded p-2">{trip.notes}</div>
+                </div>
+              )}
               <div>
                 <div className="text-xs font-medium text-gray-500 uppercase mb-1">Driver Commission</div>
                 {editingCommission && trip.status === "Open" ? (
@@ -516,42 +527,59 @@ export default function TripDetailPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-            <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-3 text-center">
-              <div className="text-[10px] font-medium text-blue-600 uppercase mb-1">Income</div>
-              <div className="text-lg font-bold text-blue-800">{formatPKR(trip.income)}</div>
+          {trip.movementType === "in_house_shifting" ? (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+              <div className="bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-3 text-center">
+                <div className="text-[10px] font-medium text-orange-600 uppercase mb-1">Total Expenses</div>
+                <div className="text-lg font-bold text-orange-800">{formatPKR(trip.expense)}</div>
+              </div>
+              <div className="bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-3 text-center">
+                <div className="text-[10px] font-medium text-purple-600 uppercase mb-1">Driver Commission</div>
+                <div className="text-lg font-bold text-purple-800">{formatPKR(Number(trip.driverCommission ?? 0))}</div>
+              </div>
+              <div className="bg-gradient-to-r from-red-50 to-red-100 border border-red-200 rounded-lg p-3 text-center">
+                <div className="text-[10px] font-medium text-red-600 uppercase mb-1">Total Cost</div>
+                <div className="text-lg font-bold text-red-800">{formatPKR(trip.expense + Number(trip.driverCommission ?? 0))}</div>
+              </div>
             </div>
-            <div className="bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-3 text-center">
-              <div className="text-[10px] font-medium text-orange-600 uppercase mb-1">Expenses</div>
-              <div className="text-lg font-bold text-orange-800">{formatPKR(trip.expense)}</div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+              <div className="bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-3 text-center">
+                <div className="text-[10px] font-medium text-blue-600 uppercase mb-1">Income</div>
+                <div className="text-lg font-bold text-blue-800">{formatPKR(trip.income)}</div>
+              </div>
+              <div className="bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-3 text-center">
+                <div className="text-[10px] font-medium text-orange-600 uppercase mb-1">Expenses</div>
+                <div className="text-lg font-bold text-orange-800">{formatPKR(trip.expense)}</div>
+              </div>
+              <div className={`bg-gradient-to-r border rounded-lg p-3 text-center ${
+                trip.profit >= 0
+                  ? "from-green-50 to-green-100 border-green-200"
+                  : "from-red-50 to-red-100 border-red-200"
+              }`}>
+                <div className={`text-[10px] font-medium uppercase mb-1 ${trip.profit >= 0 ? "text-green-600" : "text-red-600"}`}>Expected Profit</div>
+                <div className={`text-lg font-bold ${trip.profit >= 0 ? "text-green-800" : "text-red-800"}`}>{formatPKR(trip.profit)}</div>
+              </div>
+              <div className="bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-3 text-center">
+                <div className="text-[10px] font-medium text-purple-600 uppercase mb-1">Advances</div>
+                <div className="text-lg font-bold text-purple-800">{formatPKR(trip.totalAdvances)}</div>
+              </div>
+              <div className={`bg-gradient-to-r border rounded-lg p-3 text-center ${
+                trip.actualProfit >= 0
+                  ? "from-emerald-50 to-emerald-100 border-emerald-200"
+                  : "from-red-50 to-red-100 border-red-200"
+              }`}>
+                <div className={`text-[10px] font-medium uppercase mb-1 ${trip.actualProfit >= 0 ? "text-emerald-600" : "text-red-600"}`}>Actual Profit</div>
+                <div className={`text-lg font-bold ${trip.actualProfit >= 0 ? "text-emerald-800" : "text-red-800"}`}>{formatPKR(trip.actualProfit)}</div>
+              </div>
+              <div className="bg-gradient-to-r from-teal-50 to-teal-100 border border-teal-200 rounded-lg p-3 text-center">
+                <div className="text-[10px] font-medium text-teal-600 uppercase mb-1">Received</div>
+                <div className="text-lg font-bold text-teal-800">{formatPKR(trip.totalReceived)}</div>
+              </div>
             </div>
-            <div className={`bg-gradient-to-r border rounded-lg p-3 text-center ${
-              trip.profit >= 0
-                ? "from-green-50 to-green-100 border-green-200"
-                : "from-red-50 to-red-100 border-red-200"
-            }`}>
-              <div className={`text-[10px] font-medium uppercase mb-1 ${trip.profit >= 0 ? "text-green-600" : "text-red-600"}`}>Expected Profit</div>
-              <div className={`text-lg font-bold ${trip.profit >= 0 ? "text-green-800" : "text-red-800"}`}>{formatPKR(trip.profit)}</div>
-            </div>
-            <div className="bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-3 text-center">
-              <div className="text-[10px] font-medium text-purple-600 uppercase mb-1">Advances</div>
-              <div className="text-lg font-bold text-purple-800">{formatPKR(trip.totalAdvances)}</div>
-            </div>
-            <div className={`bg-gradient-to-r border rounded-lg p-3 text-center ${
-              trip.actualProfit >= 0
-                ? "from-emerald-50 to-emerald-100 border-emerald-200"
-                : "from-red-50 to-red-100 border-red-200"
-            }`}>
-              <div className={`text-[10px] font-medium uppercase mb-1 ${trip.actualProfit >= 0 ? "text-emerald-600" : "text-red-600"}`}>Actual Profit</div>
-              <div className={`text-lg font-bold ${trip.actualProfit >= 0 ? "text-emerald-800" : "text-red-800"}`}>{formatPKR(trip.actualProfit)}</div>
-            </div>
-            <div className="bg-gradient-to-r from-teal-50 to-teal-100 border border-teal-200 rounded-lg p-3 text-center">
-              <div className="text-[10px] font-medium text-teal-600 uppercase mb-1">Received</div>
-              <div className="text-lg font-bold text-teal-800">{formatPKR(trip.totalReceived)}</div>
-            </div>
-          </div>
+          )}
 
-          {loadsData?.summary && (
+          {trip.movementType !== "in_house_shifting" && loadsData?.summary && (
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6 mb-6">
               <h3 className="text-sm font-semibold text-blue-800 uppercase tracking-wider mb-4">Income Summary</h3>
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
@@ -579,7 +607,7 @@ export default function TripDetailPage() {
             </div>
           )}
 
-          {trip.status === "Open" && (
+          {trip.movementType !== "in_house_shifting" && trip.status === "Open" && (
             <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
                 <Plus className="w-4 h-4" /> Add Load
@@ -630,6 +658,7 @@ export default function TripDetailPage() {
             </div>
           )}
 
+          {trip.movementType !== "in_house_shifting" && (
           <div className="bg-white border border-gray-200 rounded-lg overflow-hidden mb-6">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider px-6 py-4 border-b border-gray-200">
               Loads ({loadsData?.loads.length ?? 0})
@@ -677,6 +706,7 @@ export default function TripDetailPage() {
               </div>
             )}
           </div>
+          )}
 
           {trip.status === "Open" && (
             <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
@@ -798,6 +828,7 @@ export default function TripDetailPage() {
             )}
           </div>
 
+          {trip.movementType !== "in_house_shifting" && (
           <div className="mt-6 bg-white border border-gray-200 rounded-lg p-6">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
               Customer Payments ({paymentsData?.payments.length ?? 0})
@@ -898,6 +929,7 @@ export default function TripDetailPage() {
               </div>
             )}
           </div>
+          )}
 
           <div className="mt-6 bg-white border border-gray-200 rounded-lg p-6">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
@@ -960,6 +992,7 @@ export default function TripDetailPage() {
             )}
           </div>
 
+          {trip.movementType !== "in_house_shifting" && (
           <div className="mt-6 bg-white border border-gray-200 rounded-lg p-6">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
               Customer Dues ({customerDuesData?.dues.length ?? 0})
@@ -1027,6 +1060,7 @@ export default function TripDetailPage() {
               </>
             )}
           </div>
+          )}
         </>
       )}
     </div>

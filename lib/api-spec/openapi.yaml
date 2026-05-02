@@ -632,6 +632,11 @@ paths:
           in: query
           schema:
             type: integer
+        - name: movement_type
+          in: query
+          schema:
+            type: string
+            enum: [customer_trip, in_house_shifting]
       responses:
         "200":
           description: Trip list
@@ -1380,6 +1385,43 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/CashFlowReportRow"
+
+  /reports/shifting:
+    get:
+      operationId: getShiftingReport
+      tags: [reports]
+      summary: In-house shifting report
+      parameters:
+        - name: date_from
+          in: query
+          schema:
+            type: string
+        - name: date_to
+          in: query
+          schema:
+            type: string
+        - name: truck_id
+          in: query
+          schema:
+            type: integer
+        - name: driver_id
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [Open, Closed]
+      responses:
+        "200":
+          description: In-house shifting report data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ShiftingReportRow"
 
   /reports/profit:
     get:
@@ -2395,6 +2437,12 @@ components:
           type: integer
         driverCommission:
           type: string
+        movementType:
+          type: string
+          enum: [customer_trip, in_house_shifting]
+        notes:
+          type: string
+          nullable: true
       required: [tripDate, truckId, driverId, fromCityId, toCityId]
 
     TripWithDetails:
@@ -2425,6 +2473,12 @@ components:
         status:
           type: string
           enum: [Open, Closed]
+        movementType:
+          type: string
+          enum: [customer_trip, in_house_shifting]
+        notes:
+          type: string
+          nullable: true
         createdAt:
           type: string
         income:
@@ -2439,7 +2493,7 @@ components:
           type: number
         actualProfit:
           type: number
-      required: [id, tripDate, truckId, truckNumber, driverId, driverName, fromCityId, fromCityName, toCityId, toCityName, status, income, expense, profit, totalReceived, totalAdvances, actualProfit]
+      required: [id, tripDate, truckId, truckNumber, driverId, driverName, fromCityId, fromCityName, toCityId, toCityName, status, movementType, income, expense, profit, totalReceived, totalAdvances, actualProfit]
 
     TripLoadInput:
       type: object
@@ -3392,6 +3446,42 @@ components:
         createdAt:
           type: string
       required: [id, customerId, customerName, amount, amountReturned, balance, loanDate, status]
+
+    ShiftingReportRow:
+      type: object
+      properties:
+        tripId:
+          type: integer
+        tripDate:
+          type: string
+        truckId:
+          type: integer
+        truckNumber:
+          type: string
+        driverId:
+          type: integer
+        driverName:
+          type: string
+        fromCityId:
+          type: integer
+        fromCityName:
+          type: string
+        toCityId:
+          type: integer
+        toCityName:
+          type: string
+        status:
+          type: string
+        notes:
+          type: string
+          nullable: true
+        totalExpenses:
+          type: number
+        driverCommission:
+          type: number
+        totalCost:
+          type: number
+      required: [tripId, tripDate, truckId, truckNumber, driverId, driverName, fromCityId, fromCityName, toCityId, toCityName, status, totalExpenses, driverCommission, totalCost]
 
     CustomerLoanInput:
       type: object

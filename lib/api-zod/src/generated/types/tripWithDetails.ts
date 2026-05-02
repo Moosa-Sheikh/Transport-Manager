@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.2.0
  */
+import type { TripWithDetailsMovementType } from "./tripWithDetailsMovementType";
 import type { TripWithDetailsStatus } from "./tripWithDetailsStatus";
 
 export interface TripWithDetails {
@@ -20,6 +21,8 @@ export interface TripWithDetails {
   toCityName: string;
   driverCommission?: string;
   status: TripWithDetailsStatus;
+  movementType: TripWithDetailsMovementType;
+  notes?: string | null;
   createdAt?: string;
   income: number;
   expense: number;
