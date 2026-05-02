@@ -2,30 +2,30 @@ kind = "web"
 previewPath = "/"
 title = "Transport Management System"
 version = "1.0.0"
-id = "artifacts/tms-web"
-router = "path"
-
-[[integratedSkills]]
-name = "react-vite"
-version = "1.0.0"
+id = "tms-web-frontend-001"
 
 [[services]]
-name = "web"
-paths = [ "/" ]
 localPort = 19954
+name = "TMS Web"
+paths = ["/"]
+
+[services.env]
+BASE_PATH = "/"
 
 [services.development]
 run = "pnpm --filter @workspace/tms-web run dev"
 
+[services.development.env]
+PORT = "19954"
+BASE_PATH = "/"
+
 [services.production]
-build = [ "pnpm", "--filter", "@workspace/tms-web", "run", "build" ]
-publicDir = "artifacts/tms-web/dist/public"
 serve = "static"
 
-[[services.production.rewrites]]
-from = "/*"
-to = "/index.html"
+[services.production.build]
+args = ["pnpm", "--filter", "@workspace/tms-web", "run", "build"]
 
-[services.env]
+[services.production.build.env]
+NODE_ENV = "production"
 PORT = "19954"
 BASE_PATH = "/"
