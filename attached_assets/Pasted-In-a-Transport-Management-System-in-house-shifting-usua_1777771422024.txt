@@ -1,0 +1,148 @@
+In a Transport Management System, “in-house shifting” usually means internal/local movement of goods/assets within the same company or client network, not a normal commercial trip.
+
+Example:
+
+A company says:
+
+Move stock from Warehouse A to Warehouse B
+Shift goods from factory to showroom
+Move material from one yard/godown to another
+Transfer goods internally without customer freight billing
+
+So it is still a transport movement, but it is not always treated like a revenue trip.
+
+How professional TMS systems usually handle it
+
+They normally add it as a separate job type inside the trip system.
+
+Instead of only:
+
+Trip
+
+They use something like:
+
+Trip / Movement Type
+
+With values such as:
+
+Customer Freight Trip
+In-House Shifting
+Empty Vehicle Movement
+Maintenance Movement
+Recommended structure for your app
+
+You do not need a totally separate system. Add it inside the existing Trips Module.
+
+1. Add movement type to trips
+
+In the trips table:
+
+movement_type
+
+Example values:
+
+customer_trip
+in_house_shifting
+
+For normal customer trips, the trip has customer, freight income, bilty, payments, profit, etc.
+
+For in-house shifting, the trip may have:
+
+From location
+To location
+Department / warehouse
+Truck
+Driver
+Date
+Material description
+Quantity / weight
+Fuel expense
+Labour expense
+Other expense
+Remarks
+Difference from normal trip
+Normal Customer Trip
+Customer pays freight
+Income is calculated
+Customer payment is tracked
+Profit = Freight income - expenses
+In-House Shifting
+No external customer payment
+Usually no freight receivable
+Only internal cost is tracked
+Cost may be charged to department / warehouse / project
+Profit may not apply, or profit is negative cost
+
+So for reporting, it becomes:
+
+Internal shifting cost report
+Truck-wise internal cost
+Department-wise shifting cost
+Warehouse-to-warehouse movement history
+Driver-wise shifting work
+Tables you may add
+
+Keep your existing trips table, but add a few supporting tables.
+
+Suggested new tables
+locations
+
+For warehouses, godowns, factories, yards, branches.
+
+departments
+
+For internal cost centers.
+
+trip_internal_details
+
+Only used when movement_type = 'in_house_shifting'.
+
+Example fields:
+
+trip_id
+from_location_id
+to_location_id
+department_id
+material_description
+quantity
+weight
+purpose
+approved_by
+Better professional design
+
+Instead of putting too many nullable fields in trips, keep trips as the common base table.
+
+trips
+├── normal customer trip details
+├── trip_loads
+├── trip_expenses
+└── trip_internal_details
+
+So every movement is still a trip, but the system knows its type.
+
+UI structure
+
+In the app, add this in the sidebar:
+
+Trips
+  - Create Customer Trip
+  - Create In-House Shifting
+  - Trip List
+
+Or use one create form with:
+
+Movement Type:
+[Customer Trip] [In-House Shifting]
+
+When the user selects In-House Shifting, hide customer freight fields and show internal fields.
+
+Reports to add
+
+Add reports like:
+
+In-House Shifting Report
+Warehouse-wise Movement Report
+Department-wise Cost Report
+Truck-wise Internal Usage Report
+Driver-wise Internal Trips
+Monthly Internal Transport Cost
