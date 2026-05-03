@@ -26,6 +26,7 @@ export default function CreateTripPage() {
   const [toCityId, setToCityId] = useState("");
   const [fromWarehouseId, setFromWarehouseId] = useState("");
   const [toWarehouseId, setToWarehouseId] = useState("");
+  const [cityId, setCityId] = useState("");
   const [driverCommission, setDriverCommission] = useState("");
   const [notes, setNotes] = useState("");
   const [customerId, setCustomerId] = useState("");
@@ -89,30 +90,22 @@ export default function CreateTripPage() {
         setError("From City and To City cannot be the same for customer trips");
         return;
       }
-    } else {
+    } else if (isCustomerShifting) {
       if (!fromWarehouseId || !toWarehouseId) {
-        setError("From Warehouse and To Warehouse are required for shifting trips");
+        setError("From Warehouse and To Warehouse are required for customer shifting");
         return;
       }
-    }
-
-    if (isInHouseShifting && !notes.trim()) {
-      setError("Notes / purpose is required for in-house shifting");
-      return;
-    }
-
-    if (isCustomerShifting) {
       if (!customerId) { setError("Customer is required for customer shifting"); return; }
       if (!itemId) { setError("Item is required for customer shifting"); return; }
       const rate = Number(ratePerRound);
       if (!Number.isFinite(rate) || rate <= 0) { setError("Rate per round must be greater than zero for customer shifting"); return; }
-    }
-
-    if (isShifting) {
       const r = Number(rounds || "1");
       if (!Number.isInteger(r) || r <= 0) { setError("Rounds must be a positive integer"); return; }
       const comm = Number(commissionPerRound || "0");
       if (!Number.isFinite(comm) || comm < 0) { setError("Commission per round must be non-negative"); return; }
+    } else if (isInHouseShifting) {
+      if (!cityId) { setError("City is required for in-house shifting"); return; }
+      if (!customerId) { setError("Company is required for in-house shifting"); return; }
     }
 
     const payload: Record<string, unknown> = {
@@ -127,17 +120,19 @@ export default function CreateTripPage() {
       payload.fromCityId = Number(fromCityId);
       payload.toCityId = Number(toCityId);
       payload.driverCommission = driverCommission || "0";
-    } else {
+    } else if (isCustomerShifting) {
       payload.fromWarehouseId = Number(fromWarehouseId);
       payload.toWarehouseId = Number(toWarehouseId);
       payload.driverCommission = "0";
       payload.rounds = Number(rounds || "1");
       payload.commissionPerRound = String(Number(commissionPerRound || "0"));
-      if (isCustomerShifting) {
-        payload.customerId = Number(customerId);
-        payload.itemId = Number(itemId);
-        payload.ratePerRound = String(Number(ratePerRound || "0"));
-      }
+      payload.customerId = Number(customerId);
+      payload.itemId = Number(itemId);
+      payload.ratePerRound = String(Number(ratePerRound || "0"));
+    } else if (isInHouseShifting) {
+      payload.cityId = Number(cityId);
+      payload.customerId = Number(customerId);
+      payload.driverCommission = "0";
     }
 
     createMutation.mutate({ data: payload as Parameters<typeof createMutation.mutate>[0]["data"] });
@@ -189,7 +184,7 @@ export default function CreateTripPage() {
               <Warehouse className="w-5 h-5 flex-shrink-0" />
               <div>
                 <div className="font-semibold">Shifting</div>
-                <div className="text-xs font-normal text-gray-500">Warehouse → warehouse, by rounds</div>
+                <div className="text-xs font-normal text-gray-500">Customer (warehouses) or in-house</div>
               </div>
             </button>
           </div>
@@ -221,7 +216,7 @@ export default function CreateTripPage() {
                   <Truck className="w-5 h-5 flex-shrink-0" />
                   <div>
                     <div className="font-semibold">In-House</div>
-                    <div className="text-xs font-normal text-gray-500">Internal — cost only</div>
+                    <div className="text-xs font-normal text-gray-500">Per-trip log of round entries</div>
                   </div>
                 </button>
               </div>
@@ -235,7 +230,7 @@ export default function CreateTripPage() {
           )}
           {isInHouseShifting && (
             <p className="mt-2 text-xs text-orange-700 bg-orange-50 border border-orange-200 rounded p-2">
-              Internal movement — no customer billing. Driver paid per round.
+              Per-trip log. Pick city + company, then add round entries (item + rate × rounds) on the trip page.
             </p>
           )}
         </div>
@@ -284,7 +279,7 @@ export default function CreateTripPage() {
           </div>
         )}
 
-        {isShifting && (
+        {isCustomerShifting && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">From Warehouse <span className="text-red-500">*</span></label>
@@ -305,6 +300,25 @@ export default function CreateTripPage() {
                 No warehouses defined yet. <Link href="/masters/warehouses" className="underline font-medium">Add warehouses first</Link>.
               </div>
             )}
+          </div>
+        )}
+
+        {isInHouseShifting && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-orange-50/40 border border-orange-200 rounded-lg">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">City <span className="text-red-500">*</span></label>
+              <select value={cityId} onChange={(e) => setCityId(e.target.value)} className="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500" required>
+                <option value="">Select city</option>
+                {citiesQuery.data?.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Company <span className="text-red-500">*</span></label>
+              <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500" required>
+                <option value="">Select company</option>
+                {customersQuery.data?.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+              </select>
+            </div>
           </div>
         )}
 
@@ -331,15 +345,15 @@ export default function CreateTripPage() {
           </div>
         )}
 
-        {isShifting && (
+        {isCustomerShifting && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Number of Rounds <span className="text-red-500">*</span></label>
-              <input type="number" min="1" step="1" value={rounds} onChange={(e) => setRounds(e.target.value)} className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 ${isCustomerShifting ? "border-teal-300 focus:ring-teal-500 focus:border-teal-500" : "border-orange-300 focus:ring-orange-500 focus:border-orange-500"}`} required />
+              <input type="number" min="1" step="1" value={rounds} onChange={(e) => setRounds(e.target.value)} className="w-full px-3 py-2 border border-teal-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500" required />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Driver Commission per Round (PKR)</label>
-              <input type="number" min="0" step="0.01" value={commissionPerRound} onChange={(e) => setCommissionPerRound(e.target.value)} placeholder="0" className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 ${isCustomerShifting ? "border-teal-300 focus:ring-teal-500 focus:border-teal-500" : "border-orange-300 focus:ring-orange-500 focus:border-orange-500"}`} />
+              <input type="number" min="0" step="0.01" value={commissionPerRound} onChange={(e) => setCommissionPerRound(e.target.value)} placeholder="0" className="w-full px-3 py-2 border border-teal-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500" />
             </div>
           </div>
         )}
@@ -351,17 +365,10 @@ export default function CreateTripPage() {
           </div>
         )}
 
-        {isInHouseShifting && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Purpose / Notes <span className="text-red-500">*</span></label>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} placeholder="Reason for this internal movement..." className="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500" required />
-          </div>
-        )}
-
-        {isCustomerShifting && (
+        {(isInHouseShifting || isCustomerShifting) && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
-            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500" />
+            <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 ${isCustomerShifting ? "border-gray-300 focus:ring-teal-500" : "border-orange-300 focus:ring-orange-500"}`} />
           </div>
         )}
 

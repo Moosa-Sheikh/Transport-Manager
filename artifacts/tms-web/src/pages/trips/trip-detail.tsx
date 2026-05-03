@@ -18,7 +18,11 @@ import {
   useUpdateTripCommission,
   useListCustomers,
   useListExpenseTypes,
+  useListItems,
   useListTripCustomerDues,
+  useListTripRoundEntries,
+  useAddTripRoundEntry,
+  useDeleteTripRoundEntry,
   getGetTripQueryKey,
   getGetTripQueryOptions,
   getListTripLoadsQueryKey,
@@ -30,6 +34,8 @@ import {
   getListTripDriverAdvancesQueryKey,
   getListTripDriverAdvancesQueryOptions,
   getListTripCustomerDuesQueryOptions,
+  getListTripRoundEntriesQueryKey,
+  getListTripRoundEntriesQueryOptions,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -100,6 +106,67 @@ export default function TripDetailPage() {
 
   const customersQuery = useListCustomers({});
   const expenseTypesQuery = useListExpenseTypes({});
+  const itemsQuery = useListItems({});
+
+  const roundEntriesDefaults = getListTripRoundEntriesQueryOptions(tripId);
+  const roundEntriesQuery = useListTripRoundEntries(tripId, {
+    query: { ...roundEntriesDefaults, enabled: Number.isFinite(tripId) && tripId > 0 },
+  });
+
+  const [roundEntryForm, setRoundEntryForm] = useState({ itemId: "", ratePerRound: "", rounds: "1", entryDate: "", notes: "" });
+  const [deleteRoundEntryId, setDeleteRoundEntryId] = useState<number | null>(null);
+
+  const addRoundEntryMutation = useAddTripRoundEntry({
+    mutation: {
+      onSuccess: () => {
+        invalidateAll();
+        queryClient.invalidateQueries({ queryKey: getListTripRoundEntriesQueryKey(tripId) });
+        setRoundEntryForm({ itemId: "", ratePerRound: "", rounds: "1", entryDate: "", notes: "" });
+        showSuccess("Round entry added");
+      },
+      onError: (err: Error & { message?: string }) => {
+        setErrorMsg(err.message || "Failed to add round entry");
+        setTimeout(() => setErrorMsg(""), 4000);
+      },
+    },
+  });
+
+  const deleteRoundEntryMutation = useDeleteTripRoundEntry({
+    mutation: {
+      onSuccess: () => {
+        invalidateAll();
+        queryClient.invalidateQueries({ queryKey: getListTripRoundEntriesQueryKey(tripId) });
+        setDeleteRoundEntryId(null);
+        showSuccess("Round entry deleted");
+      },
+    },
+  });
+
+  const handleAddRoundEntry = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!roundEntryForm.itemId || !roundEntryForm.ratePerRound || !roundEntryForm.rounds) return;
+    addRoundEntryMutation.mutate({
+      id: tripId,
+      data: {
+        itemId: Number(roundEntryForm.itemId),
+        ratePerRound: roundEntryForm.ratePerRound,
+        rounds: Number(roundEntryForm.rounds),
+        entryDate: roundEntryForm.entryDate || undefined,
+        notes: roundEntryForm.notes || undefined,
+      },
+    });
+  };
+
+  const handleRoundEntryItemChange = (val: string) => {
+    setRoundEntryForm((f) => {
+      const next = { ...f, itemId: val };
+      if (val && !f.ratePerRound) {
+        const it = itemsQuery.data?.find((i) => i.id === Number(val));
+        if (it?.defaultRatePerRound) next.ratePerRound = String(Number(it.defaultRatePerRound));
+      }
+      return next;
+    });
+  };
 
   function invalidateAll() {
     queryClient.invalidateQueries({ queryKey: getGetTripQueryKey(tripId) });
@@ -463,13 +530,23 @@ export default function TripDetailPage() {
                 </span>
               </div>
               <div>
-                <div className="text-xs font-medium text-gray-500 uppercase mb-1">Route</div>
-                <div className="text-sm text-gray-900 flex items-center gap-2">
-                  <span className="font-medium">{trip.fromWarehouseName ?? trip.fromCityName ?? "—"}</span>
-                  <ChevronRight className="w-4 h-4 text-gray-400" />
-                  <span className="font-medium">{trip.toWarehouseName ?? trip.toCityName ?? "—"}</span>
-                </div>
+                <div className="text-xs font-medium text-gray-500 uppercase mb-1">{trip.movementType === "in_house_shifting" ? "City" : "Route"}</div>
+                {trip.movementType === "in_house_shifting" ? (
+                  <div className="text-sm text-gray-900 font-medium">{trip.cityName ?? "—"}</div>
+                ) : (
+                  <div className="text-sm text-gray-900 flex items-center gap-2">
+                    <span className="font-medium">{trip.fromWarehouseName ?? trip.fromCityName ?? "—"}</span>
+                    <ChevronRight className="w-4 h-4 text-gray-400" />
+                    <span className="font-medium">{trip.toWarehouseName ?? trip.toCityName ?? "—"}</span>
+                  </div>
+                )}
               </div>
+              {trip.movementType === "in_house_shifting" && (
+                <div>
+                  <div className="text-xs font-medium text-gray-500 uppercase mb-1">Company</div>
+                  <div className="text-sm text-gray-900 font-medium">{trip.customerName ?? "—"}</div>
+                </div>
+              )}
               <div>
                 <div className="text-xs font-medium text-gray-500 uppercase mb-1">Truck</div>
                 <div className="text-sm text-gray-900">{trip.truckNumber}</div>
@@ -484,6 +561,7 @@ export default function TripDetailPage() {
                   <div className="text-sm text-orange-800 bg-orange-50 border border-orange-200 rounded p-2">{trip.notes}</div>
                 </div>
               )}
+              {trip.movementType !== "in_house_shifting" && (
               <div>
                 <div className="text-xs font-medium text-gray-500 uppercase mb-1">Driver Commission</div>
                 {editingCommission && trip.status === "Open" ? (
@@ -535,10 +613,11 @@ export default function TripDetailPage() {
                   </div>
                 )}
               </div>
+              )}
             </div>
           </div>
 
-          {(trip.movementType === "customer_shifting" || trip.movementType === "in_house_shifting") && (
+          {trip.movementType === "customer_shifting" && (
             <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Shifting Details</h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -578,17 +657,19 @@ export default function TripDetailPage() {
 
           {trip.movementType === "in_house_shifting" ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+              <div className="bg-gradient-to-r from-teal-50 to-teal-100 border border-teal-200 rounded-lg p-3 text-center">
+                <div className="text-[10px] font-medium text-teal-600 uppercase mb-1">Revenue</div>
+                <div className="text-lg font-bold text-teal-800">{formatPKR(trip.income)}</div>
+              </div>
               <div className="bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-3 text-center">
                 <div className="text-[10px] font-medium text-orange-600 uppercase mb-1">Total Expenses</div>
                 <div className="text-lg font-bold text-orange-800">{formatPKR(trip.expense)}</div>
               </div>
-              <div className="bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-3 text-center">
-                <div className="text-[10px] font-medium text-purple-600 uppercase mb-1">Driver Commission</div>
-                <div className="text-lg font-bold text-purple-800">{formatPKR(Number(trip.driverCommissionTotal ?? 0))}</div>
-              </div>
-              <div className="bg-gradient-to-r from-red-50 to-red-100 border border-red-200 rounded-lg p-3 text-center">
-                <div className="text-[10px] font-medium text-red-600 uppercase mb-1">Total Cost</div>
-                <div className="text-lg font-bold text-red-800">{formatPKR(trip.expense + Number(trip.driverCommissionTotal ?? 0))}</div>
+              <div className={`bg-gradient-to-r border rounded-lg p-3 text-center ${
+                trip.profit >= 0 ? "from-green-50 to-green-100 border-green-200" : "from-red-50 to-red-100 border-red-200"
+              }`}>
+                <div className={`text-[10px] font-medium uppercase mb-1 ${trip.profit >= 0 ? "text-green-600" : "text-red-600"}`}>Profit</div>
+                <div className={`text-lg font-bold ${trip.profit >= 0 ? "text-green-800" : "text-red-800"}`}>{formatPKR(trip.profit)}</div>
               </div>
             </div>
           ) : trip.movementType === "customer_shifting" ? (
@@ -651,6 +732,120 @@ export default function TripDetailPage() {
                 <div className="text-lg font-bold text-teal-800">{formatPKR(trip.totalReceived)}</div>
               </div>
             </div>
+          )}
+
+          {trip.movementType === "in_house_shifting" && (
+            <>
+              {trip.status === "Open" && (
+                <div className="bg-orange-50/50 border border-orange-200 rounded-lg p-6 mb-6">
+                  <h3 className="text-sm font-semibold text-orange-800 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <Plus className="w-4 h-4" /> Add Round Entry
+                  </h3>
+                  <form onSubmit={handleAddRoundEntry} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Item *</label>
+                      <select value={roundEntryForm.itemId} onChange={(e) => handleRoundEntryItemChange(e.target.value)} className="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500" required>
+                        <option value="">Select item</option>
+                        {itemsQuery.data?.map((it) => (<option key={it.id} value={it.id}>{it.name} ({it.unit})</option>))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Rate / Round (PKR) *</label>
+                      <input type="number" min="0" step="0.01" value={roundEntryForm.ratePerRound} onChange={(e) => setRoundEntryForm((f) => ({ ...f, ratePerRound: e.target.value }))} placeholder="0" className="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500" required />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Rounds *</label>
+                      <input type="number" min="1" step="1" value={roundEntryForm.rounds} onChange={(e) => setRoundEntryForm((f) => ({ ...f, rounds: e.target.value }))} className="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500" required />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Date</label>
+                      <input type="date" value={roundEntryForm.entryDate} onChange={(e) => setRoundEntryForm((f) => ({ ...f, entryDate: e.target.value }))} className="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500" />
+                    </div>
+                    <div className="flex items-end">
+                      <button type="submit" disabled={addRoundEntryMutation.isPending} className="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 text-sm font-medium flex items-center justify-center gap-2">
+                        {addRoundEntryMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                        Add
+                      </button>
+                    </div>
+                    <div className="sm:col-span-2 lg:col-span-5">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Notes</label>
+                      <input type="text" value={roundEntryForm.notes} onChange={(e) => setRoundEntryForm((f) => ({ ...f, notes: e.target.value }))} placeholder="Optional notes" className="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500" />
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden mb-6">
+                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider p-4 border-b border-gray-200">
+                  Round Entries ({roundEntriesQuery.data?.entries?.length ?? 0})
+                </h3>
+                {!roundEntriesQuery.data?.entries?.length ? (
+                  <div className="p-8 text-center text-sm text-gray-500">No round entries yet.</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm">
+                      <thead className="bg-gray-50 text-xs uppercase text-gray-600">
+                        <tr>
+                          <th className="px-4 py-3 text-left">Date</th>
+                          <th className="px-4 py-3 text-left">Item</th>
+                          <th className="px-4 py-3 text-right">Rate / Round</th>
+                          <th className="px-4 py-3 text-right">Rounds</th>
+                          <th className="px-4 py-3 text-right">Revenue</th>
+                          <th className="px-4 py-3 text-left">Notes</th>
+                          {trip.status === "Open" && <th className="px-4 py-3"></th>}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {roundEntriesQuery.data.entries.map((entry) => (
+                          <tr key={entry.id}>
+                            <td className="px-4 py-3 text-gray-700">{entry.entryDate ?? trip.tripDate}</td>
+                            <td className="px-4 py-3 font-medium text-gray-900">{entry.itemName}{entry.itemUnit ? ` (${entry.itemUnit})` : ""}</td>
+                            <td className="px-4 py-3 text-right text-gray-700">{formatPKR(Number(entry.ratePerRound))}</td>
+                            <td className="px-4 py-3 text-right text-gray-700">{entry.rounds}</td>
+                            <td className="px-4 py-3 text-right font-semibold text-teal-700">{formatPKR(entry.revenue)}</td>
+                            <td className="px-4 py-3 text-gray-500 text-xs">{entry.notes ?? "—"}</td>
+                            {trip.status === "Open" && (
+                              <td className="px-4 py-3 text-right">
+                                <button onClick={() => setDeleteRoundEntryId(entry.id)} className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded">
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </td>
+                            )}
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot className="bg-gray-50 font-semibold">
+                        <tr>
+                          <td colSpan={4} className="px-4 py-3 text-right text-gray-700">Total Revenue</td>
+                          <td className="px-4 py-3 text-right text-teal-800">{formatPKR(Number(roundEntriesQuery.data.summary.totalRevenue ?? 0))}</td>
+                          <td colSpan={trip.status === "Open" ? 2 : 1}></td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {deleteRoundEntryId !== null && (
+                <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+                  <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Round Entry</h3>
+                    <p className="text-sm text-gray-600 mb-4">Are you sure you want to delete this round entry?</p>
+                    <div className="flex justify-end gap-2">
+                      <button onClick={() => setDeleteRoundEntryId(null)} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
+                      <button
+                        onClick={() => deleteRoundEntryMutation.mutate({ id: tripId, entryId: deleteRoundEntryId })}
+                        disabled={deleteRoundEntryMutation.isPending}
+                        className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
+                      >
+                        {deleteRoundEntryMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           {trip.movementType === "customer_trip" && loadsData?.summary && (

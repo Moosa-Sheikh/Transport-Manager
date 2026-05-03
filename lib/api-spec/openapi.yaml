@@ -1060,6 +1060,101 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /trips/{id}/round-entries:
+    get:
+      operationId: listTripRoundEntries
+      tags: [trips]
+      summary: List in-house round entries for a trip
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Round entries list with summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TripRoundEntriesResponse"
+        "404":
+          description: Trip not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: addTripRoundEntry
+      tags: [trips]
+      summary: Add an in-house round entry to a trip
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TripRoundEntryInput"
+      responses:
+        "201":
+          description: Round entry added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TripRoundEntry"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Trip not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /trips/{id}/round-entries/{entryId}:
+    delete:
+      operationId: deleteTripRoundEntry
+      tags: [trips]
+      summary: Delete an in-house round entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: entryId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Round entry deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Trip is closed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /trips/{id}/loads/{loadId}:
     delete:
       operationId: deleteTripLoad
@@ -2717,6 +2812,9 @@ components:
         toWarehouseId:
           type: integer
           nullable: true
+        cityId:
+          type: integer
+          nullable: true
         driverCommission:
           type: string
         movementType:
@@ -2779,6 +2877,12 @@ components:
           type: integer
           nullable: true
         toWarehouseName:
+          type: string
+          nullable: true
+        cityId:
+          type: integer
+          nullable: true
+        cityName:
           type: string
           nullable: true
         driverCommission:
@@ -2919,6 +3023,75 @@ components:
         summary:
           $ref: "#/components/schemas/TripIncomeSummary"
       required: [loads, summary]
+
+    TripRoundEntryInput:
+      type: object
+      properties:
+        itemId:
+          type: integer
+        ratePerRound:
+          type: string
+        rounds:
+          type: integer
+        entryDate:
+          type: string
+          format: date
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+      required: [itemId, ratePerRound, rounds]
+
+    TripRoundEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        tripId:
+          type: integer
+        itemId:
+          type: integer
+        itemName:
+          type: string
+        itemUnit:
+          type: string
+          nullable: true
+        ratePerRound:
+          type: string
+        rounds:
+          type: integer
+        entryDate:
+          type: string
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        revenue:
+          type: number
+        createdAt:
+          type: string
+          nullable: true
+      required: [id, tripId, itemId, itemName, ratePerRound, rounds, revenue]
+
+    TripRoundEntriesSummary:
+      type: object
+      properties:
+        totalRevenue:
+          type: number
+        totalRounds:
+          type: integer
+      required: [totalRevenue, totalRounds]
+
+    TripRoundEntriesResponse:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/TripRoundEntry"
+        summary:
+          $ref: "#/components/schemas/TripRoundEntriesSummary"
+      required: [entries, summary]
 
     TripExpenseInput:
       type: object

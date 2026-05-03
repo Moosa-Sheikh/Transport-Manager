@@ -490,11 +490,18 @@ export default function TripListPage() {
                         {trip.driverName}
                       </td>
                       <td className="px-4 py-3 text-gray-700">
-                        <span className="flex items-center gap-1">
-                          {trip.fromWarehouseName ?? trip.fromCityName ?? "—"}
-                          <ChevronRight className="w-3 h-3 text-gray-400" />
-                          {trip.toWarehouseName ?? trip.toCityName ?? "—"}
-                        </span>
+                        {trip.movementType === "in_house_shifting" ? (
+                          <span className="flex flex-col">
+                            <span className="font-medium">{trip.cityName ?? "—"}</span>
+                            <span className="text-xs text-gray-500">{trip.customerName ?? ""}</span>
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1">
+                            {trip.fromWarehouseName ?? trip.fromCityName ?? "—"}
+                            <ChevronRight className="w-3 h-3 text-gray-400" />
+                            {trip.toWarehouseName ?? trip.toCityName ?? "—"}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5 flex-wrap">

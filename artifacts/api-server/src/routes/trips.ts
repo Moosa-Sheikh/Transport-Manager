@@ -5,7 +5,7 @@ import {
   tripLoadsTable, customersTable,
   tripExpensesTable, expenseTypesTable,
   customerPaymentsTable, driverAdvancesTable, cashBookTable,
-  customerDuesTable, itemsTable,
+  customerDuesTable, itemsTable, tripRoundEntriesTable,
 } from "@workspace/db/schema";
 import { eq, and, gte, lte, sql, inArray, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
@@ -13,6 +13,7 @@ import { parseId } from "../lib/validate-id.js";
 
 const fromCities = alias(citiesTable, "from_city");
 const toCities = alias(citiesTable, "to_city");
+const inHouseCity = alias(citiesTable, "in_house_city");
 const fromWarehouses = alias(warehousesTable, "from_warehouse");
 const toWarehouses = alias(warehousesTable, "to_warehouse");
 
@@ -38,8 +39,17 @@ const totalAdvancesSubquery = sql<number>`COALESCE((
   FROM driver_advances WHERE driver_advances.trip_id = ${tripsTable.id}
 ), 0)::double precision`;
 
-const shiftingRevenueExpr = sql<number>`(CASE WHEN ${tripsTable.movementType} = 'customer_shifting' THEN COALESCE(${tripsTable.rounds}, 0) * COALESCE(${tripsTable.ratePerRound}, 0) ELSE 0 END)::double precision`;
-const shiftingCommissionExpr = sql<number>`(COALESCE(${tripsTable.commissionPerRound}, 0) * COALESCE(${tripsTable.rounds}, 0))::double precision`;
+const customerShiftingRevenueExpr = sql<number>`(CASE WHEN ${tripsTable.movementType} = 'customer_shifting' THEN COALESCE(${tripsTable.rounds}, 0) * COALESCE(${tripsTable.ratePerRound}, 0) ELSE 0 END)::double precision`;
+const customerShiftingCommissionExpr = sql<number>`(CASE WHEN ${tripsTable.movementType} = 'customer_shifting' THEN COALESCE(${tripsTable.commissionPerRound}, 0) * COALESCE(${tripsTable.rounds}, 0) ELSE 0 END)::double precision`;
+const inHouseRoundsRevenueExpr = sql<number>`COALESCE((
+  SELECT SUM(COALESCE(rate_per_round, 0) * COALESCE(rounds, 0))
+  FROM trip_round_entries WHERE trip_round_entries.trip_id = ${tripsTable.id}
+), 0)::double precision`;
+const tripRevenueExpr = sql<number>`(CASE
+  WHEN ${tripsTable.movementType} = 'customer_shifting' THEN ${customerShiftingRevenueExpr}
+  WHEN ${tripsTable.movementType} = 'in_house_shifting' THEN ${inHouseRoundsRevenueExpr}
+  ELSE ${incomeSubquery}
+END)::double precision`;
 
 function buildTripQuery() {
   return db
@@ -54,6 +64,8 @@ function buildTripQuery() {
       fromCityName: fromCities.name,
       toCityId: tripsTable.toCityId,
       toCityName: toCities.name,
+      cityId: tripsTable.cityId,
+      cityName: inHouseCity.name,
       fromWarehouseId: tripsTable.fromWarehouseId,
       fromWarehouseName: fromWarehouses.name,
       toWarehouseId: tripsTable.toWarehouseId,
@@ -71,20 +83,21 @@ function buildTripQuery() {
       ratePerRound: tripsTable.ratePerRound,
       commissionPerRound: tripsTable.commissionPerRound,
       createdAt: tripsTable.createdAt,
-      income: sql<number>`(CASE WHEN ${tripsTable.movementType} = 'customer_shifting' THEN ${shiftingRevenueExpr} ELSE ${incomeSubquery} END)::double precision`.as("income"),
+      income: tripRevenueExpr.as("income"),
       expense: expenseSubquery.as("expense"),
-      profit: sql<number>`((CASE WHEN ${tripsTable.movementType} = 'customer_shifting' THEN ${shiftingRevenueExpr} ELSE ${incomeSubquery} END) - ${expenseSubquery})::double precision`.as("profit"),
+      profit: sql<number>`(${tripRevenueExpr} - ${expenseSubquery})::double precision`.as("profit"),
       totalReceived: totalReceivedSubquery.as("total_received"),
       totalAdvances: totalAdvancesSubquery.as("total_advances"),
-      actualProfit: sql<number>`((CASE WHEN ${tripsTable.movementType} = 'customer_shifting' THEN ${shiftingRevenueExpr} ELSE ${incomeSubquery} END) - ${expenseSubquery} - ${totalAdvancesSubquery})::double precision`.as("actual_profit"),
-      shiftingRevenue: shiftingRevenueExpr.as("shifting_revenue"),
-      driverCommissionTotal: sql<number>`(CASE WHEN ${tripsTable.movementType} IN ('customer_shifting', 'in_house_shifting') THEN ${shiftingCommissionExpr} ELSE COALESCE(${tripsTable.driverCommission}, 0)::double precision END)::double precision`.as("driver_commission_total"),
+      actualProfit: sql<number>`(${tripRevenueExpr} - ${expenseSubquery} - ${totalAdvancesSubquery})::double precision`.as("actual_profit"),
+      shiftingRevenue: sql<number>`(CASE WHEN ${tripsTable.movementType} = 'customer_shifting' THEN ${customerShiftingRevenueExpr} WHEN ${tripsTable.movementType} = 'in_house_shifting' THEN ${inHouseRoundsRevenueExpr} ELSE 0 END)::double precision`.as("shifting_revenue"),
+      driverCommissionTotal: sql<number>`(CASE WHEN ${tripsTable.movementType} = 'customer_shifting' THEN ${customerShiftingCommissionExpr} WHEN ${tripsTable.movementType} = 'in_house_shifting' THEN 0 ELSE COALESCE(${tripsTable.driverCommission}, 0)::double precision END)::double precision`.as("driver_commission_total"),
     })
     .from(tripsTable)
     .innerJoin(trucksTable, eq(tripsTable.truckId, trucksTable.id))
     .innerJoin(driversTable, eq(tripsTable.driverId, driversTable.id))
     .leftJoin(fromCities, eq(tripsTable.fromCityId, fromCities.id))
     .leftJoin(toCities, eq(tripsTable.toCityId, toCities.id))
+    .leftJoin(inHouseCity, eq(tripsTable.cityId, inHouseCity.id))
     .leftJoin(fromWarehouses, eq(tripsTable.fromWarehouseId, fromWarehouses.id))
     .leftJoin(toWarehouses, eq(tripsTable.toWarehouseId, toWarehouses.id))
     .leftJoin(customersTable, eq(tripsTable.customerId, customersTable.id))
@@ -167,7 +180,7 @@ router.post("/", async (req: Request, res: Response) => {
   try {
     const {
       tripDate, truckId, driverId, fromCityId, toCityId,
-      fromWarehouseId, toWarehouseId,
+      fromWarehouseId, toWarehouseId, cityId,
       driverCommission, movementType, notes,
       customerId, itemId, rounds, ratePerRound, commissionPerRound,
     } = req.body;
@@ -192,6 +205,7 @@ router.post("/", async (req: Request, res: Response) => {
     let numToCityId: number | null = null;
     let numFromWarehouseId: number | null = null;
     let numToWarehouseId: number | null = null;
+    let numCityId: number | null = null;
 
     if (resolvedMovementType === "customer_trip") {
       numFromCityId = Number(fromCityId);
@@ -204,23 +218,24 @@ router.post("/", async (req: Request, res: Response) => {
         res.status(400).json({ error: "From city and To city cannot be the same" });
         return;
       }
-    } else {
+    } else if (resolvedMovementType === "customer_shifting") {
       numFromWarehouseId = Number(fromWarehouseId);
       numToWarehouseId = Number(toWarehouseId);
       if (!Number.isInteger(numFromWarehouseId) || numFromWarehouseId <= 0 ||
           !Number.isInteger(numToWarehouseId) || numToWarehouseId <= 0) {
-        res.status(400).json({ error: "From and To warehouses are required for shifting" });
+        res.status(400).json({ error: "From and To warehouses are required for customer shifting" });
         return;
       }
       if (numFromWarehouseId === numToWarehouseId) {
         res.status(400).json({ error: "From and To warehouses cannot be the same" });
         return;
       }
-    }
-
-    if (resolvedMovementType === "in_house_shifting" && (!notes || String(notes).trim() === "")) {
-      res.status(400).json({ error: "Notes/purpose is required for in-house shifting" });
-      return;
+    } else {
+      numCityId = Number(cityId);
+      if (!Number.isInteger(numCityId) || numCityId <= 0) {
+        res.status(400).json({ error: "City is required for in-house shifting" });
+        return;
+      }
     }
 
     let resolvedCustomerId: number | null = null;
@@ -261,18 +276,12 @@ router.post("/", async (req: Request, res: Response) => {
       resolvedRate = String(ratePerRound);
       resolvedCommissionPerRound = String(commissionPerRound);
     } else if (resolvedMovementType === "in_house_shifting") {
-      const rNum = rounds !== undefined && rounds !== null && rounds !== "" ? Number(rounds) : 1;
-      const commNum = commissionPerRound !== undefined && commissionPerRound !== null && commissionPerRound !== "" ? Number(commissionPerRound) : 0;
-      if (!Number.isInteger(rNum) || rNum <= 0) {
-        res.status(400).json({ error: "Rounds must be a positive integer" });
+      const cId = Number(customerId);
+      if (!Number.isInteger(cId) || cId <= 0) {
+        res.status(400).json({ error: "Company (customer) is required for in-house shifting" });
         return;
       }
-      if (!Number.isFinite(commNum) || commNum < 0) {
-        res.status(400).json({ error: "Commission per round must be non-negative" });
-        return;
-      }
-      resolvedRounds = rNum;
-      resolvedCommissionPerRound = String(commNum);
+      resolvedCustomerId = cId;
     }
 
     const commissionVal = resolvedMovementType === "customer_trip" && driverCommission !== undefined && driverCommission !== null && driverCommission !== ""
@@ -289,6 +298,7 @@ router.post("/", async (req: Request, res: Response) => {
         toCityId: numToCityId,
         fromWarehouseId: numFromWarehouseId,
         toWarehouseId: numToWarehouseId,
+        cityId: numCityId,
         driverCommission: commissionVal,
         movementType: resolvedMovementType,
         notes: notes ? String(notes).trim() : null,
@@ -715,6 +725,126 @@ router.post("/:id/loads", async (req: Request, res: Response) => {
       return;
     }
     req.log.error({ err }, "Add trip load error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/:id/round-entries", async (req: Request, res: Response) => {
+  try {
+    const id = parseId(req, res);
+    if (id === null) return;
+
+    const [trip] = await db.select({ id: tripsTable.id, movementType: tripsTable.movementType }).from(tripsTable).where(eq(tripsTable.id, id));
+    if (!trip) { res.status(404).json({ error: "Trip not found" }); return; }
+    if (trip.movementType !== "in_house_shifting") { res.status(400).json({ error: "Round entries are only for in-house shifting trips" }); return; }
+
+    const rows = await db
+      .select({
+        id: tripRoundEntriesTable.id,
+        tripId: tripRoundEntriesTable.tripId,
+        itemId: tripRoundEntriesTable.itemId,
+        itemName: itemsTable.name,
+        itemUnit: itemsTable.unit,
+        ratePerRound: tripRoundEntriesTable.ratePerRound,
+        rounds: tripRoundEntriesTable.rounds,
+        entryDate: tripRoundEntriesTable.entryDate,
+        notes: tripRoundEntriesTable.notes,
+        createdAt: tripRoundEntriesTable.createdAt,
+      })
+      .from(tripRoundEntriesTable)
+      .innerJoin(itemsTable, eq(tripRoundEntriesTable.itemId, itemsTable.id))
+      .where(eq(tripRoundEntriesTable.tripId, id))
+      .orderBy(tripRoundEntriesTable.id);
+
+    const entries = rows.map((r) => ({
+      ...r,
+      revenue: Number(r.ratePerRound ?? 0) * Number(r.rounds ?? 0),
+    }));
+    const totalRevenue = entries.reduce((s, e) => s + e.revenue, 0);
+    const totalRounds = entries.reduce((s, e) => s + Number(e.rounds ?? 0), 0);
+
+    res.json({ entries, summary: { totalRevenue, totalRounds } });
+  } catch (err) {
+    req.log.error({ err }, "List trip round entries error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.post("/:id/round-entries", async (req: Request, res: Response) => {
+  try {
+    const id = parseId(req, res);
+    if (id === null) return;
+
+    const [trip] = await db.select().from(tripsTable).where(eq(tripsTable.id, id));
+    if (!trip) { res.status(404).json({ error: "Trip not found" }); return; }
+    if (trip.status === "Closed") { res.status(400).json({ error: "Cannot add to a closed trip" }); return; }
+    if (trip.movementType !== "in_house_shifting") { res.status(400).json({ error: "Round entries are only for in-house shifting trips" }); return; }
+
+    const { itemId, ratePerRound, rounds, entryDate, notes } = req.body;
+    const numItemId = Number(itemId);
+    if (!Number.isInteger(numItemId) || numItemId <= 0) { res.status(400).json({ error: "Item is required" }); return; }
+    const rateNum = Number(ratePerRound);
+    if (!Number.isFinite(rateNum) || rateNum < 0) { res.status(400).json({ error: "Rate per round must be a non-negative number" }); return; }
+    const roundsNum = Number(rounds);
+    if (!Number.isInteger(roundsNum) || roundsNum <= 0) { res.status(400).json({ error: "Rounds must be a positive integer" }); return; }
+
+    const [inserted] = await db
+      .insert(tripRoundEntriesTable)
+      .values({
+        tripId: id,
+        itemId: numItemId,
+        ratePerRound: String(rateNum),
+        rounds: roundsNum,
+        entryDate: entryDate ? String(entryDate) : null,
+        notes: notes ? String(notes).trim() || null : null,
+      })
+      .returning();
+
+    const [row] = await db
+      .select({
+        id: tripRoundEntriesTable.id,
+        tripId: tripRoundEntriesTable.tripId,
+        itemId: tripRoundEntriesTable.itemId,
+        itemName: itemsTable.name,
+        itemUnit: itemsTable.unit,
+        ratePerRound: tripRoundEntriesTable.ratePerRound,
+        rounds: tripRoundEntriesTable.rounds,
+        entryDate: tripRoundEntriesTable.entryDate,
+        notes: tripRoundEntriesTable.notes,
+        createdAt: tripRoundEntriesTable.createdAt,
+      })
+      .from(tripRoundEntriesTable)
+      .innerJoin(itemsTable, eq(tripRoundEntriesTable.itemId, itemsTable.id))
+      .where(eq(tripRoundEntriesTable.id, inserted.id));
+
+    res.status(201).json({ ...row, revenue: Number(row.ratePerRound ?? 0) * Number(row.rounds ?? 0) });
+  } catch (err) {
+    req.log.error({ err }, "Add trip round entry error");
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.delete("/:id/round-entries/:entryId", async (req: Request, res: Response) => {
+  try {
+    const id = parseId(req, res);
+    if (id === null) return;
+    const entryIdRaw = Number(req.params["entryId"]);
+    if (!Number.isInteger(entryIdRaw) || entryIdRaw <= 0) { res.status(400).json({ error: "Invalid entry ID" }); return; }
+
+    const [trip] = await db.select().from(tripsTable).where(eq(tripsTable.id, id));
+    if (!trip) { res.status(404).json({ error: "Trip not found" }); return; }
+    if (trip.movementType !== "in_house_shifting") { res.status(400).json({ error: "Round entries are only for in-house shifting trips" }); return; }
+    if (trip.status === "Closed") { res.status(400).json({ error: "Cannot delete from a closed trip" }); return; }
+
+    const [deleted] = await db
+      .delete(tripRoundEntriesTable)
+      .where(and(eq(tripRoundEntriesTable.id, entryIdRaw), eq(tripRoundEntriesTable.tripId, id)))
+      .returning();
+    if (!deleted) { res.status(404).json({ error: "Round entry not found" }); return; }
+
+    res.json({ message: "Round entry deleted successfully" });
+  } catch (err) {
+    req.log.error({ err }, "Delete trip round entry error");
     res.status(500).json({ error: "Internal server error" });
   }
 });

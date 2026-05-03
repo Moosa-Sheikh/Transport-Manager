@@ -8,6 +8,7 @@ export * from "./expense-types";
 export * from "./items";
 export * from "./trips";
 export * from "./trip-loads";
+export * from "./trip-round-entries";
 export * from "./trip-expenses";
 export * from "./customer-payments";
 export * from "./driver-advances";

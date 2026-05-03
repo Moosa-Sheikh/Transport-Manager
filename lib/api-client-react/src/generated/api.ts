@@ -100,6 +100,9 @@ import type {
   TripLoadWithIncome,
   TripLoadsResponse,
   TripReportRow,
+  TripRoundEntriesResponse,
+  TripRoundEntry,
+  TripRoundEntryInput,
   TripWithDetails,
   Truck,
   TruckInput,
@@ -3570,6 +3573,266 @@ export const useAddTripLoad = <
   TContext
 > => {
   return useMutation(getAddTripLoadMutationOptions(options));
+};
+
+/**
+ * @summary List in-house round entries for a trip
+ */
+export const getListTripRoundEntriesUrl = (id: number) => {
+  return `/api/trips/${id}/round-entries`;
+};
+
+export const listTripRoundEntries = async (
+  id: number,
+  options?: RequestInit,
+): Promise<TripRoundEntriesResponse> => {
+  return customFetch<TripRoundEntriesResponse>(getListTripRoundEntriesUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListTripRoundEntriesQueryKey = (id: number) => {
+  return [`/api/trips/${id}/round-entries`] as const;
+};
+
+export const getListTripRoundEntriesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listTripRoundEntries>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTripRoundEntries>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListTripRoundEntriesQueryKey(id);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listTripRoundEntries>>
+  > = ({ signal }) => listTripRoundEntries(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listTripRoundEntries>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListTripRoundEntriesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listTripRoundEntries>>
+>;
+export type ListTripRoundEntriesQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary List in-house round entries for a trip
+ */
+
+export function useListTripRoundEntries<
+  TData = Awaited<ReturnType<typeof listTripRoundEntries>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTripRoundEntries>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListTripRoundEntriesQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add an in-house round entry to a trip
+ */
+export const getAddTripRoundEntryUrl = (id: number) => {
+  return `/api/trips/${id}/round-entries`;
+};
+
+export const addTripRoundEntry = async (
+  id: number,
+  tripRoundEntryInput: TripRoundEntryInput,
+  options?: RequestInit,
+): Promise<TripRoundEntry> => {
+  return customFetch<TripRoundEntry>(getAddTripRoundEntryUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(tripRoundEntryInput),
+  });
+};
+
+export const getAddTripRoundEntryMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addTripRoundEntry>>,
+    TError,
+    { id: number; data: BodyType<TripRoundEntryInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof addTripRoundEntry>>,
+  TError,
+  { id: number; data: BodyType<TripRoundEntryInput> },
+  TContext
+> => {
+  const mutationKey = ["addTripRoundEntry"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof addTripRoundEntry>>,
+    { id: number; data: BodyType<TripRoundEntryInput> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return addTripRoundEntry(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AddTripRoundEntryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof addTripRoundEntry>>
+>;
+export type AddTripRoundEntryMutationBody = BodyType<TripRoundEntryInput>;
+export type AddTripRoundEntryMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Add an in-house round entry to a trip
+ */
+export const useAddTripRoundEntry = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof addTripRoundEntry>>,
+    TError,
+    { id: number; data: BodyType<TripRoundEntryInput> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof addTripRoundEntry>>,
+  TError,
+  { id: number; data: BodyType<TripRoundEntryInput> },
+  TContext
+> => {
+  return useMutation(getAddTripRoundEntryMutationOptions(options));
+};
+
+/**
+ * @summary Delete an in-house round entry
+ */
+export const getDeleteTripRoundEntryUrl = (id: number, entryId: number) => {
+  return `/api/trips/${id}/round-entries/${entryId}`;
+};
+
+export const deleteTripRoundEntry = async (
+  id: number,
+  entryId: number,
+  options?: RequestInit,
+): Promise<MessageResponse> => {
+  return customFetch<MessageResponse>(getDeleteTripRoundEntryUrl(id, entryId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteTripRoundEntryMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteTripRoundEntry>>,
+    TError,
+    { id: number; entryId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteTripRoundEntry>>,
+  TError,
+  { id: number; entryId: number },
+  TContext
+> => {
+  const mutationKey = ["deleteTripRoundEntry"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteTripRoundEntry>>,
+    { id: number; entryId: number }
+  > = (props) => {
+    const { id, entryId } = props ?? {};
+
+    return deleteTripRoundEntry(id, entryId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteTripRoundEntryMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteTripRoundEntry>>
+>;
+
+export type DeleteTripRoundEntryMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Delete an in-house round entry
+ */
+export const useDeleteTripRoundEntry = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteTripRoundEntry>>,
+    TError,
+    { id: number; entryId: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteTripRoundEntry>>,
+  TError,
+  { id: number; entryId: number },
+  TContext
+> => {
+  return useMutation(getDeleteTripRoundEntryMutationOptions(options));
 };
 
 /**

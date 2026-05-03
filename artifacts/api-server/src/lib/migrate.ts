@@ -34,6 +34,36 @@ export async function runMigrations() {
   await db.execute(sql`ALTER TABLE trips ALTER COLUMN from_city_id DROP NOT NULL`);
   await db.execute(sql`ALTER TABLE trips ALTER COLUMN to_city_id DROP NOT NULL`);
 
+  await db.execute(sql`ALTER TABLE trips ADD COLUMN IF NOT EXISTS city_id INTEGER REFERENCES cities(id) ON DELETE RESTRICT`);
+
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS _meta_migrations (
+      key VARCHAR(100) PRIMARY KEY,
+      applied_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  const inserted = await db.execute(
+    sql`INSERT INTO _meta_migrations (key) VALUES ('inhouse_redesign_purge_v1') ON CONFLICT (key) DO NOTHING RETURNING key`
+  );
+  const insertedRows = (inserted as any).rows ?? (inserted as any);
+  if (Array.isArray(insertedRows) && insertedRows.length > 0) {
+    await db.execute(sql`DELETE FROM trips WHERE movement_type = 'in_house_shifting'`);
+  }
+
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS trip_round_entries (
+      id SERIAL PRIMARY KEY,
+      trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+      item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE RESTRICT,
+      rate_per_round NUMERIC(12, 2) NOT NULL DEFAULT 0,
+      rounds INTEGER NOT NULL DEFAULT 1,
+      entry_date DATE,
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_trip_round_entries_trip ON trip_round_entries(trip_id)`);
+
   const seedItems: { name: string; unit: string; rate: string }[] = [
     { name: "Cement Bag", unit: "Bag", rate: "50" },
     { name: "Sand", unit: "CFT", rate: "25" },

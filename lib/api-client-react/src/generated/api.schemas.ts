@@ -163,6 +163,7 @@ export interface TripInput {
   toCityId?: number | null;
   fromWarehouseId?: number | null;
   toWarehouseId?: number | null;
+  cityId?: number | null;
   driverCommission?: string;
   movementType?: TripInputMovementType;
   notes?: string | null;
@@ -205,6 +206,8 @@ export interface TripWithDetails {
   fromWarehouseName?: string | null;
   toWarehouseId?: number | null;
   toWarehouseName?: string | null;
+  cityId?: number | null;
+  cityName?: string | null;
   driverCommission?: string;
   status: TripWithDetailsStatus;
   movementType: TripWithDetailsMovementType;
@@ -267,6 +270,38 @@ export interface TripIncomeSummary {
 export interface TripLoadsResponse {
   loads: TripLoadWithIncome[];
   summary: TripIncomeSummary;
+}
+
+export interface TripRoundEntryInput {
+  itemId: number;
+  ratePerRound: string;
+  rounds: number;
+  entryDate?: string | null;
+  notes?: string | null;
+}
+
+export interface TripRoundEntry {
+  id: number;
+  tripId: number;
+  itemId: number;
+  itemName: string;
+  itemUnit?: string | null;
+  ratePerRound: string;
+  rounds: number;
+  entryDate?: string | null;
+  notes?: string | null;
+  revenue: number;
+  createdAt?: string | null;
+}
+
+export interface TripRoundEntriesSummary {
+  totalRevenue: number;
+  totalRounds: number;
+}
+
+export interface TripRoundEntriesResponse {
+  entries: TripRoundEntry[];
+  summary: TripRoundEntriesSummary;
 }
 
 export type TripExpenseInputExpenseCategory =

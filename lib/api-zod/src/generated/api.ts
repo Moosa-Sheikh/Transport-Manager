@@ -472,6 +472,8 @@ export const ListTripsResponseItem = zod.object({
   fromWarehouseName: zod.string().nullish(),
   toWarehouseId: zod.number().nullish(),
   toWarehouseName: zod.string().nullish(),
+  cityId: zod.number().nullish(),
+  cityName: zod.string().nullish(),
   driverCommission: zod.string().optional(),
   status: zod.enum(["Open", "Closed"]),
   movementType: zod.enum([
@@ -511,6 +513,7 @@ export const CreateTripBody = zod.object({
   toCityId: zod.number().nullish(),
   fromWarehouseId: zod.number().nullish(),
   toWarehouseId: zod.number().nullish(),
+  cityId: zod.number().nullish(),
   driverCommission: zod.string().optional(),
   movementType: zod
     .enum(["customer_trip", "in_house_shifting", "customer_shifting"])
@@ -545,6 +548,8 @@ export const GetTripResponse = zod.object({
   fromWarehouseName: zod.string().nullish(),
   toWarehouseId: zod.number().nullish(),
   toWarehouseName: zod.string().nullish(),
+  cityId: zod.number().nullish(),
+  cityName: zod.string().nullish(),
   driverCommission: zod.string().optional(),
   status: zod.enum(["Open", "Closed"]),
   movementType: zod.enum([
@@ -605,6 +610,8 @@ export const CloseTripResponse = zod.object({
   fromWarehouseName: zod.string().nullish(),
   toWarehouseId: zod.number().nullish(),
   toWarehouseName: zod.string().nullish(),
+  cityId: zod.number().nullish(),
+  cityName: zod.string().nullish(),
   driverCommission: zod.string().optional(),
   status: zod.enum(["Open", "Closed"]),
   movementType: zod.enum([
@@ -658,6 +665,8 @@ export const UpdateTripCommissionResponse = zod.object({
   fromWarehouseName: zod.string().nullish(),
   toWarehouseId: zod.number().nullish(),
   toWarehouseName: zod.string().nullish(),
+  cityId: zod.number().nullish(),
+  cityName: zod.string().nullish(),
   driverCommission: zod.string().optional(),
   status: zod.enum(["Open", "Closed"]),
   movementType: zod.enum([
@@ -735,6 +744,62 @@ export const AddTripLoadBody = zod.object({
   loadingCharges: zod.string().optional(),
   unloadingCharges: zod.string().optional(),
   brokerCommission: zod.string().optional(),
+});
+
+/**
+ * @summary List in-house round entries for a trip
+ */
+export const ListTripRoundEntriesParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const ListTripRoundEntriesResponse = zod.object({
+  entries: zod.array(
+    zod.object({
+      id: zod.number(),
+      tripId: zod.number(),
+      itemId: zod.number(),
+      itemName: zod.string(),
+      itemUnit: zod.string().nullish(),
+      ratePerRound: zod.string(),
+      rounds: zod.number(),
+      entryDate: zod.string().nullish(),
+      notes: zod.string().nullish(),
+      revenue: zod.number(),
+      createdAt: zod.string().nullish(),
+    }),
+  ),
+  summary: zod.object({
+    totalRevenue: zod.number(),
+    totalRounds: zod.number(),
+  }),
+});
+
+/**
+ * @summary Add an in-house round entry to a trip
+ */
+export const AddTripRoundEntryParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const AddTripRoundEntryBody = zod.object({
+  itemId: zod.number(),
+  ratePerRound: zod.string(),
+  rounds: zod.number(),
+  entryDate: zod.coerce.date().nullish(),
+  notes: zod.string().nullish(),
+});
+
+/**
+ * @summary Delete an in-house round entry
+ */
+export const DeleteTripRoundEntryParams = zod.object({
+  id: zod.coerce.number(),
+  entryId: zod.coerce.number(),
+});
+
+export const DeleteTripRoundEntryResponse = zod.object({
+  message: zod.string(),
 });
 
 /**

@@ -69,7 +69,8 @@ All packages use `composite: true` and project references for efficient type che
 -   **Trip Management**: Creation, listing, and detail views for trips, with filtering by date range, truck, driver, and status. Includes functionality to "close" trips.
 -   **Multi-Load Handling**: Association of multiple loads with a single trip, tracking `bilty_number`, customer, item details, freight, and charges. Calculates net load income and aggregated trip income.
 -   **Expense Tracking**: Per-trip expense recording by type, amount, date, and notes.
--   **Driver Commission**: Per-trip commission (stored on trips table, not drivers), editable on open trips via inline edit in trip detail. Varies by route length.
+-   **Driver Commission**: Per-trip commission for `customer_trip` and `customer_shifting` only (stored on trips table, not drivers), editable on open trips via inline edit in trip detail. **In-house shifting has no driver commission.**
+-   **In-House Shifting (Simplified)**: A per-trip log with single `cityId`, customer (=Company), driver, truck, date, notes. Multiple `trip_round_entries` (item + rate-per-round + rounds + entry_date + notes) capture the day-by-day work, each computing `revenue = ratePerRound × rounds`. CRUD on `/trips/{id}/round-entries` is restricted to in-house trips and blocked when closed. No warehouses, items on the trip itself, or commission. Migration `inhouse_redesign_purge_v1` (one-shot, marker in `_meta_migrations`) deleted legacy in-house trips on rollout.
 -   **Profit Calculation**: Backend calculation of profit (`Income - Expenses`) and actual profit (`Income - Expenses - Advances`).
 -   **Payments**: Management of customer payments (partial/delayed), driver advances, and driver salaries. All payment transactions are recorded in a cash book.
 -   **Cash Book**: A running balance ledger with filters for date range and entry type, showing opening balance.

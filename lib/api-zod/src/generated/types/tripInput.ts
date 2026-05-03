@@ -15,6 +15,7 @@ export interface TripInput {
   toCityId?: number | null;
   fromWarehouseId?: number | null;
   toWarehouseId?: number | null;
+  cityId?: number | null;
   driverCommission?: string;
   movementType?: TripInputMovementType;
   notes?: string | null;

@@ -18,6 +18,9 @@ router.get("/summary", async (req: Request, res: Response) => {
       ), 0) + COALESCE((
         SELECT SUM(COALESCE(rounds, 0) * COALESCE(rate_per_round, 0))
         FROM trips WHERE movement_type = 'customer_shifting'
+      ), 0) + COALESCE((
+        SELECT SUM(COALESCE(re.rate_per_round, 0) * COALESCE(re.rounds, 0))
+        FROM trip_round_entries re JOIN trips t ON t.id = re.trip_id WHERE t.movement_type = 'in_house_shifting'
       ), 0))::double precision AS "total"
     `)).rows as { total: number }[];
 
