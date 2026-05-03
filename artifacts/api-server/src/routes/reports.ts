@@ -634,9 +634,13 @@ router.get("/shifting", async (req: Request, res: Response) => {
         t.driver_id AS "driverId",
         d.name AS "driverName",
         t.from_city_id AS "fromCityId",
-        fc.name AS "fromCityName",
+        COALESCE(fc.name, fw.name) AS "fromCityName",
         t.to_city_id AS "toCityId",
-        tc.name AS "toCityName",
+        COALESCE(tc.name, tw.name) AS "toCityName",
+        t.from_warehouse_id AS "fromWarehouseId",
+        fw.name AS "fromWarehouseName",
+        t.to_warehouse_id AS "toWarehouseId",
+        tw.name AS "toWarehouseName",
         t.status AS "status",
         t.notes AS "notes",
         t.customer_id AS "customerId",
@@ -662,8 +666,10 @@ router.get("/shifting", async (req: Request, res: Response) => {
       FROM trips t
       JOIN trucks tr ON tr.id = t.truck_id
       JOIN drivers d ON d.id = t.driver_id
-      JOIN cities fc ON fc.id = t.from_city_id
-      JOIN cities tc ON tc.id = t.to_city_id
+      LEFT JOIN cities fc ON fc.id = t.from_city_id
+      LEFT JOIN cities tc ON tc.id = t.to_city_id
+      LEFT JOIN warehouses fw ON fw.id = t.from_warehouse_id
+      LEFT JOIN warehouses tw ON tw.id = t.to_warehouse_id
       LEFT JOIN customers c ON c.id = t.customer_id
       LEFT JOIN items i ON i.id = t.item_id
       ${whereClause}
@@ -683,10 +689,14 @@ router.get("/shifting", async (req: Request, res: Response) => {
         truckNumber: String(r.truckNumber),
         driverId: Number(r.driverId),
         driverName: String(r.driverName),
-        fromCityId: Number(r.fromCityId),
-        fromCityName: String(r.fromCityName),
-        toCityId: Number(r.toCityId),
-        toCityName: String(r.toCityName),
+        fromCityId: r.fromCityId !== null && r.fromCityId !== undefined ? Number(r.fromCityId) : null,
+        fromCityName: r.fromCityName ? String(r.fromCityName) : "",
+        toCityId: r.toCityId !== null && r.toCityId !== undefined ? Number(r.toCityId) : null,
+        toCityName: r.toCityName ? String(r.toCityName) : "",
+        fromWarehouseId: r.fromWarehouseId !== null && r.fromWarehouseId !== undefined ? Number(r.fromWarehouseId) : null,
+        fromWarehouseName: r.fromWarehouseName ? String(r.fromWarehouseName) : null,
+        toWarehouseId: r.toWarehouseId !== null && r.toWarehouseId !== undefined ? Number(r.toWarehouseId) : null,
+        toWarehouseName: r.toWarehouseName ? String(r.toWarehouseName) : null,
         status: String(r.status),
         notes: r.notes ? String(r.notes) : null,
         customerId: r.customerId !== null && r.customerId !== undefined ? Number(r.customerId) : null,

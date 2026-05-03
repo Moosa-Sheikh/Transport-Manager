@@ -247,8 +247,8 @@ router.post("/", async (req: Request, res: Response) => {
         res.status(400).json({ error: "Rounds must be a positive integer" });
         return;
       }
-      if (!Number.isFinite(rateNum) || rateNum < 0) {
-        res.status(400).json({ error: "Rate per round must be non-negative" });
+      if (!Number.isFinite(rateNum) || rateNum <= 0) {
+        res.status(400).json({ error: "Rate per round must be greater than zero for customer shifting" });
         return;
       }
       if (!Number.isFinite(commNum) || commNum < 0) {

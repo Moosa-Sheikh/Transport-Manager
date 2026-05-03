@@ -105,7 +105,7 @@ export default function CreateTripPage() {
       if (!customerId) { setError("Customer is required for customer shifting"); return; }
       if (!itemId) { setError("Item is required for customer shifting"); return; }
       const rate = Number(ratePerRound);
-      if (!Number.isFinite(rate) || rate < 0) { setError("Rate per round must be a non-negative number"); return; }
+      if (!Number.isFinite(rate) || rate <= 0) { setError("Rate per round must be greater than zero for customer shifting"); return; }
     }
 
     if (isShifting) {
@@ -140,7 +140,7 @@ export default function CreateTripPage() {
       }
     }
 
-    createMutation.mutate({ data: payload as never });
+    createMutation.mutate({ data: payload as Parameters<typeof createMutation.mutate>[0]["data"] });
   };
 
   const accent = isCustomerShifting ? "teal" : isInHouseShifting ? "orange" : "blue";
