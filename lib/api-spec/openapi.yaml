@@ -2815,6 +2815,9 @@ components:
         cityId:
           type: integer
           nullable: true
+        inhouseWarehouseId:
+          type: integer
+          nullable: true
         driverCommission:
           type: string
         movementType:
@@ -2883,6 +2886,15 @@ components:
           type: integer
           nullable: true
         cityName:
+          type: string
+          nullable: true
+        inhouseWarehouseId:
+          type: integer
+          nullable: true
+        inhouseWarehouseName:
+          type: string
+          nullable: true
+        inhouseWarehouseCityName:
           type: string
           nullable: true
         driverCommission:
@@ -3983,12 +3995,34 @@ components:
           type: string
         fromCityId:
           type: integer
+          nullable: true
         fromCityName:
           type: string
+          nullable: true
         toCityId:
           type: integer
+          nullable: true
         toCityName:
           type: string
+          nullable: true
+        fromWarehouseId:
+          type: integer
+          nullable: true
+        fromWarehouseName:
+          type: string
+          nullable: true
+        toWarehouseId:
+          type: integer
+          nullable: true
+        toWarehouseName:
+          type: string
+          nullable: true
+        inhouseWarehouseId:
+          type: integer
+          nullable: true
+        inhouseWarehouseName:
+          type: string
+          nullable: true
         status:
           type: string
         notes:
@@ -4025,7 +4059,7 @@ components:
           type: number
         profit:
           type: number
-      required: [tripId, tripDate, movementType, truckId, truckNumber, driverId, driverName, fromCityId, fromCityName, toCityId, toCityName, status, rounds, ratePerRound, commissionPerRound, revenue, totalExpenses, driverCommission, totalCost, profit]
+      required: [tripId, tripDate, movementType, truckId, truckNumber, driverId, driverName, status, rounds, ratePerRound, commissionPerRound, revenue, totalExpenses, driverCommission, totalCost, profit]
 
     CustomerLoanInput:
       type: object

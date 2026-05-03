@@ -64,6 +64,16 @@ export async function runMigrations() {
   `);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_trip_round_entries_trip ON trip_round_entries(trip_id)`);
 
+  const inhouseWarehouseMarker = await db.execute(
+    sql`INSERT INTO _meta_migrations (key) VALUES ('inhouse_warehouse_v1') ON CONFLICT (key) DO NOTHING RETURNING key`
+  );
+  const ihwRows = (inhouseWarehouseMarker as any).rows ?? (inhouseWarehouseMarker as any);
+  if (Array.isArray(ihwRows) && ihwRows.length > 0) {
+    await db.execute(sql`ALTER TABLE trips ADD COLUMN IF NOT EXISTS inhouse_warehouse_id INTEGER REFERENCES warehouses(id) ON DELETE RESTRICT`);
+  } else {
+    await db.execute(sql`ALTER TABLE trips ADD COLUMN IF NOT EXISTS inhouse_warehouse_id INTEGER REFERENCES warehouses(id) ON DELETE RESTRICT`);
+  }
+
   const seedItems: { name: string; unit: string; rate: string }[] = [
     { name: "Cement Bag", unit: "Bag", rate: "50" },
     { name: "Sand", unit: "CFT", rate: "25" },

@@ -18,6 +18,7 @@ export const tripsTable = pgTable("trips", {
   fromWarehouseId: integer("from_warehouse_id").references(() => warehousesTable.id, { onDelete: "restrict" }),
   toWarehouseId: integer("to_warehouse_id").references(() => warehousesTable.id, { onDelete: "restrict" }),
   cityId: integer("city_id").references(() => citiesTable.id, { onDelete: "restrict" }),
+  inhouseWarehouseId: integer("inhouse_warehouse_id").references(() => warehousesTable.id, { onDelete: "restrict" }),
   driverCommission: numeric("driver_commission", { precision: 12, scale: 2 }).default("0"),
   status: varchar("status", { length: 20 }).notNull().default("Open"),
   movementType: varchar("movement_type", { length: 30 }).notNull().default("customer_trip"),

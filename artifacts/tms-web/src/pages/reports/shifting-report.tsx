@@ -49,6 +49,18 @@ export default function ShiftingReportPage() {
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
   const clearFilters = () => setFilters({});
 
+  function routeLabel(row: (typeof rows)[number]) {
+    if (row.movementType === "customer_shifting") {
+      const from = row.fromWarehouseName ?? row.fromCityName ?? "";
+      const to = row.toWarehouseName ?? row.toCityName ?? "";
+      if (from && to) return `${from} → ${to}`;
+      if (from) return from;
+      if (to) return to;
+      return "—";
+    }
+    return row.inhouseWarehouseName ?? "—";
+  }
+
   return (
     <div className="max-w-7xl">
       <div className="flex items-center justify-between mb-6 print:mb-2">
@@ -234,6 +246,7 @@ export default function ShiftingReportPage() {
                   <th className="text-left px-3 py-3 font-medium text-purple-700">Truck</th>
                   <th className="text-left px-3 py-3 font-medium text-purple-700">Driver</th>
                   <th className="text-left px-3 py-3 font-medium text-purple-700">Customer</th>
+                  <th className="text-left px-3 py-3 font-medium text-purple-700">Route / Location</th>
                   <th className="text-left px-3 py-3 font-medium text-purple-700">Item</th>
                   <th className="text-right px-3 py-3 font-medium text-purple-700">Rounds</th>
                   <th className="text-right px-3 py-3 font-medium text-purple-700">Rate</th>
@@ -269,11 +282,12 @@ export default function ShiftingReportPage() {
                       </td>
                       <td className="px-3 py-3 text-gray-700">{row.truckNumber}</td>
                       <td className="px-3 py-3 text-gray-700">{row.driverName}</td>
-                      <td className="px-3 py-3 text-gray-700">{row.customerName ?? "—"}</td>
-                      <td className="px-3 py-3 text-gray-700">{row.itemName ?? "—"}</td>
+                      <td className="px-3 py-3 text-gray-700">{isCustomer ? (row.customerName ?? "—") : <span className="text-gray-400 italic text-xs">Internal</span>}</td>
+                      <td className="px-3 py-3 text-gray-700 text-xs">{routeLabel(row)}</td>
+                      <td className="px-3 py-3 text-gray-700">{isCustomer ? (row.itemName ?? "—") : <span className="text-gray-400">—</span>}</td>
                       <td className="px-3 py-3 text-right text-gray-700">{row.rounds ?? 0}</td>
                       <td className="px-3 py-3 text-right text-gray-700">
-                        {row.ratePerRound != null ? formatPKR(Number(row.ratePerRound)) : "—"}
+                        {row.ratePerRound != null && row.ratePerRound > 0 ? formatPKR(Number(row.ratePerRound)) : "—"}
                       </td>
                       <td className="px-3 py-3 text-right text-teal-700 font-medium">
                         {isCustomer ? formatPKR(row.revenue ?? 0) : "—"}
@@ -282,7 +296,7 @@ export default function ShiftingReportPage() {
                         {formatPKR(row.totalExpenses)}
                       </td>
                       <td className="px-3 py-3 text-right text-pink-700 font-medium">
-                        {formatPKR(row.driverCommission)}
+                        {row.driverCommission > 0 ? formatPKR(row.driverCommission) : "—"}
                       </td>
                       <td className={`px-3 py-3 text-right font-semibold ${
                         isCustomer
@@ -297,7 +311,7 @@ export default function ShiftingReportPage() {
               </tbody>
               <tfoot>
                 <tr className="bg-purple-50 border-t-2 border-purple-200 font-semibold">
-                  <td className="px-3 py-3 text-purple-800" colSpan={9}>
+                  <td className="px-3 py-3 text-purple-800" colSpan={10}>
                     Total ({rows.length} shifts)
                   </td>
                   <td className="px-3 py-3 text-right text-teal-800">{formatPKR(totalRevenue)}</td>

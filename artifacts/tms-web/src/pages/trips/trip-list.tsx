@@ -492,8 +492,8 @@ export default function TripListPage() {
                       <td className="px-4 py-3 text-gray-700">
                         {trip.movementType === "in_house_shifting" ? (
                           <span className="flex flex-col">
-                            <span className="font-medium">{trip.cityName ?? "—"}</span>
-                            <span className="text-xs text-gray-500">{trip.customerName ?? ""}</span>
+                            <span className="font-medium">{trip.inhouseWarehouseName ?? trip.cityName ?? "—"}</span>
+                            <span className="text-xs text-gray-500">{trip.inhouseWarehouseCityName ? `${trip.inhouseWarehouseCityName} · ` : ""}{trip.customerName ?? ""}</span>
                           </span>
                         ) : (
                           <span className="flex items-center gap-1">

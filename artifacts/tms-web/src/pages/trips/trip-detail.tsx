@@ -530,9 +530,12 @@ export default function TripDetailPage() {
                 </span>
               </div>
               <div>
-                <div className="text-xs font-medium text-gray-500 uppercase mb-1">{trip.movementType === "in_house_shifting" ? "City" : "Route"}</div>
+                <div className="text-xs font-medium text-gray-500 uppercase mb-1">{trip.movementType === "in_house_shifting" ? "Warehouse" : "Route"}</div>
                 {trip.movementType === "in_house_shifting" ? (
-                  <div className="text-sm text-gray-900 font-medium">{trip.cityName ?? "—"}</div>
+                  <div className="text-sm text-gray-900 font-medium">
+                    {trip.inhouseWarehouseName ?? "—"}
+                    {trip.inhouseWarehouseCityName && <span className="text-xs text-gray-500 ml-1">({trip.inhouseWarehouseCityName})</span>}
+                  </div>
                 ) : (
                   <div className="text-sm text-gray-900 flex items-center gap-2">
                     <span className="font-medium">{trip.fromWarehouseName ?? trip.fromCityName ?? "—"}</span>
@@ -561,7 +564,6 @@ export default function TripDetailPage() {
                   <div className="text-sm text-orange-800 bg-orange-50 border border-orange-200 rounded p-2">{trip.notes}</div>
                 </div>
               )}
-              {trip.movementType !== "in_house_shifting" && (
               <div>
                 <div className="text-xs font-medium text-gray-500 uppercase mb-1">Driver Commission</div>
                 {editingCommission && trip.status === "Open" ? (
@@ -613,7 +615,6 @@ export default function TripDetailPage() {
                   </div>
                 )}
               </div>
-              )}
             </div>
           </div>
 
@@ -656,14 +657,18 @@ export default function TripDetailPage() {
           )}
 
           {trip.movementType === "in_house_shifting" ? (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
               <div className="bg-gradient-to-r from-teal-50 to-teal-100 border border-teal-200 rounded-lg p-3 text-center">
                 <div className="text-[10px] font-medium text-teal-600 uppercase mb-1">Revenue</div>
                 <div className="text-lg font-bold text-teal-800">{formatPKR(trip.income)}</div>
               </div>
               <div className="bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-3 text-center">
-                <div className="text-[10px] font-medium text-orange-600 uppercase mb-1">Total Expenses</div>
+                <div className="text-[10px] font-medium text-orange-600 uppercase mb-1">Expenses</div>
                 <div className="text-lg font-bold text-orange-800">{formatPKR(trip.expense)}</div>
+              </div>
+              <div className="bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-3 text-center">
+                <div className="text-[10px] font-medium text-purple-600 uppercase mb-1">Commission</div>
+                <div className="text-lg font-bold text-purple-800">{formatPKR(Number(trip.driverCommission ?? 0))}</div>
               </div>
               <div className={`bg-gradient-to-r border rounded-lg p-3 text-center ${
                 trip.profit >= 0 ? "from-green-50 to-green-100 border-green-200" : "from-red-50 to-red-100 border-red-200"

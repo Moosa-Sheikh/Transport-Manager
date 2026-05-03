@@ -164,6 +164,7 @@ export interface TripInput {
   fromWarehouseId?: number | null;
   toWarehouseId?: number | null;
   cityId?: number | null;
+  inhouseWarehouseId?: number | null;
   driverCommission?: string;
   movementType?: TripInputMovementType;
   notes?: string | null;
@@ -208,6 +209,9 @@ export interface TripWithDetails {
   toWarehouseName?: string | null;
   cityId?: number | null;
   cityName?: string | null;
+  inhouseWarehouseId?: number | null;
+  inhouseWarehouseName?: string | null;
+  inhouseWarehouseCityName?: string | null;
   driverCommission?: string;
   status: TripWithDetailsStatus;
   movementType: TripWithDetailsMovementType;
@@ -786,10 +790,16 @@ export interface ShiftingReportRow {
   truckNumber: string;
   driverId: number;
   driverName: string;
-  fromCityId: number;
-  fromCityName: string;
-  toCityId: number;
-  toCityName: string;
+  fromCityId?: number | null;
+  fromCityName?: string | null;
+  toCityId?: number | null;
+  toCityName?: string | null;
+  fromWarehouseId?: number | null;
+  fromWarehouseName?: string | null;
+  toWarehouseId?: number | null;
+  toWarehouseName?: string | null;
+  inhouseWarehouseId?: number | null;
+  inhouseWarehouseName?: string | null;
   status: string;
   notes?: string | null;
   customerId?: number | null;

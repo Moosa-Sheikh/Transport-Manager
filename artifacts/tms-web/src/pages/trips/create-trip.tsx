@@ -26,7 +26,7 @@ export default function CreateTripPage() {
   const [toCityId, setToCityId] = useState("");
   const [fromWarehouseId, setFromWarehouseId] = useState("");
   const [toWarehouseId, setToWarehouseId] = useState("");
-  const [cityId, setCityId] = useState("");
+  const [inhouseWarehouseId, setInhouseWarehouseId] = useState("");
   const [driverCommission, setDriverCommission] = useState("");
   const [notes, setNotes] = useState("");
   const [customerId, setCustomerId] = useState("");
@@ -104,7 +104,7 @@ export default function CreateTripPage() {
       const comm = Number(commissionPerRound || "0");
       if (!Number.isFinite(comm) || comm < 0) { setError("Commission per round must be non-negative"); return; }
     } else if (isInHouseShifting) {
-      if (!cityId) { setError("City is required for in-house shifting"); return; }
+      if (!inhouseWarehouseId) { setError("Warehouse is required for in-house shifting"); return; }
       if (!customerId) { setError("Company is required for in-house shifting"); return; }
     }
 
@@ -130,9 +130,9 @@ export default function CreateTripPage() {
       payload.itemId = Number(itemId);
       payload.ratePerRound = String(Number(ratePerRound || "0"));
     } else if (isInHouseShifting) {
-      payload.cityId = Number(cityId);
+      payload.inhouseWarehouseId = Number(inhouseWarehouseId);
       payload.customerId = Number(customerId);
-      payload.driverCommission = "0";
+      payload.driverCommission = driverCommission || "0";
     }
 
     createMutation.mutate({ data: payload as Parameters<typeof createMutation.mutate>[0]["data"] });
@@ -305,12 +305,15 @@ export default function CreateTripPage() {
 
         {isInHouseShifting && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-orange-50/40 border border-orange-200 rounded-lg">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">City <span className="text-red-500">*</span></label>
-              <select value={cityId} onChange={(e) => setCityId(e.target.value)} className="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500" required>
-                <option value="">Select city</option>
-                {citiesQuery.data?.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Warehouse <span className="text-red-500">*</span></label>
+              <select value={inhouseWarehouseId} onChange={(e) => setInhouseWarehouseId(e.target.value)} className="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500" required>
+                <option value="">Select warehouse</option>
+                {warehousesQuery.data?.map((w) => (<option key={w.id} value={w.id}>{w.name}{w.cityName ? ` — ${w.cityName}` : ""}</option>))}
               </select>
+              {!warehousesQuery.data?.length && (
+                <p className="mt-1 text-xs text-amber-700">No warehouses yet. <a href="/masters/warehouses" className="underline font-medium">Add warehouses first</a>.</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Company <span className="text-red-500">*</span></label>
@@ -318,6 +321,10 @@ export default function CreateTripPage() {
                 <option value="">Select company</option>
                 {customersQuery.data?.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
               </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Driver Commission (PKR)</label>
+              <input type="number" step="0.01" min="0" value={driverCommission} onChange={(e) => setDriverCommission(e.target.value)} placeholder="0" className="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500" />
             </div>
           </div>
         )}

@@ -16,6 +16,8 @@ const toCities = alias(citiesTable, "to_city");
 const inHouseCity = alias(citiesTable, "in_house_city");
 const fromWarehouses = alias(warehousesTable, "from_warehouse");
 const toWarehouses = alias(warehousesTable, "to_warehouse");
+const inHouseWarehouse = alias(warehousesTable, "inhouse_warehouse");
+const inHouseWarehouseCity = alias(citiesTable, "inhouse_warehouse_city");
 
 const router: IRouter = Router();
 
@@ -70,6 +72,9 @@ function buildTripQuery() {
       fromWarehouseName: fromWarehouses.name,
       toWarehouseId: tripsTable.toWarehouseId,
       toWarehouseName: toWarehouses.name,
+      inhouseWarehouseId: tripsTable.inhouseWarehouseId,
+      inhouseWarehouseName: inHouseWarehouse.name,
+      inhouseWarehouseCityName: inHouseWarehouseCity.name,
       driverCommission: tripsTable.driverCommission,
       status: tripsTable.status,
       movementType: tripsTable.movementType,
@@ -90,7 +95,7 @@ function buildTripQuery() {
       totalAdvances: totalAdvancesSubquery.as("total_advances"),
       actualProfit: sql<number>`(${tripRevenueExpr} - ${expenseSubquery} - ${totalAdvancesSubquery})::double precision`.as("actual_profit"),
       shiftingRevenue: sql<number>`(CASE WHEN ${tripsTable.movementType} = 'customer_shifting' THEN ${customerShiftingRevenueExpr} WHEN ${tripsTable.movementType} = 'in_house_shifting' THEN ${inHouseRoundsRevenueExpr} ELSE 0 END)::double precision`.as("shifting_revenue"),
-      driverCommissionTotal: sql<number>`(CASE WHEN ${tripsTable.movementType} = 'customer_shifting' THEN ${customerShiftingCommissionExpr} WHEN ${tripsTable.movementType} = 'in_house_shifting' THEN 0 ELSE COALESCE(${tripsTable.driverCommission}, 0)::double precision END)::double precision`.as("driver_commission_total"),
+      driverCommissionTotal: sql<number>`(CASE WHEN ${tripsTable.movementType} = 'customer_shifting' THEN ${customerShiftingCommissionExpr} ELSE COALESCE(${tripsTable.driverCommission}, 0)::double precision END)::double precision`.as("driver_commission_total"),
     })
     .from(tripsTable)
     .innerJoin(trucksTable, eq(tripsTable.truckId, trucksTable.id))
@@ -100,6 +105,8 @@ function buildTripQuery() {
     .leftJoin(inHouseCity, eq(tripsTable.cityId, inHouseCity.id))
     .leftJoin(fromWarehouses, eq(tripsTable.fromWarehouseId, fromWarehouses.id))
     .leftJoin(toWarehouses, eq(tripsTable.toWarehouseId, toWarehouses.id))
+    .leftJoin(inHouseWarehouse, eq(tripsTable.inhouseWarehouseId, inHouseWarehouse.id))
+    .leftJoin(inHouseWarehouseCity, eq(inHouseWarehouse.cityId, inHouseWarehouseCity.id))
     .leftJoin(customersTable, eq(tripsTable.customerId, customersTable.id))
     .leftJoin(itemsTable, eq(tripsTable.itemId, itemsTable.id));
 }
@@ -180,7 +187,7 @@ router.post("/", async (req: Request, res: Response) => {
   try {
     const {
       tripDate, truckId, driverId, fromCityId, toCityId,
-      fromWarehouseId, toWarehouseId, cityId,
+      fromWarehouseId, toWarehouseId, cityId, inhouseWarehouseId,
       driverCommission, movementType, notes,
       customerId, itemId, rounds, ratePerRound, commissionPerRound,
     } = req.body;
@@ -206,6 +213,7 @@ router.post("/", async (req: Request, res: Response) => {
     let numFromWarehouseId: number | null = null;
     let numToWarehouseId: number | null = null;
     let numCityId: number | null = null;
+    let numInhouseWarehouseId: number | null = null;
 
     if (resolvedMovementType === "customer_trip") {
       numFromCityId = Number(fromCityId);
@@ -231,9 +239,9 @@ router.post("/", async (req: Request, res: Response) => {
         return;
       }
     } else {
-      numCityId = Number(cityId);
-      if (!Number.isInteger(numCityId) || numCityId <= 0) {
-        res.status(400).json({ error: "City is required for in-house shifting" });
+      numInhouseWarehouseId = Number(inhouseWarehouseId);
+      if (!Number.isInteger(numInhouseWarehouseId) || numInhouseWarehouseId <= 0) {
+        res.status(400).json({ error: "Warehouse is required for in-house shifting" });
         return;
       }
     }
@@ -284,7 +292,7 @@ router.post("/", async (req: Request, res: Response) => {
       resolvedCustomerId = cId;
     }
 
-    const commissionVal = resolvedMovementType === "customer_trip" && driverCommission !== undefined && driverCommission !== null && driverCommission !== ""
+    const commissionVal = (resolvedMovementType === "customer_trip" || resolvedMovementType === "in_house_shifting") && driverCommission !== undefined && driverCommission !== null && driverCommission !== ""
       ? String(driverCommission)
       : "0";
 
@@ -299,6 +307,7 @@ router.post("/", async (req: Request, res: Response) => {
         fromWarehouseId: numFromWarehouseId,
         toWarehouseId: numToWarehouseId,
         cityId: numCityId,
+        inhouseWarehouseId: numInhouseWarehouseId,
         driverCommission: commissionVal,
         movementType: resolvedMovementType,
         notes: notes ? String(notes).trim() : null,

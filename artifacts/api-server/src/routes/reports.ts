@@ -50,7 +50,7 @@ async function buildTripReportData(filters: {
       t.status,
       (CASE WHEN t.movement_type = 'customer_shifting'
             THEN COALESCE(t.commission_per_round, 0) * COALESCE(t.rounds, 0)
-            WHEN t.movement_type = 'in_house_shifting' THEN 0
+            WHEN t.movement_type = 'in_house_shifting' THEN COALESCE(t.driver_commission, 0)
             ELSE COALESCE(t.driver_commission, 0)
        END)::double precision AS "driverCommission",
       (CASE WHEN t.movement_type = 'customer_shifting'
@@ -170,7 +170,6 @@ async function buildDriverReportData(dateFrom?: string | null, dateTo?: string |
       COALESCE((
         SELECT SUM(CASE WHEN t.movement_type = 'customer_shifting'
                         THEN COALESCE(t.commission_per_round, 0) * COALESCE(t.rounds, 0)
-                        WHEN t.movement_type = 'in_house_shifting' THEN 0
                         ELSE COALESCE(t.driver_commission, 0) END::numeric)
         FROM trips t WHERE t.driver_id = d.id ${dateWhere} ${tripStatusWhere}
       ), 0)::double precision AS "driverCommission",
@@ -393,7 +392,6 @@ async function buildTruckReportData(dateFrom?: string | null, dateTo?: string | 
       COALESCE((
         SELECT SUM(CASE WHEN t.movement_type = 'customer_shifting'
                         THEN COALESCE(t.commission_per_round, 0) * COALESCE(t.rounds, 0)
-                        WHEN t.movement_type = 'in_house_shifting' THEN 0
                         ELSE COALESCE(t.driver_commission, 0) END::numeric)
         FROM trips t WHERE t.truck_id = tr.id ${dateWhere} ${tripStatusWhere}
       ), 0)::double precision AS "driverCommission"
@@ -656,6 +654,8 @@ router.get("/shifting", async (req: Request, res: Response) => {
         fw.name AS "fromWarehouseName",
         t.to_warehouse_id AS "toWarehouseId",
         tw.name AS "toWarehouseName",
+        t.inhouse_warehouse_id AS "inhouseWarehouseId",
+        iw.name AS "inhouseWarehouseName",
         t.status AS "status",
         t.notes AS "notes",
         t.customer_id AS "customerId",
@@ -668,7 +668,6 @@ router.get("/shifting", async (req: Request, res: Response) => {
         COALESCE(t.commission_per_round, 0)::double precision AS "commissionPerRound",
         (CASE WHEN t.movement_type = 'customer_shifting'
               THEN COALESCE(t.commission_per_round, 0) * COALESCE(t.rounds, 0)
-              WHEN t.movement_type = 'in_house_shifting' THEN 0
               ELSE COALESCE(t.driver_commission, 0)
         END)::double precision AS "driverCommission",
         (CASE WHEN t.movement_type = 'customer_shifting'
@@ -691,6 +690,7 @@ router.get("/shifting", async (req: Request, res: Response) => {
       LEFT JOIN cities tc ON tc.id = t.to_city_id
       LEFT JOIN warehouses fw ON fw.id = t.from_warehouse_id
       LEFT JOIN warehouses tw ON tw.id = t.to_warehouse_id
+      LEFT JOIN warehouses iw ON iw.id = t.inhouse_warehouse_id
       LEFT JOIN customers c ON c.id = t.customer_id
       LEFT JOIN items i ON i.id = t.item_id
       ${whereClause}
@@ -718,6 +718,8 @@ router.get("/shifting", async (req: Request, res: Response) => {
         fromWarehouseName: r.fromWarehouseName ? String(r.fromWarehouseName) : null,
         toWarehouseId: r.toWarehouseId !== null && r.toWarehouseId !== undefined ? Number(r.toWarehouseId) : null,
         toWarehouseName: r.toWarehouseName ? String(r.toWarehouseName) : null,
+        inhouseWarehouseId: r.inhouseWarehouseId !== null && r.inhouseWarehouseId !== undefined ? Number(r.inhouseWarehouseId) : null,
+        inhouseWarehouseName: r.inhouseWarehouseName ? String(r.inhouseWarehouseName) : null,
         status: String(r.status),
         notes: r.notes ? String(r.notes) : null,
         customerId: r.customerId !== null && r.customerId !== undefined ? Number(r.customerId) : null,

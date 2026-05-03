@@ -25,6 +25,9 @@ export interface TripWithDetails {
   toWarehouseName?: string | null;
   cityId?: number | null;
   cityName?: string | null;
+  inhouseWarehouseId?: number | null;
+  inhouseWarehouseName?: string | null;
+  inhouseWarehouseCityName?: string | null;
   driverCommission?: string;
   status: TripWithDetailsStatus;
   movementType: TripWithDetailsMovementType;
