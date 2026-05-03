@@ -321,6 +321,64 @@ export const DeleteExpenseTypeResponse = zod.object({
 });
 
 /**
+ * @summary List items
+ */
+export const ListItemsQueryParams = zod.object({
+  search: zod.coerce.string().optional(),
+});
+
+export const ListItemsResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  unit: zod.string(),
+  defaultRatePerRound: zod.string().nullish(),
+  createdAt: zod.string().nullish(),
+});
+export const ListItemsResponse = zod.array(ListItemsResponseItem);
+
+/**
+ * @summary Create item
+ */
+
+export const CreateItemBody = zod.object({
+  name: zod.string().min(1),
+  unit: zod.string().min(1),
+  defaultRatePerRound: zod.string().optional(),
+});
+
+/**
+ * @summary Update item
+ */
+export const UpdateItemParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateItemBody = zod.object({
+  name: zod.string().min(1),
+  unit: zod.string().min(1),
+  defaultRatePerRound: zod.string().optional(),
+});
+
+export const UpdateItemResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  unit: zod.string(),
+  defaultRatePerRound: zod.string().nullish(),
+  createdAt: zod.string().nullish(),
+});
+
+/**
+ * @summary Delete item
+ */
+export const DeleteItemParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteItemResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
  * @summary List trips with optional filters
  */
 export const ListTripsQueryParams = zod.object({
@@ -333,7 +391,9 @@ export const ListTripsQueryParams = zod.object({
   from_city_id: zod.coerce.number().optional(),
   to_city_id: zod.coerce.number().optional(),
   customer_id: zod.coerce.number().optional(),
-  movement_type: zod.enum(["customer_trip", "in_house_shifting"]).optional(),
+  movement_type: zod
+    .enum(["customer_trip", "in_house_shifting", "customer_shifting"])
+    .optional(),
 });
 
 export const ListTripsResponseItem = zod.object({
@@ -349,9 +409,23 @@ export const ListTripsResponseItem = zod.object({
   toCityName: zod.string(),
   driverCommission: zod.string().optional(),
   status: zod.enum(["Open", "Closed"]),
-  movementType: zod.enum(["customer_trip", "in_house_shifting"]),
+  movementType: zod.enum([
+    "customer_trip",
+    "in_house_shifting",
+    "customer_shifting",
+  ]),
   notes: zod.string().nullish(),
-  createdAt: zod.string().optional(),
+  customerId: zod.number().nullish(),
+  customerName: zod.string().nullish(),
+  itemId: zod.number().nullish(),
+  itemName: zod.string().nullish(),
+  itemUnit: zod.string().nullish(),
+  rounds: zod.number().nullish(),
+  ratePerRound: zod.string().nullish(),
+  commissionPerRound: zod.string().nullish(),
+  shiftingRevenue: zod.number().nullish(),
+  driverCommissionTotal: zod.number().nullish(),
+  createdAt: zod.string().nullish(),
   income: zod.number(),
   expense: zod.number(),
   profit: zod.number(),
@@ -371,8 +445,15 @@ export const CreateTripBody = zod.object({
   fromCityId: zod.number(),
   toCityId: zod.number(),
   driverCommission: zod.string().optional(),
-  movementType: zod.enum(["customer_trip", "in_house_shifting"]).optional(),
+  movementType: zod
+    .enum(["customer_trip", "in_house_shifting", "customer_shifting"])
+    .optional(),
   notes: zod.string().nullish(),
+  customerId: zod.number().nullish(),
+  itemId: zod.number().nullish(),
+  rounds: zod.number().nullish(),
+  ratePerRound: zod.string().nullish(),
+  commissionPerRound: zod.string().nullish(),
 });
 
 /**
@@ -395,9 +476,23 @@ export const GetTripResponse = zod.object({
   toCityName: zod.string(),
   driverCommission: zod.string().optional(),
   status: zod.enum(["Open", "Closed"]),
-  movementType: zod.enum(["customer_trip", "in_house_shifting"]),
+  movementType: zod.enum([
+    "customer_trip",
+    "in_house_shifting",
+    "customer_shifting",
+  ]),
   notes: zod.string().nullish(),
-  createdAt: zod.string().optional(),
+  customerId: zod.number().nullish(),
+  customerName: zod.string().nullish(),
+  itemId: zod.number().nullish(),
+  itemName: zod.string().nullish(),
+  itemUnit: zod.string().nullish(),
+  rounds: zod.number().nullish(),
+  ratePerRound: zod.string().nullish(),
+  commissionPerRound: zod.string().nullish(),
+  shiftingRevenue: zod.number().nullish(),
+  driverCommissionTotal: zod.number().nullish(),
+  createdAt: zod.string().nullish(),
   income: zod.number(),
   expense: zod.number(),
   profit: zod.number(),
@@ -437,9 +532,23 @@ export const CloseTripResponse = zod.object({
   toCityName: zod.string(),
   driverCommission: zod.string().optional(),
   status: zod.enum(["Open", "Closed"]),
-  movementType: zod.enum(["customer_trip", "in_house_shifting"]),
+  movementType: zod.enum([
+    "customer_trip",
+    "in_house_shifting",
+    "customer_shifting",
+  ]),
   notes: zod.string().nullish(),
-  createdAt: zod.string().optional(),
+  customerId: zod.number().nullish(),
+  customerName: zod.string().nullish(),
+  itemId: zod.number().nullish(),
+  itemName: zod.string().nullish(),
+  itemUnit: zod.string().nullish(),
+  rounds: zod.number().nullish(),
+  ratePerRound: zod.string().nullish(),
+  commissionPerRound: zod.string().nullish(),
+  shiftingRevenue: zod.number().nullish(),
+  driverCommissionTotal: zod.number().nullish(),
+  createdAt: zod.string().nullish(),
   income: zod.number(),
   expense: zod.number(),
   profit: zod.number(),
@@ -472,9 +581,23 @@ export const UpdateTripCommissionResponse = zod.object({
   toCityName: zod.string(),
   driverCommission: zod.string().optional(),
   status: zod.enum(["Open", "Closed"]),
-  movementType: zod.enum(["customer_trip", "in_house_shifting"]),
+  movementType: zod.enum([
+    "customer_trip",
+    "in_house_shifting",
+    "customer_shifting",
+  ]),
   notes: zod.string().nullish(),
-  createdAt: zod.string().optional(),
+  customerId: zod.number().nullish(),
+  customerName: zod.string().nullish(),
+  itemId: zod.number().nullish(),
+  itemName: zod.string().nullish(),
+  itemUnit: zod.string().nullish(),
+  rounds: zod.number().nullish(),
+  ratePerRound: zod.string().nullish(),
+  commissionPerRound: zod.string().nullish(),
+  shiftingRevenue: zod.number().nullish(),
+  driverCommissionTotal: zod.number().nullish(),
+  createdAt: zod.string().nullish(),
   income: zod.number(),
   expense: zod.number(),
   profit: zod.number(),
@@ -915,7 +1038,7 @@ export const GetCashFlowReportResponse = zod.array(
 );
 
 /**
- * @summary In-house shifting report
+ * @summary Shifting report (customer + in-house)
  */
 export const GetShiftingReportQueryParams = zod.object({
   date_from: zod.coerce.string().optional(),
@@ -923,11 +1046,15 @@ export const GetShiftingReportQueryParams = zod.object({
   truck_id: zod.coerce.number().optional(),
   driver_id: zod.coerce.number().optional(),
   status: zod.enum(["Open", "Closed"]).optional(),
+  movement_type: zod
+    .enum(["customer_shifting", "in_house_shifting"])
+    .optional(),
 });
 
 export const GetShiftingReportResponseItem = zod.object({
   tripId: zod.number(),
   tripDate: zod.string(),
+  movementType: zod.string(),
   truckId: zod.number(),
   truckNumber: zod.string(),
   driverId: zod.number(),
@@ -938,9 +1065,19 @@ export const GetShiftingReportResponseItem = zod.object({
   toCityName: zod.string(),
   status: zod.string(),
   notes: zod.string().nullish(),
+  customerId: zod.number().nullish(),
+  customerName: zod.string().nullish(),
+  itemId: zod.number().nullish(),
+  itemName: zod.string().nullish(),
+  itemUnit: zod.string().nullish(),
+  rounds: zod.number(),
+  ratePerRound: zod.number(),
+  commissionPerRound: zod.number(),
+  revenue: zod.number(),
   totalExpenses: zod.number(),
   driverCommission: zod.number(),
   totalCost: zod.number(),
+  profit: zod.number(),
 });
 export const GetShiftingReportResponse = zod.array(
   GetShiftingReportResponseItem,

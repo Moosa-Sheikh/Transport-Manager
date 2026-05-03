@@ -23,7 +23,17 @@ export interface TripWithDetails {
   status: TripWithDetailsStatus;
   movementType: TripWithDetailsMovementType;
   notes?: string | null;
-  createdAt?: string;
+  customerId?: number | null;
+  customerName?: string | null;
+  itemId?: number | null;
+  itemName?: string | null;
+  itemUnit?: string | null;
+  rounds?: number | null;
+  ratePerRound?: string | null;
+  commissionPerRound?: string | null;
+  shiftingRevenue?: number | null;
+  driverCommissionTotal?: number | null;
+  createdAt?: string | null;
   income: number;
   expense: number;
   profit: number;

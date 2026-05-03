@@ -12,4 +12,5 @@ export type TripInputMovementType =
 export const TripInputMovementType = {
   customer_trip: "customer_trip",
   in_house_shifting: "in_house_shifting",
+  customer_shifting: "customer_shifting",
 } as const;

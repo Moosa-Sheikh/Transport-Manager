@@ -10,6 +10,7 @@ import DriversPage from "@/pages/masters/drivers";
 import TrucksPage from "@/pages/masters/trucks";
 import CitiesPage from "@/pages/masters/cities";
 import ExpenseTypesPage from "@/pages/masters/expense-types";
+import ItemsPage from "@/pages/masters/items";
 import TripListPage from "@/pages/trips/trip-list";
 import CreateTripPage from "@/pages/trips/create-trip";
 import TripDetailPage from "@/pages/trips/trip-detail";
@@ -70,6 +71,9 @@ function Router() {
       </Route>
       <Route path="/masters/expense-types">
         <ProtectedRoute component={ExpenseTypesPage} />
+      </Route>
+      <Route path="/masters/items">
+        <ProtectedRoute component={ItemsPage} />
       </Route>
       <Route path="/trips">
         <ProtectedRoute component={TripListPage} />

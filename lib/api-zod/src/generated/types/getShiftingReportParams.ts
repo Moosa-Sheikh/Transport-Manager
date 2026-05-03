@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.2.0
  */
+import type { GetShiftingReportMovementType } from "./getShiftingReportMovementType";
 import type { GetShiftingReportStatus } from "./getShiftingReportStatus";
 
 export type GetShiftingReportParams = {
@@ -13,4 +14,5 @@ export type GetShiftingReportParams = {
   truck_id?: number;
   driver_id?: number;
   status?: GetShiftingReportStatus;
+  movement_type?: GetShiftingReportMovementType;
 };

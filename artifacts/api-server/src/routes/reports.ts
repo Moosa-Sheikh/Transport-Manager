@@ -571,7 +571,12 @@ router.get("/shifting", async (req: Request, res: Response) => {
     const truckId = rawTruckId && Number.isInteger(rawTruckId) && rawTruckId > 0 ? rawTruckId : undefined;
     const driverId = rawDriverId && Number.isInteger(rawDriverId) && rawDriverId > 0 ? rawDriverId : undefined;
 
-    const conditions: SQL[] = [sql`t.movement_type = 'in_house_shifting'`];
+    const movementType = req.query.movement_type === "customer_shifting" || req.query.movement_type === "in_house_shifting"
+      ? String(req.query.movement_type)
+      : null;
+    const conditions: SQL[] = movementType
+      ? [sql`t.movement_type = ${movementType}`]
+      : [sql`t.movement_type IN ('customer_shifting', 'in_house_shifting')`];
     if (dateFrom) conditions.push(sql`t.trip_date >= ${dateFrom}`);
     if (dateTo) conditions.push(sql`t.trip_date <= ${dateTo}`);
     if (truckId) conditions.push(sql`t.truck_id = ${truckId}`);
@@ -583,6 +588,7 @@ router.get("/shifting", async (req: Request, res: Response) => {
       SELECT
         t.id AS "tripId",
         t.trip_date AS "tripDate",
+        t.movement_type AS "movementType",
         t.truck_id AS "truckId",
         tr.truck_number AS "truckNumber",
         t.driver_id AS "driverId",
@@ -593,7 +599,22 @@ router.get("/shifting", async (req: Request, res: Response) => {
         tc.name AS "toCityName",
         t.status AS "status",
         t.notes AS "notes",
-        COALESCE(t.driver_commission::numeric, 0)::double precision AS "driverCommission",
+        t.customer_id AS "customerId",
+        c.name AS "customerName",
+        t.item_id AS "itemId",
+        i.name AS "itemName",
+        i.unit AS "itemUnit",
+        COALESCE(t.rounds, 0)::integer AS "rounds",
+        COALESCE(t.rate_per_round, 0)::double precision AS "ratePerRound",
+        COALESCE(t.commission_per_round, 0)::double precision AS "commissionPerRound",
+        (CASE WHEN t.movement_type IN ('customer_shifting', 'in_house_shifting')
+              THEN COALESCE(t.commission_per_round, 0) * COALESCE(t.rounds, 0)
+              ELSE COALESCE(t.driver_commission, 0)
+        END)::double precision AS "driverCommission",
+        (CASE WHEN t.movement_type = 'customer_shifting'
+              THEN COALESCE(t.rounds, 0) * COALESCE(t.rate_per_round, 0)
+              ELSE 0
+        END)::double precision AS "revenue",
         COALESCE((
           SELECT SUM(COALESCE(amount, 0)::numeric)
           FROM trip_expenses WHERE trip_id = t.id
@@ -603,6 +624,8 @@ router.get("/shifting", async (req: Request, res: Response) => {
       JOIN drivers d ON d.id = t.driver_id
       JOIN cities fc ON fc.id = t.from_city_id
       JOIN cities tc ON tc.id = t.to_city_id
+      LEFT JOIN customers c ON c.id = t.customer_id
+      LEFT JOIN items i ON i.id = t.item_id
       ${whereClause}
       ORDER BY t.trip_date DESC
     `);
@@ -610,9 +633,12 @@ router.get("/shifting", async (req: Request, res: Response) => {
     const data = (rows.rows as Record<string, unknown>[]).map((r) => {
       const totalExpenses = Number(r.totalExpenses);
       const driverCommission = Number(r.driverCommission);
+      const revenue = Number(r.revenue);
+      const totalCost = totalExpenses + driverCommission;
       return {
         tripId: Number(r.tripId),
         tripDate: String(r.tripDate),
+        movementType: String(r.movementType),
         truckId: Number(r.truckId),
         truckNumber: String(r.truckNumber),
         driverId: Number(r.driverId),
@@ -623,9 +649,19 @@ router.get("/shifting", async (req: Request, res: Response) => {
         toCityName: String(r.toCityName),
         status: String(r.status),
         notes: r.notes ? String(r.notes) : null,
+        customerId: r.customerId !== null && r.customerId !== undefined ? Number(r.customerId) : null,
+        customerName: r.customerName ? String(r.customerName) : null,
+        itemId: r.itemId !== null && r.itemId !== undefined ? Number(r.itemId) : null,
+        itemName: r.itemName ? String(r.itemName) : null,
+        itemUnit: r.itemUnit ? String(r.itemUnit) : null,
+        rounds: Number(r.rounds),
+        ratePerRound: Number(r.ratePerRound),
+        commissionPerRound: Number(r.commissionPerRound),
+        revenue,
         totalExpenses,
         driverCommission,
-        totalCost: totalExpenses + driverCommission,
+        totalCost,
+        profit: revenue - totalCost,
       };
     });
 

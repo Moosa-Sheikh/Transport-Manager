@@ -7,6 +7,7 @@ import driversRouter from "./drivers";
 import trucksRouter from "./trucks";
 import citiesRouter from "./cities";
 import expenseTypesRouter from "./expense-types";
+import itemsRouter from "./items";
 import tripsRouter from "./trips";
 import paymentsRouter from "./payments";
 import cashBookRouter from "./cash-book";
@@ -24,6 +25,7 @@ router.use("/masters/drivers", requireAuth, driversRouter);
 router.use("/masters/trucks", requireAuth, trucksRouter);
 router.use("/masters/cities", requireAuth, citiesRouter);
 router.use("/masters/expense-types", requireAuth, expenseTypesRouter);
+router.use("/masters/items", requireAuth, itemsRouter);
 
 router.use("/trips", requireAuth, tripsRouter);
 router.use("/payments", requireAuth, paymentsRouter);

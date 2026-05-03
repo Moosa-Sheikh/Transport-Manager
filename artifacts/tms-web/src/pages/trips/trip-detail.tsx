@@ -320,6 +320,11 @@ export default function TripDetailPage() {
             In-House Shift
           </span>
         )}
+        {trip?.movementType === "customer_shifting" && (
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-teal-100 text-teal-800 border border-teal-200">
+            Customer Shift
+          </span>
+        )}
         {trip?.status === "Open" && (
           <div className="ml-auto flex items-center gap-2">
             <button
@@ -527,6 +532,44 @@ export default function TripDetailPage() {
             </div>
           </div>
 
+          {(trip.movementType === "customer_shifting" || trip.movementType === "in_house_shifting") && (
+            <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+              <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Shifting Details</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {trip.customerName && (
+                  <div>
+                    <div className="text-xs font-medium text-gray-500 uppercase mb-1">Customer</div>
+                    <div className="text-sm text-gray-900 font-medium">{trip.customerName}</div>
+                  </div>
+                )}
+                {trip.itemName && (
+                  <div>
+                    <div className="text-xs font-medium text-gray-500 uppercase mb-1">Item</div>
+                    <div className="text-sm text-gray-900 font-medium">{trip.itemName}{trip.itemUnit ? ` (${trip.itemUnit})` : ""}</div>
+                  </div>
+                )}
+                <div>
+                  <div className="text-xs font-medium text-gray-500 uppercase mb-1">Rounds</div>
+                  <div className="text-sm text-gray-900 font-medium">{trip.rounds ?? 0}</div>
+                </div>
+                {trip.movementType === "customer_shifting" && trip.ratePerRound && (
+                  <div>
+                    <div className="text-xs font-medium text-gray-500 uppercase mb-1">Rate / Round</div>
+                    <div className="text-sm text-gray-900 font-medium">{formatPKR(Number(trip.ratePerRound))}</div>
+                  </div>
+                )}
+                <div>
+                  <div className="text-xs font-medium text-gray-500 uppercase mb-1">Commission / Round</div>
+                  <div className="text-sm text-gray-900 font-medium">{formatPKR(Number(trip.commissionPerRound ?? 0))}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-medium text-gray-500 uppercase mb-1">Total Commission</div>
+                  <div className="text-sm text-purple-700 font-semibold">{formatPKR(Number(trip.driverCommissionTotal ?? 0))}</div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {trip.movementType === "in_house_shifting" ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
               <div className="bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-3 text-center">
@@ -535,11 +578,36 @@ export default function TripDetailPage() {
               </div>
               <div className="bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-3 text-center">
                 <div className="text-[10px] font-medium text-purple-600 uppercase mb-1">Driver Commission</div>
-                <div className="text-lg font-bold text-purple-800">{formatPKR(Number(trip.driverCommission ?? 0))}</div>
+                <div className="text-lg font-bold text-purple-800">{formatPKR(Number(trip.driverCommissionTotal ?? 0))}</div>
               </div>
               <div className="bg-gradient-to-r from-red-50 to-red-100 border border-red-200 rounded-lg p-3 text-center">
                 <div className="text-[10px] font-medium text-red-600 uppercase mb-1">Total Cost</div>
-                <div className="text-lg font-bold text-red-800">{formatPKR(trip.expense + Number(trip.driverCommission ?? 0))}</div>
+                <div className="text-lg font-bold text-red-800">{formatPKR(trip.expense + Number(trip.driverCommissionTotal ?? 0))}</div>
+              </div>
+            </div>
+          ) : trip.movementType === "customer_shifting" ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+              <div className="bg-gradient-to-r from-teal-50 to-teal-100 border border-teal-200 rounded-lg p-3 text-center">
+                <div className="text-[10px] font-medium text-teal-600 uppercase mb-1">Revenue</div>
+                <div className="text-lg font-bold text-teal-800">{formatPKR(trip.income)}</div>
+              </div>
+              <div className="bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-3 text-center">
+                <div className="text-[10px] font-medium text-orange-600 uppercase mb-1">Expenses</div>
+                <div className="text-lg font-bold text-orange-800">{formatPKR(trip.expense)}</div>
+              </div>
+              <div className="bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-3 text-center">
+                <div className="text-[10px] font-medium text-purple-600 uppercase mb-1">Commission</div>
+                <div className="text-lg font-bold text-purple-800">{formatPKR(Number(trip.driverCommissionTotal ?? 0))}</div>
+              </div>
+              <div className={`bg-gradient-to-r border rounded-lg p-3 text-center ${
+                trip.profit >= 0 ? "from-green-50 to-green-100 border-green-200" : "from-red-50 to-red-100 border-red-200"
+              }`}>
+                <div className={`text-[10px] font-medium uppercase mb-1 ${trip.profit >= 0 ? "text-green-600" : "text-red-600"}`}>Profit</div>
+                <div className={`text-lg font-bold ${trip.profit >= 0 ? "text-green-800" : "text-red-800"}`}>{formatPKR(trip.profit)}</div>
+              </div>
+              <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 border border-emerald-200 rounded-lg p-3 text-center">
+                <div className="text-[10px] font-medium text-emerald-600 uppercase mb-1">Received</div>
+                <div className="text-lg font-bold text-emerald-800">{formatPKR(trip.totalReceived)}</div>
               </div>
             </div>
           ) : (
@@ -579,7 +647,7 @@ export default function TripDetailPage() {
             </div>
           )}
 
-          {trip.movementType !== "in_house_shifting" && loadsData?.summary && (
+          {trip.movementType === "customer_trip" && loadsData?.summary && (
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6 mb-6">
               <h3 className="text-sm font-semibold text-blue-800 uppercase tracking-wider mb-4">Income Summary</h3>
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
@@ -607,7 +675,7 @@ export default function TripDetailPage() {
             </div>
           )}
 
-          {trip.movementType !== "in_house_shifting" && trip.status === "Open" && (
+          {trip.movementType === "customer_trip" && trip.status === "Open" && (
             <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-2">
                 <Plus className="w-4 h-4" /> Add Load
@@ -658,7 +726,7 @@ export default function TripDetailPage() {
             </div>
           )}
 
-          {trip.movementType !== "in_house_shifting" && (
+          {trip.movementType === "customer_trip" && (
           <div className="bg-white border border-gray-200 rounded-lg overflow-hidden mb-6">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider px-6 py-4 border-b border-gray-200">
               Loads ({loadsData?.loads.length ?? 0})
@@ -931,6 +999,7 @@ export default function TripDetailPage() {
           </div>
           )}
 
+          {trip.movementType === "customer_trip" && (
           <div className="mt-6 bg-white border border-gray-200 rounded-lg p-6">
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
               Driver Advances ({advancesData?.advances.length ?? 0})
@@ -991,6 +1060,7 @@ export default function TripDetailPage() {
               </div>
             )}
           </div>
+          )}
 
           {trip.movementType !== "in_house_shifting" && (
           <div className="mt-6 bg-white border border-gray-200 rounded-lg p-6">

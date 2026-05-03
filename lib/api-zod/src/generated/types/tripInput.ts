@@ -16,4 +16,9 @@ export interface TripInput {
   driverCommission?: string;
   movementType?: TripInputMovementType;
   notes?: string | null;
+  customerId?: number | null;
+  itemId?: number | null;
+  rounds?: number | null;
+  ratePerRound?: string | null;
+  commissionPerRound?: string | null;
 }

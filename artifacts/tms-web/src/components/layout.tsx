@@ -25,6 +25,8 @@ import {
   Building,
   MoveHorizontal,
   FileBarChart2,
+  Package,
+  Users2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -34,11 +36,13 @@ const mastersLinks = [
   { href: "/masters/trucks", label: "Trucks", icon: Truck },
   { href: "/masters/cities", label: "Cities", icon: MapPin },
   { href: "/masters/expense-types", label: "Expense Types", icon: Receipt },
+  { href: "/masters/items", label: "Items", icon: Package },
 ];
 
 const tripsLinks = [
   { href: "/trips", label: "Trip List", icon: List },
   { href: "/trips/create", label: "Create Trip", icon: Plus },
+  { href: "/trips?movement_type=customer_shifting", label: "Customer Shifts", icon: Users2 },
   { href: "/trips?movement_type=in_house_shifting", label: "In-House Shifts", icon: MoveHorizontal },
 ];
 

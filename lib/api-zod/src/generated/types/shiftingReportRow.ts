@@ -9,6 +9,7 @@
 export interface ShiftingReportRow {
   tripId: number;
   tripDate: string;
+  movementType: string;
   truckId: number;
   truckNumber: string;
   driverId: number;
@@ -19,7 +20,17 @@ export interface ShiftingReportRow {
   toCityName: string;
   status: string;
   notes?: string | null;
+  customerId?: number | null;
+  customerName?: string | null;
+  itemId?: number | null;
+  itemName?: string | null;
+  itemUnit?: string | null;
+  rounds: number;
+  ratePerRound: number;
+  commissionPerRound: number;
+  revenue: number;
   totalExpenses: number;
   driverCommission: number;
   totalCost: number;
+  profit: number;
 }

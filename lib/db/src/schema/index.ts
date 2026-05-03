@@ -4,6 +4,7 @@ export * from "./drivers";
 export * from "./trucks";
 export * from "./cities";
 export * from "./expense-types";
+export * from "./items";
 export * from "./trips";
 export * from "./trip-loads";
 export * from "./trip-expenses";

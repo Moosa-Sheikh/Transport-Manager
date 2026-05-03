@@ -586,6 +586,108 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /masters/items:
+    get:
+      operationId: listItems
+      tags: [items]
+      summary: List items
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Item list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Item"
+    post:
+      operationId: createItem
+      tags: [items]
+      summary: Create item
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ItemInput"
+      responses:
+        "201":
+          description: Item created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Item"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /masters/items/{id}:
+    put:
+      operationId: updateItem
+      tags: [items]
+      summary: Update item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ItemInput"
+      responses:
+        "200":
+          description: Item updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Item"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteItem
+      tags: [items]
+      summary: Delete item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Item deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Cannot delete item in use
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /trips:
     get:
       operationId: listTrips
@@ -636,7 +738,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [customer_trip, in_house_shifting]
+            enum: [customer_trip, in_house_shifting, customer_shifting]
       responses:
         "200":
           description: Trip list
@@ -1390,7 +1492,7 @@ paths:
     get:
       operationId: getShiftingReport
       tags: [reports]
-      summary: In-house shifting report
+      summary: Shifting report (customer + in-house)
       parameters:
         - name: date_from
           in: query
@@ -1413,6 +1515,11 @@ paths:
           schema:
             type: string
             enum: [Open, Closed]
+        - name: movement_type
+          in: query
+          schema:
+            type: string
+            enum: [customer_shifting, in_house_shifting]
       responses:
         "200":
           description: In-house shifting report data
@@ -2414,6 +2521,35 @@ components:
           minLength: 1
       required: [name]
 
+    Item:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        unit:
+          type: string
+        defaultRatePerRound:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          nullable: true
+      required: [id, name, unit]
+    ItemInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        unit:
+          type: string
+          minLength: 1
+        defaultRatePerRound:
+          type: string
+      required: [name, unit]
+
     TripCommissionInput:
       type: object
       properties:
@@ -2439,8 +2575,23 @@ components:
           type: string
         movementType:
           type: string
-          enum: [customer_trip, in_house_shifting]
+          enum: [customer_trip, in_house_shifting, customer_shifting]
         notes:
+          type: string
+          nullable: true
+        customerId:
+          type: integer
+          nullable: true
+        itemId:
+          type: integer
+          nullable: true
+        rounds:
+          type: integer
+          nullable: true
+        ratePerRound:
+          type: string
+          nullable: true
+        commissionPerRound:
           type: string
           nullable: true
       required: [tripDate, truckId, driverId, fromCityId, toCityId]
@@ -2475,12 +2626,43 @@ components:
           enum: [Open, Closed]
         movementType:
           type: string
-          enum: [customer_trip, in_house_shifting]
+          enum: [customer_trip, in_house_shifting, customer_shifting]
         notes:
           type: string
           nullable: true
+        customerId:
+          type: integer
+          nullable: true
+        customerName:
+          type: string
+          nullable: true
+        itemId:
+          type: integer
+          nullable: true
+        itemName:
+          type: string
+          nullable: true
+        itemUnit:
+          type: string
+          nullable: true
+        rounds:
+          type: integer
+          nullable: true
+        ratePerRound:
+          type: string
+          nullable: true
+        commissionPerRound:
+          type: string
+          nullable: true
+        shiftingRevenue:
+          type: number
+          nullable: true
+        driverCommissionTotal:
+          type: number
+          nullable: true
         createdAt:
           type: string
+          nullable: true
         income:
           type: number
         expense:
@@ -3454,6 +3636,8 @@ components:
           type: integer
         tripDate:
           type: string
+        movementType:
+          type: string
         truckId:
           type: integer
         truckNumber:
@@ -3475,13 +3659,38 @@ components:
         notes:
           type: string
           nullable: true
+        customerId:
+          type: integer
+          nullable: true
+        customerName:
+          type: string
+          nullable: true
+        itemId:
+          type: integer
+          nullable: true
+        itemName:
+          type: string
+          nullable: true
+        itemUnit:
+          type: string
+          nullable: true
+        rounds:
+          type: integer
+        ratePerRound:
+          type: number
+        commissionPerRound:
+          type: number
+        revenue:
+          type: number
         totalExpenses:
           type: number
         driverCommission:
           type: number
         totalCost:
           type: number
-      required: [tripId, tripDate, truckId, truckNumber, driverId, driverName, fromCityId, fromCityName, toCityId, toCityName, status, totalExpenses, driverCommission, totalCost]
+        profit:
+          type: number
+      required: [tripId, tripDate, movementType, truckId, truckNumber, driverId, driverName, fromCityId, fromCityName, toCityId, toCityName, status, rounds, ratePerRound, commissionPerRound, revenue, totalExpenses, driverCommission, totalCost, profit]
 
     CustomerLoanInput:
       type: object

@@ -4,6 +4,8 @@ import { z } from "zod/v4";
 import { trucksTable } from "./trucks";
 import { driversTable } from "./drivers";
 import { citiesTable } from "./cities";
+import { customersTable } from "./customers";
+import { itemsTable } from "./items";
 
 export const tripsTable = pgTable("trips", {
   id: serial("id").primaryKey(),
@@ -16,6 +18,11 @@ export const tripsTable = pgTable("trips", {
   status: varchar("status", { length: 20 }).notNull().default("Open"),
   movementType: varchar("movement_type", { length: 30 }).notNull().default("customer_trip"),
   notes: text("notes"),
+  customerId: integer("customer_id").references(() => customersTable.id, { onDelete: "restrict" }),
+  itemId: integer("item_id").references(() => itemsTable.id, { onDelete: "restrict" }),
+  rounds: integer("rounds").default(1),
+  ratePerRound: numeric("rate_per_round", { precision: 12, scale: 2 }).default("0"),
+  commissionPerRound: numeric("commission_per_round", { precision: 12, scale: 2 }).default("0"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

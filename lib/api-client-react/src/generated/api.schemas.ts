@@ -110,6 +110,22 @@ export interface ExpenseTypeInput {
   name: string;
 }
 
+export interface Item {
+  id: number;
+  name: string;
+  unit: string;
+  defaultRatePerRound?: string | null;
+  createdAt?: string | null;
+}
+
+export interface ItemInput {
+  /** @minLength 1 */
+  name: string;
+  /** @minLength 1 */
+  unit: string;
+  defaultRatePerRound?: string;
+}
+
 export interface TripCommissionInput {
   driverCommission: string;
 }
@@ -120,6 +136,7 @@ export type TripInputMovementType =
 export const TripInputMovementType = {
   customer_trip: "customer_trip",
   in_house_shifting: "in_house_shifting",
+  customer_shifting: "customer_shifting",
 } as const;
 
 export interface TripInput {
@@ -131,6 +148,11 @@ export interface TripInput {
   driverCommission?: string;
   movementType?: TripInputMovementType;
   notes?: string | null;
+  customerId?: number | null;
+  itemId?: number | null;
+  rounds?: number | null;
+  ratePerRound?: string | null;
+  commissionPerRound?: string | null;
 }
 
 export type TripWithDetailsStatus =
@@ -147,6 +169,7 @@ export type TripWithDetailsMovementType =
 export const TripWithDetailsMovementType = {
   customer_trip: "customer_trip",
   in_house_shifting: "in_house_shifting",
+  customer_shifting: "customer_shifting",
 } as const;
 
 export interface TripWithDetails {
@@ -164,7 +187,17 @@ export interface TripWithDetails {
   status: TripWithDetailsStatus;
   movementType: TripWithDetailsMovementType;
   notes?: string | null;
-  createdAt?: string;
+  customerId?: number | null;
+  customerName?: string | null;
+  itemId?: number | null;
+  itemName?: string | null;
+  itemUnit?: string | null;
+  rounds?: number | null;
+  ratePerRound?: string | null;
+  commissionPerRound?: string | null;
+  shiftingRevenue?: number | null;
+  driverCommissionTotal?: number | null;
+  createdAt?: string | null;
   income: number;
   expense: number;
   profit: number;
@@ -691,6 +724,7 @@ export interface CustomerLoan {
 export interface ShiftingReportRow {
   tripId: number;
   tripDate: string;
+  movementType: string;
   truckId: number;
   truckNumber: string;
   driverId: number;
@@ -701,9 +735,19 @@ export interface ShiftingReportRow {
   toCityName: string;
   status: string;
   notes?: string | null;
+  customerId?: number | null;
+  customerName?: string | null;
+  itemId?: number | null;
+  itemName?: string | null;
+  itemUnit?: string | null;
+  rounds: number;
+  ratePerRound: number;
+  commissionPerRound: number;
+  revenue: number;
   totalExpenses: number;
   driverCommission: number;
   totalCost: number;
+  profit: number;
 }
 
 export interface CustomerLoanInput {
@@ -738,6 +782,10 @@ export type ListCitiesParams = {
 };
 
 export type ListExpenseTypesParams = {
+  search?: string;
+};
+
+export type ListItemsParams = {
   search?: string;
 };
 
@@ -776,6 +824,7 @@ export type ListTripsMovementType =
 export const ListTripsMovementType = {
   customer_trip: "customer_trip",
   in_house_shifting: "in_house_shifting",
+  customer_shifting: "customer_shifting",
 } as const;
 
 export type DeleteTrip200 = {
@@ -900,6 +949,7 @@ export type GetShiftingReportParams = {
   truck_id?: number;
   driver_id?: number;
   status?: GetShiftingReportStatus;
+  movement_type?: GetShiftingReportMovementType;
 };
 
 export type GetShiftingReportStatus =
@@ -908,6 +958,14 @@ export type GetShiftingReportStatus =
 export const GetShiftingReportStatus = {
   Open: "Open",
   Closed: "Closed",
+} as const;
+
+export type GetShiftingReportMovementType =
+  (typeof GetShiftingReportMovementType)[keyof typeof GetShiftingReportMovementType];
+
+export const GetShiftingReportMovementType = {
+  customer_shifting: "customer_shifting",
+  in_house_shifting: "in_house_shifting",
 } as const;
 
 export type GetProfitReportParams = {
