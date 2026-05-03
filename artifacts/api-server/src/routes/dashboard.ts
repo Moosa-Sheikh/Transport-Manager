@@ -11,11 +11,15 @@ const router: IRouter = Router();
 
 router.get("/summary", async (req: Request, res: Response) => {
   try {
-    const [incomeResult] = await db
-      .select({
-        total: sql<number>`COALESCE(SUM(COALESCE(freight, 0) + COALESCE(loading_charges, 0) + COALESCE(unloading_charges, 0) - COALESCE(broker_commission, 0)), 0)::double precision`,
-      })
-      .from(tripLoadsTable);
+    const [incomeResult] = (await db.execute(sql`
+      SELECT (COALESCE((
+        SELECT SUM(COALESCE(freight, 0) + COALESCE(loading_charges, 0) + COALESCE(unloading_charges, 0) - COALESCE(broker_commission, 0))
+        FROM trip_loads
+      ), 0) + COALESCE((
+        SELECT SUM(COALESCE(rounds, 0) * COALESCE(rate_per_round, 0))
+        FROM trips WHERE movement_type = 'customer_shifting'
+      ), 0))::double precision AS "total"
+    `)).rows as { total: number }[];
 
     const [expenseResult] = await db
       .select({

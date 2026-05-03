@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, Loader2, Truck, Route, Users2 } from "lucide-react";
+import { ArrowLeft, Loader2, Truck, Route, Users2, Warehouse } from "lucide-react";
 import { Link } from "wouter";
 import {
   useCreateTrip,
@@ -9,18 +9,23 @@ import {
   useListCities,
   useListCustomers,
   useListItems,
+  useListWarehouses,
 } from "@workspace/api-client-react";
 
-type MovementType = "customer_trip" | "customer_shifting" | "in_house_shifting";
+type TripCategory = "trip" | "shifting";
+type ShiftingKind = "customer_shifting" | "in_house_shifting";
 
 export default function CreateTripPage() {
   const [, navigate] = useLocation();
-  const [movementType, setMovementType] = useState<MovementType>("customer_trip");
+  const [category, setCategory] = useState<TripCategory>("trip");
+  const [shiftingKind, setShiftingKind] = useState<ShiftingKind>("customer_shifting");
   const [tripDate, setTripDate] = useState(new Date().toISOString().split("T")[0]);
   const [truckId, setTruckId] = useState("");
   const [driverId, setDriverId] = useState("");
   const [fromCityId, setFromCityId] = useState("");
   const [toCityId, setToCityId] = useState("");
+  const [fromWarehouseId, setFromWarehouseId] = useState("");
+  const [toWarehouseId, setToWarehouseId] = useState("");
   const [driverCommission, setDriverCommission] = useState("");
   const [notes, setNotes] = useState("");
   const [customerId, setCustomerId] = useState("");
@@ -35,6 +40,7 @@ export default function CreateTripPage() {
   const citiesQuery = useListCities({});
   const customersQuery = useListCustomers({});
   const itemsQuery = useListItems({});
+  const warehousesQuery = useListWarehouses({});
 
   useEffect(() => {
     if (!itemId) return;
@@ -43,6 +49,11 @@ export default function CreateTripPage() {
       setRatePerRound(String(Number(it.defaultRatePerRound)));
     }
   }, [itemId, itemsQuery.data, ratePerRound]);
+
+  const isShifting = category === "shifting";
+  const isCustomerShifting = isShifting && shiftingKind === "customer_shifting";
+  const isInHouseShifting = isShifting && shiftingKind === "in_house_shifting";
+  const movementType = !isShifting ? "customer_trip" : shiftingKind;
 
   const createMutation = useCreateTrip({
     mutation: {
@@ -60,22 +71,29 @@ export default function CreateTripPage() {
     },
   });
 
-  const isCustomerShifting = movementType === "customer_shifting";
-  const isInHouseShifting = movementType === "in_house_shifting";
-  const isAnyShifting = isCustomerShifting || isInHouseShifting;
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
-    if (!tripDate || !truckId || !driverId || !fromCityId || !toCityId) {
-      setError("Trip date, truck, driver, from city and to city are required");
+    if (!tripDate || !truckId || !driverId) {
+      setError("Trip date, truck, and driver are required");
       return;
     }
 
-    if (movementType === "customer_trip" && fromCityId === toCityId) {
-      setError("From City and To City cannot be the same for customer trips");
-      return;
+    if (!isShifting) {
+      if (!fromCityId || !toCityId) {
+        setError("From City and To City are required for customer trips");
+        return;
+      }
+      if (fromCityId === toCityId) {
+        setError("From City and To City cannot be the same for customer trips");
+        return;
+      }
+    } else {
+      if (!fromWarehouseId || !toWarehouseId) {
+        setError("From Warehouse and To Warehouse are required for shifting trips");
+        return;
+      }
     }
 
     if (isInHouseShifting && !notes.trim()) {
@@ -86,13 +104,11 @@ export default function CreateTripPage() {
     if (isCustomerShifting) {
       if (!customerId) { setError("Customer is required for customer shifting"); return; }
       if (!itemId) { setError("Item is required for customer shifting"); return; }
-      const r = Number(rounds);
-      if (!Number.isInteger(r) || r <= 0) { setError("Rounds must be a positive integer"); return; }
       const rate = Number(ratePerRound);
       if (!Number.isFinite(rate) || rate < 0) { setError("Rate per round must be a non-negative number"); return; }
     }
 
-    if (isAnyShifting) {
+    if (isShifting) {
       const r = Number(rounds || "1");
       if (!Number.isInteger(r) || r <= 0) { setError("Rounds must be a positive integer"); return; }
       const comm = Number(commissionPerRound || "0");
@@ -103,15 +119,17 @@ export default function CreateTripPage() {
       tripDate,
       truckId: Number(truckId),
       driverId: Number(driverId),
-      fromCityId: Number(fromCityId),
-      toCityId: Number(toCityId),
       movementType,
       notes: notes.trim() || undefined,
     };
 
-    if (movementType === "customer_trip") {
+    if (!isShifting) {
+      payload.fromCityId = Number(fromCityId);
+      payload.toCityId = Number(toCityId);
       payload.driverCommission = driverCommission || "0";
     } else {
+      payload.fromWarehouseId = Number(fromWarehouseId);
+      payload.toWarehouseId = Number(toWarehouseId);
       payload.driverCommission = "0";
       payload.rounds = Number(rounds || "1");
       payload.commissionPerRound = String(Number(commissionPerRound || "0"));
@@ -130,10 +148,7 @@ export default function CreateTripPage() {
   return (
     <div className="max-w-2xl">
       <div className="flex items-center gap-3 mb-6">
-        <Link
-          href="/trips"
-          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"
-        >
+        <Link href="/trips" className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg">
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <h2 className="text-2xl font-bold text-gray-900">Create Trip</h2>
@@ -150,53 +165,69 @@ export default function CreateTripPage() {
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Trip Type <span className="text-red-500">*</span>
           </label>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
-              onClick={() => setMovementType("customer_trip")}
+              onClick={() => setCategory("trip")}
               className={`flex items-center gap-3 p-3 rounded-lg border-2 text-sm font-medium transition-colors text-left ${
-                movementType === "customer_trip"
-                  ? "border-blue-500 bg-blue-50 text-blue-800"
-                  : "border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                !isShifting ? "border-blue-500 bg-blue-50 text-blue-800" : "border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
               }`}
             >
               <Route className="w-5 h-5 flex-shrink-0" />
               <div>
-                <div className="font-semibold">Customer Trip</div>
-                <div className="text-xs font-normal text-gray-500">Standard freight bilty</div>
+                <div className="font-semibold">Trip</div>
+                <div className="text-xs font-normal text-gray-500">Freight bilty (city → city)</div>
               </div>
             </button>
             <button
               type="button"
-              onClick={() => setMovementType("customer_shifting")}
+              onClick={() => setCategory("shifting")}
               className={`flex items-center gap-3 p-3 rounded-lg border-2 text-sm font-medium transition-colors text-left ${
-                isCustomerShifting
-                  ? "border-teal-500 bg-teal-50 text-teal-800"
-                  : "border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                isShifting ? `border-${accent}-500 bg-${accent}-50 text-${accent}-800` : "border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
               }`}
             >
-              <Users2 className="w-5 h-5 flex-shrink-0" />
+              <Warehouse className="w-5 h-5 flex-shrink-0" />
               <div>
-                <div className="font-semibold">Customer Shifting</div>
-                <div className="text-xs font-normal text-gray-500">Rounds × rate billing</div>
-              </div>
-            </button>
-            <button
-              type="button"
-              onClick={() => setMovementType("in_house_shifting")}
-              className={`flex items-center gap-3 p-3 rounded-lg border-2 text-sm font-medium transition-colors text-left ${
-                isInHouseShifting
-                  ? "border-orange-500 bg-orange-50 text-orange-800"
-                  : "border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
-              }`}
-            >
-              <Truck className="w-5 h-5 flex-shrink-0" />
-              <div>
-                <div className="font-semibold">In-House Shifting</div>
-                <div className="text-xs font-normal text-gray-500">Internal — cost only</div>
+                <div className="font-semibold">Shifting</div>
+                <div className="text-xs font-normal text-gray-500">Warehouse → warehouse, by rounds</div>
               </div>
             </button>
           </div>
+
+          {isShifting && (
+            <div className="mt-3">
+              <div className="text-xs font-medium text-gray-600 mb-2">Shifting Kind <span className="text-red-500">*</span></div>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShiftingKind("customer_shifting")}
+                  className={`flex items-center gap-3 p-3 rounded-lg border-2 text-sm font-medium transition-colors text-left ${
+                    isCustomerShifting ? "border-teal-500 bg-teal-50 text-teal-800" : "border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  <Users2 className="w-5 h-5 flex-shrink-0" />
+                  <div>
+                    <div className="font-semibold">For Customer</div>
+                    <div className="text-xs font-normal text-gray-500">Rounds × rate billing</div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShiftingKind("in_house_shifting")}
+                  className={`flex items-center gap-3 p-3 rounded-lg border-2 text-sm font-medium transition-colors text-left ${
+                    isInHouseShifting ? "border-orange-500 bg-orange-50 text-orange-800" : "border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  <Truck className="w-5 h-5 flex-shrink-0" />
+                  <div>
+                    <div className="font-semibold">In-House</div>
+                    <div className="text-xs font-normal text-gray-500">Internal — cost only</div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          )}
+
           {isCustomerShifting && (
             <p className="mt-2 text-xs text-teal-700 bg-teal-50 border border-teal-200 rounded p-2">
               Revenue = Rounds × Rate per round. Commission paid to driver per round.
@@ -234,25 +265,48 @@ export default function CreateTripPage() {
           </select>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">From City <span className="text-red-500">*</span></label>
-            <select value={fromCityId} onChange={(e) => setFromCityId(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-              <option value="">Select origin</option>
-              {citiesQuery.data?.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
-            </select>
+        {!isShifting && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">From City <span className="text-red-500">*</span></label>
+              <select value={fromCityId} onChange={(e) => setFromCityId(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                <option value="">Select origin</option>
+                {citiesQuery.data?.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">To City <span className="text-red-500">*</span></label>
+              <select value={toCityId} onChange={(e) => setToCityId(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                <option value="">Select destination</option>
+                {citiesQuery.data?.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+              </select>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              To City <span className="text-red-500">*</span>
-              {isAnyShifting && (<span className="ml-1 text-xs text-gray-500 font-normal">(same allowed)</span>)}
-            </label>
-            <select value={toCityId} onChange={(e) => setToCityId(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-              <option value="">Select destination</option>
-              {citiesQuery.data?.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
-            </select>
+        )}
+
+        {isShifting && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">From Warehouse <span className="text-red-500">*</span></label>
+              <select value={fromWarehouseId} onChange={(e) => setFromWarehouseId(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                <option value="">Select origin warehouse</option>
+                {warehousesQuery.data?.map((w) => (<option key={w.id} value={w.id}>{w.name}{w.cityName ? ` — ${w.cityName}` : ""}</option>))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">To Warehouse <span className="text-red-500">*</span> <span className="ml-1 text-xs text-gray-500 font-normal">(same allowed)</span></label>
+              <select value={toWarehouseId} onChange={(e) => setToWarehouseId(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                <option value="">Select destination warehouse</option>
+                {warehousesQuery.data?.map((w) => (<option key={w.id} value={w.id}>{w.name}{w.cityName ? ` — ${w.cityName}` : ""}</option>))}
+              </select>
+            </div>
+            {!warehousesQuery.data?.length && (
+              <div className="sm:col-span-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+                No warehouses defined yet. <Link href="/masters/warehouses" className="underline font-medium">Add warehouses first</Link>.
+              </div>
+            )}
           </div>
-        </div>
+        )}
 
         {isCustomerShifting && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-teal-50/40 border border-teal-200 rounded-lg">
@@ -277,7 +331,7 @@ export default function CreateTripPage() {
           </div>
         )}
 
-        {isAnyShifting && (
+        {isShifting && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Number of Rounds <span className="text-red-500">*</span></label>
@@ -290,7 +344,7 @@ export default function CreateTripPage() {
           </div>
         )}
 
-        {movementType === "customer_trip" && (
+        {!isShifting && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Driver Commission (PKR)</label>
             <input type="number" step="0.01" min="0" value={driverCommission} onChange={(e) => setDriverCommission(e.target.value)} placeholder="0" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />

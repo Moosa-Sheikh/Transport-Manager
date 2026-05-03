@@ -110,6 +110,22 @@ export interface ExpenseTypeInput {
   name: string;
 }
 
+export interface Warehouse {
+  id: number;
+  name: string;
+  cityId: number;
+  cityName?: string | null;
+  address?: string | null;
+  createdAt?: string | null;
+}
+
+export interface WarehouseInput {
+  /** @minLength 1 */
+  name: string;
+  cityId: number;
+  address?: string | null;
+}
+
 export interface Item {
   id: number;
   name: string;
@@ -143,8 +159,10 @@ export interface TripInput {
   tripDate: string;
   truckId: number;
   driverId: number;
-  fromCityId: number;
-  toCityId: number;
+  fromCityId?: number | null;
+  toCityId?: number | null;
+  fromWarehouseId?: number | null;
+  toWarehouseId?: number | null;
   driverCommission?: string;
   movementType?: TripInputMovementType;
   notes?: string | null;
@@ -179,10 +197,14 @@ export interface TripWithDetails {
   truckNumber: string;
   driverId: number;
   driverName: string;
-  fromCityId: number;
-  fromCityName: string;
-  toCityId: number;
-  toCityName: string;
+  fromCityId?: number | null;
+  fromCityName?: string | null;
+  toCityId?: number | null;
+  toCityName?: string | null;
+  fromWarehouseId?: number | null;
+  fromWarehouseName?: string | null;
+  toWarehouseId?: number | null;
+  toWarehouseName?: string | null;
   driverCommission?: string;
   status: TripWithDetailsStatus;
   movementType: TripWithDetailsMovementType;
@@ -783,6 +805,11 @@ export type ListCitiesParams = {
 
 export type ListExpenseTypesParams = {
   search?: string;
+};
+
+export type ListWarehousesParams = {
+  search?: string;
+  city_id?: number;
 };
 
 export type ListItemsParams = {

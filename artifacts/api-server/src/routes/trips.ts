@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
 import {
-  tripsTable, trucksTable, driversTable, citiesTable,
+  tripsTable, trucksTable, driversTable, citiesTable, warehousesTable,
   tripLoadsTable, customersTable,
   tripExpensesTable, expenseTypesTable,
   customerPaymentsTable, driverAdvancesTable, cashBookTable,
@@ -13,6 +13,8 @@ import { parseId } from "../lib/validate-id.js";
 
 const fromCities = alias(citiesTable, "from_city");
 const toCities = alias(citiesTable, "to_city");
+const fromWarehouses = alias(warehousesTable, "from_warehouse");
+const toWarehouses = alias(warehousesTable, "to_warehouse");
 
 const router: IRouter = Router();
 
@@ -52,6 +54,10 @@ function buildTripQuery() {
       fromCityName: fromCities.name,
       toCityId: tripsTable.toCityId,
       toCityName: toCities.name,
+      fromWarehouseId: tripsTable.fromWarehouseId,
+      fromWarehouseName: fromWarehouses.name,
+      toWarehouseId: tripsTable.toWarehouseId,
+      toWarehouseName: toWarehouses.name,
       driverCommission: tripsTable.driverCommission,
       status: tripsTable.status,
       movementType: tripsTable.movementType,
@@ -77,8 +83,10 @@ function buildTripQuery() {
     .from(tripsTable)
     .innerJoin(trucksTable, eq(tripsTable.truckId, trucksTable.id))
     .innerJoin(driversTable, eq(tripsTable.driverId, driversTable.id))
-    .innerJoin(fromCities, eq(tripsTable.fromCityId, fromCities.id))
-    .innerJoin(toCities, eq(tripsTable.toCityId, toCities.id))
+    .leftJoin(fromCities, eq(tripsTable.fromCityId, fromCities.id))
+    .leftJoin(toCities, eq(tripsTable.toCityId, toCities.id))
+    .leftJoin(fromWarehouses, eq(tripsTable.fromWarehouseId, fromWarehouses.id))
+    .leftJoin(toWarehouses, eq(tripsTable.toWarehouseId, toWarehouses.id))
     .leftJoin(customersTable, eq(tripsTable.customerId, customersTable.id))
     .leftJoin(itemsTable, eq(tripsTable.itemId, itemsTable.id));
 }
@@ -124,11 +132,15 @@ router.get("/", async (req: Request, res: Response) => {
     if (typeof customer_id === "string" && customer_id) {
       const cid = Number(customer_id);
       if (Number.isFinite(cid) && cid > 0) {
-        conditions.push(sql`EXISTS (SELECT 1 FROM trip_loads WHERE trip_loads.trip_id = ${tripsTable.id} AND trip_loads.customer_id = ${cid})`);
+        conditions.push(sql`(EXISTS (SELECT 1 FROM trip_loads WHERE trip_loads.trip_id = ${tripsTable.id} AND trip_loads.customer_id = ${cid}) OR (${tripsTable.movementType} = 'customer_shifting' AND ${tripsTable.customerId} = ${cid}))`);
       }
     }
-    if (typeof movement_type === "string" && (movement_type === "customer_trip" || movement_type === "in_house_shifting" || movement_type === "customer_shifting")) {
-      conditions.push(eq(tripsTable.movementType, movement_type));
+    if (typeof movement_type === "string") {
+      if (movement_type === "shifting") {
+        conditions.push(sql`${tripsTable.movementType} IN ('customer_shifting', 'in_house_shifting')`);
+      } else if (movement_type === "customer_trip" || movement_type === "in_house_shifting" || movement_type === "customer_shifting") {
+        conditions.push(eq(tripsTable.movementType, movement_type));
+      }
     }
 
     const query = buildTripQuery();
@@ -154,37 +166,56 @@ router.get("/", async (req: Request, res: Response) => {
 router.post("/", async (req: Request, res: Response) => {
   try {
     const {
-      tripDate, truckId, driverId, fromCityId, toCityId, driverCommission,
-      movementType, notes,
+      tripDate, truckId, driverId, fromCityId, toCityId,
+      fromWarehouseId, toWarehouseId,
+      driverCommission, movementType, notes,
       customerId, itemId, rounds, ratePerRound, commissionPerRound,
     } = req.body;
 
-    if (!tripDate || !truckId || !driverId || !fromCityId || !toCityId) {
-      res.status(400).json({ error: "All fields are required" });
+    if (!tripDate || !truckId || !driverId) {
+      res.status(400).json({ error: "Trip date, truck and driver are required" });
       return;
     }
 
     const numTruckId = Number(truckId);
     const numDriverId = Number(driverId);
-    const numFromCityId = Number(fromCityId);
-    const numToCityId = Number(toCityId);
 
-    if (
-      !Number.isInteger(numTruckId) ||
-      !Number.isInteger(numDriverId) ||
-      !Number.isInteger(numFromCityId) ||
-      !Number.isInteger(numToCityId)
-    ) {
-      res.status(400).json({ error: "Invalid ID values" });
+    if (!Number.isInteger(numTruckId) || !Number.isInteger(numDriverId)) {
+      res.status(400).json({ error: "Invalid truck or driver ID" });
       return;
     }
 
     const validModes = new Set(["customer_trip", "in_house_shifting", "customer_shifting"]);
     const resolvedMovementType = validModes.has(movementType) ? movementType as string : "customer_trip";
 
-    if (numFromCityId === numToCityId && resolvedMovementType === "customer_trip") {
-      res.status(400).json({ error: "From city and To city cannot be the same" });
-      return;
+    let numFromCityId: number | null = null;
+    let numToCityId: number | null = null;
+    let numFromWarehouseId: number | null = null;
+    let numToWarehouseId: number | null = null;
+
+    if (resolvedMovementType === "customer_trip") {
+      numFromCityId = Number(fromCityId);
+      numToCityId = Number(toCityId);
+      if (!Number.isInteger(numFromCityId) || !Number.isInteger(numToCityId)) {
+        res.status(400).json({ error: "From city and To city are required for customer trips" });
+        return;
+      }
+      if (numFromCityId === numToCityId) {
+        res.status(400).json({ error: "From city and To city cannot be the same" });
+        return;
+      }
+    } else {
+      numFromWarehouseId = Number(fromWarehouseId);
+      numToWarehouseId = Number(toWarehouseId);
+      if (!Number.isInteger(numFromWarehouseId) || numFromWarehouseId <= 0 ||
+          !Number.isInteger(numToWarehouseId) || numToWarehouseId <= 0) {
+        res.status(400).json({ error: "From and To warehouses are required for shifting" });
+        return;
+      }
+      if (numFromWarehouseId === numToWarehouseId) {
+        res.status(400).json({ error: "From and To warehouses cannot be the same" });
+        return;
+      }
     }
 
     if (resolvedMovementType === "in_house_shifting" && (!notes || String(notes).trim() === "")) {
@@ -256,6 +287,8 @@ router.post("/", async (req: Request, res: Response) => {
         driverId: numDriverId,
         fromCityId: numFromCityId,
         toCityId: numToCityId,
+        fromWarehouseId: numFromWarehouseId,
+        toWarehouseId: numToWarehouseId,
         driverCommission: commissionVal,
         movementType: resolvedMovementType,
         notes: notes ? String(notes).trim() : null,
@@ -1035,6 +1068,20 @@ router.post("/:id/customer-payments", async (req: Request, res: Response) => {
     const custId = customerId ? Number(customerId) : null;
     if (!custId || !Number.isInteger(custId) || custId <= 0) {
       res.status(400).json({ error: "Customer is required" });
+      return;
+    }
+
+    if (trip.movementType === "customer_shifting") {
+      if (!trip.customerId) {
+        res.status(400).json({ error: "Customer shifting trip is missing its customer" });
+        return;
+      }
+      if (custId !== trip.customerId) {
+        res.status(400).json({ error: "Payments for customer shifting must use the trip's customer" });
+        return;
+      }
+    } else if (trip.movementType === "in_house_shifting") {
+      res.status(400).json({ error: "In-house shifting trips do not accept customer payments" });
       return;
     }
 

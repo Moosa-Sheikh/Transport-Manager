@@ -15,10 +15,14 @@ export interface TripWithDetails {
   truckNumber: string;
   driverId: number;
   driverName: string;
-  fromCityId: number;
-  fromCityName: string;
-  toCityId: number;
-  toCityName: string;
+  fromCityId?: number | null;
+  fromCityName?: string | null;
+  toCityId?: number | null;
+  toCityName?: string | null;
+  fromWarehouseId?: number | null;
+  fromWarehouseName?: string | null;
+  toWarehouseId?: number | null;
+  toWarehouseName?: string | null;
   driverCommission?: string;
   status: TripWithDetailsStatus;
   movementType: TripWithDetailsMovementType;

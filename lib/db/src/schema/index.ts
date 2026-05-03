@@ -3,6 +3,7 @@ export * from "./customers";
 export * from "./drivers";
 export * from "./trucks";
 export * from "./cities";
+export * from "./warehouses";
 export * from "./expense-types";
 export * from "./items";
 export * from "./trips";

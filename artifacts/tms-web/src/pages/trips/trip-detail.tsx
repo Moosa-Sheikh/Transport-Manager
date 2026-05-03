@@ -261,7 +261,10 @@ export default function TripDetailPage() {
 
   const handleAddPayment = (e: React.FormEvent) => {
     e.preventDefault();
-    const effectiveCustomerId = hasSingleLoadCustomer ? autoCustomerId : paymentForm.customerId;
+    const lockedCustomerId = trip?.movementType === "customer_shifting" && trip?.customerId
+      ? String(trip.customerId)
+      : null;
+    const effectiveCustomerId = lockedCustomerId ?? (hasSingleLoadCustomer ? autoCustomerId : paymentForm.customerId);
     if (!paymentForm.amount || !paymentForm.paymentDate || !effectiveCustomerId) return;
     addPaymentMutation.mutate({
       id: tripId,
@@ -296,6 +299,9 @@ export default function TripDetailPage() {
   const customerDuesData = customerDuesQuery.data;
 
   const loadCustomers = (() => {
+    if (trip?.movementType === "customer_shifting" && trip.customerId) {
+      return [{ id: trip.customerId, name: trip.customerName ?? "" }];
+    }
     if (!loadsData?.loads?.length) return [];
     const seen = new Map<number, string>();
     for (const l of loadsData.loads) {
@@ -459,9 +465,9 @@ export default function TripDetailPage() {
               <div>
                 <div className="text-xs font-medium text-gray-500 uppercase mb-1">Route</div>
                 <div className="text-sm text-gray-900 flex items-center gap-2">
-                  <span className="font-medium">{trip.fromCityName}</span>
+                  <span className="font-medium">{trip.fromWarehouseName ?? trip.fromCityName ?? "—"}</span>
                   <ChevronRight className="w-4 h-4 text-gray-400" />
-                  <span className="font-medium">{trip.toCityName}</span>
+                  <span className="font-medium">{trip.toWarehouseName ?? trip.toCityName ?? "—"}</span>
                 </div>
               </div>
               <div>

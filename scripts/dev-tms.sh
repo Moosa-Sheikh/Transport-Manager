@@ -18,7 +18,7 @@ echo "[dev-tms] Building api-server..."
 echo "[dev-tms] Starting api-server on :8080 ..."
 ( cd "$ROOT/artifacts/api-server" \
   && PORT=8080 NODE_ENV=development \
-     node --enable-source-maps ./dist/index.mjs ) &
+     node --enable-source-maps ./dist/main.mjs ) &
 API_PID=$!
 
 echo "[dev-tms] Starting vite dev on :$PORT ..."

@@ -19,6 +19,21 @@ export async function runMigrations() {
   await db.execute(sql`ALTER TABLE trips ADD COLUMN IF NOT EXISTS rate_per_round NUMERIC(12, 2) DEFAULT 0`);
   await db.execute(sql`ALTER TABLE trips ADD COLUMN IF NOT EXISTS commission_per_round NUMERIC(12, 2) DEFAULT 0`);
 
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS warehouses (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(150) NOT NULL,
+      city_id INTEGER NOT NULL REFERENCES cities(id) ON DELETE RESTRICT,
+      address TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_warehouses_city ON warehouses(city_id)`);
+  await db.execute(sql`ALTER TABLE trips ADD COLUMN IF NOT EXISTS from_warehouse_id INTEGER REFERENCES warehouses(id) ON DELETE RESTRICT`);
+  await db.execute(sql`ALTER TABLE trips ADD COLUMN IF NOT EXISTS to_warehouse_id INTEGER REFERENCES warehouses(id) ON DELETE RESTRICT`);
+  await db.execute(sql`ALTER TABLE trips ALTER COLUMN from_city_id DROP NOT NULL`);
+  await db.execute(sql`ALTER TABLE trips ALTER COLUMN to_city_id DROP NOT NULL`);
+
   const seedItems: { name: string; unit: string; rate: string }[] = [
     { name: "Cement Bag", unit: "Bag", rate: "50" },
     { name: "Sand", unit: "CFT", rate: "25" },

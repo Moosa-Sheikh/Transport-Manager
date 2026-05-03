@@ -33,7 +33,7 @@ function getInitialFilters() {
     from_city_id?: number;
     to_city_id?: number;
     customer_id?: number;
-    movement_type?: "customer_trip" | "in_house_shifting" | "customer_shifting";
+    movement_type?: "customer_trip" | "in_house_shifting" | "customer_shifting" | "shifting";
   } = {};
   if (params.get("driver_id")) f.driver_id = Number(params.get("driver_id"));
   if (params.get("date_from")) f.date_from = params.get("date_from")!;
@@ -41,7 +41,8 @@ function getInitialFilters() {
   if (params.get("truck_id")) f.truck_id = Number(params.get("truck_id"));
   if (params.get("status")) f.status = params.get("status") as "Open" | "Closed";
   if (params.get("customer_id")) f.customer_id = Number(params.get("customer_id"));
-  if (params.get("movement_type")) f.movement_type = params.get("movement_type") as "customer_trip" | "in_house_shifting" | "customer_shifting";
+  const mt = params.get("movement_type") || (params.get("view") === "shifting" ? "shifting" : null);
+  if (mt) f.movement_type = mt as "customer_trip" | "in_house_shifting" | "customer_shifting" | "shifting";
   return f;
 }
 
@@ -107,19 +108,13 @@ export default function TripListPage() {
                 onClick={() => setFilters((f) => ({ ...f, movement_type: "customer_trip" }))}
                 className={`px-3 py-1 rounded-md font-medium transition-colors ${filters.movement_type === "customer_trip" ? "bg-white shadow text-blue-700" : "text-gray-500 hover:text-gray-700"}`}
               >
-                Customer Trip
+                Trips
               </button>
               <button
-                onClick={() => setFilters((f) => ({ ...f, movement_type: "customer_shifting" }))}
-                className={`px-3 py-1 rounded-md font-medium transition-colors ${filters.movement_type === "customer_shifting" ? "bg-white shadow text-teal-700" : "text-gray-500 hover:text-gray-700"}`}
+                onClick={() => setFilters((f) => ({ ...f, movement_type: "shifting" }))}
+                className={`px-3 py-1 rounded-md font-medium transition-colors ${filters.movement_type === "shifting" || filters.movement_type === "customer_shifting" || filters.movement_type === "in_house_shifting" ? "bg-white shadow text-teal-700" : "text-gray-500 hover:text-gray-700"}`}
               >
-                Cust. Shift
-              </button>
-              <button
-                onClick={() => setFilters((f) => ({ ...f, movement_type: "in_house_shifting" }))}
-                className={`px-3 py-1 rounded-md font-medium transition-colors ${filters.movement_type === "in_house_shifting" ? "bg-white shadow text-orange-700" : "text-gray-500 hover:text-gray-700"}`}
-              >
-                In-House
+                Shifting
               </button>
             </div>
           </div>
@@ -496,9 +491,9 @@ export default function TripListPage() {
                       </td>
                       <td className="px-4 py-3 text-gray-700">
                         <span className="flex items-center gap-1">
-                          {trip.fromCityName}
+                          {trip.fromWarehouseName ?? trip.fromCityName ?? "—"}
                           <ChevronRight className="w-3 h-3 text-gray-400" />
-                          {trip.toCityName}
+                          {trip.toWarehouseName ?? trip.toCityName ?? "—"}
                         </span>
                       </td>
                       <td className="px-4 py-3">

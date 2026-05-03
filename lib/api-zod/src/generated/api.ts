@@ -321,6 +321,67 @@ export const DeleteExpenseTypeResponse = zod.object({
 });
 
 /**
+ * @summary List warehouses
+ */
+export const ListWarehousesQueryParams = zod.object({
+  search: zod.coerce.string().optional(),
+  city_id: zod.coerce.number().optional(),
+});
+
+export const ListWarehousesResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  cityId: zod.number(),
+  cityName: zod.string().nullish(),
+  address: zod.string().nullish(),
+  createdAt: zod.string().nullish(),
+});
+export const ListWarehousesResponse = zod.array(ListWarehousesResponseItem);
+
+/**
+ * @summary Create warehouse
+ */
+
+export const CreateWarehouseBody = zod.object({
+  name: zod.string().min(1),
+  cityId: zod.number(),
+  address: zod.string().nullish(),
+});
+
+/**
+ * @summary Update warehouse
+ */
+export const UpdateWarehouseParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateWarehouseBody = zod.object({
+  name: zod.string().min(1),
+  cityId: zod.number(),
+  address: zod.string().nullish(),
+});
+
+export const UpdateWarehouseResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  cityId: zod.number(),
+  cityName: zod.string().nullish(),
+  address: zod.string().nullish(),
+  createdAt: zod.string().nullish(),
+});
+
+/**
+ * @summary Delete warehouse
+ */
+export const DeleteWarehouseParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteWarehouseResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
  * @summary List items
  */
 export const ListItemsQueryParams = zod.object({
@@ -403,10 +464,14 @@ export const ListTripsResponseItem = zod.object({
   truckNumber: zod.string(),
   driverId: zod.number(),
   driverName: zod.string(),
-  fromCityId: zod.number(),
-  fromCityName: zod.string(),
-  toCityId: zod.number(),
-  toCityName: zod.string(),
+  fromCityId: zod.number().nullish(),
+  fromCityName: zod.string().nullish(),
+  toCityId: zod.number().nullish(),
+  toCityName: zod.string().nullish(),
+  fromWarehouseId: zod.number().nullish(),
+  fromWarehouseName: zod.string().nullish(),
+  toWarehouseId: zod.number().nullish(),
+  toWarehouseName: zod.string().nullish(),
   driverCommission: zod.string().optional(),
   status: zod.enum(["Open", "Closed"]),
   movementType: zod.enum([
@@ -442,8 +507,10 @@ export const CreateTripBody = zod.object({
   tripDate: zod.coerce.date(),
   truckId: zod.number(),
   driverId: zod.number(),
-  fromCityId: zod.number(),
-  toCityId: zod.number(),
+  fromCityId: zod.number().nullish(),
+  toCityId: zod.number().nullish(),
+  fromWarehouseId: zod.number().nullish(),
+  toWarehouseId: zod.number().nullish(),
   driverCommission: zod.string().optional(),
   movementType: zod
     .enum(["customer_trip", "in_house_shifting", "customer_shifting"])
@@ -470,10 +537,14 @@ export const GetTripResponse = zod.object({
   truckNumber: zod.string(),
   driverId: zod.number(),
   driverName: zod.string(),
-  fromCityId: zod.number(),
-  fromCityName: zod.string(),
-  toCityId: zod.number(),
-  toCityName: zod.string(),
+  fromCityId: zod.number().nullish(),
+  fromCityName: zod.string().nullish(),
+  toCityId: zod.number().nullish(),
+  toCityName: zod.string().nullish(),
+  fromWarehouseId: zod.number().nullish(),
+  fromWarehouseName: zod.string().nullish(),
+  toWarehouseId: zod.number().nullish(),
+  toWarehouseName: zod.string().nullish(),
   driverCommission: zod.string().optional(),
   status: zod.enum(["Open", "Closed"]),
   movementType: zod.enum([
@@ -526,10 +597,14 @@ export const CloseTripResponse = zod.object({
   truckNumber: zod.string(),
   driverId: zod.number(),
   driverName: zod.string(),
-  fromCityId: zod.number(),
-  fromCityName: zod.string(),
-  toCityId: zod.number(),
-  toCityName: zod.string(),
+  fromCityId: zod.number().nullish(),
+  fromCityName: zod.string().nullish(),
+  toCityId: zod.number().nullish(),
+  toCityName: zod.string().nullish(),
+  fromWarehouseId: zod.number().nullish(),
+  fromWarehouseName: zod.string().nullish(),
+  toWarehouseId: zod.number().nullish(),
+  toWarehouseName: zod.string().nullish(),
   driverCommission: zod.string().optional(),
   status: zod.enum(["Open", "Closed"]),
   movementType: zod.enum([
@@ -575,10 +650,14 @@ export const UpdateTripCommissionResponse = zod.object({
   truckNumber: zod.string(),
   driverId: zod.number(),
   driverName: zod.string(),
-  fromCityId: zod.number(),
-  fromCityName: zod.string(),
-  toCityId: zod.number(),
-  toCityName: zod.string(),
+  fromCityId: zod.number().nullish(),
+  fromCityName: zod.string().nullish(),
+  toCityId: zod.number().nullish(),
+  toCityName: zod.string().nullish(),
+  fromWarehouseId: zod.number().nullish(),
+  fromWarehouseName: zod.string().nullish(),
+  toWarehouseId: zod.number().nullish(),
+  toWarehouseName: zod.string().nullish(),
   driverCommission: zod.string().optional(),
   status: zod.enum(["Open", "Closed"]),
   movementType: zod.enum([

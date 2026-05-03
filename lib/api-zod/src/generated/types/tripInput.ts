@@ -11,8 +11,10 @@ export interface TripInput {
   tripDate: Date;
   truckId: number;
   driverId: number;
-  fromCityId: number;
-  toCityId: number;
+  fromCityId?: number | null;
+  toCityId?: number | null;
+  fromWarehouseId?: number | null;
+  toWarehouseId?: number | null;
   driverCommission?: string;
   movementType?: TripInputMovementType;
   notes?: string | null;

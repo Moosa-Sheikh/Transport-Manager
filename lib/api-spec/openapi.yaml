@@ -586,6 +586,112 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /masters/warehouses:
+    get:
+      operationId: listWarehouses
+      tags: [warehouses]
+      summary: List warehouses
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: city_id
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Warehouse list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Warehouse"
+    post:
+      operationId: createWarehouse
+      tags: [warehouses]
+      summary: Create warehouse
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WarehouseInput"
+      responses:
+        "201":
+          description: Warehouse created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Warehouse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /masters/warehouses/{id}:
+    put:
+      operationId: updateWarehouse
+      tags: [warehouses]
+      summary: Update warehouse
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WarehouseInput"
+      responses:
+        "200":
+          description: Warehouse updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Warehouse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteWarehouse
+      tags: [warehouses]
+      summary: Delete warehouse
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Warehouse deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Cannot delete warehouse in use
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /masters/items:
     get:
       operationId: listItems
@@ -2521,6 +2627,38 @@ components:
           minLength: 1
       required: [name]
 
+    Warehouse:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        cityId:
+          type: integer
+        cityName:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          nullable: true
+      required: [id, name, cityId]
+    WarehouseInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        cityId:
+          type: integer
+        address:
+          type: string
+          nullable: true
+      required: [name, cityId]
+
     Item:
       type: object
       properties:
@@ -2569,8 +2707,16 @@ components:
           type: integer
         fromCityId:
           type: integer
+          nullable: true
         toCityId:
           type: integer
+          nullable: true
+        fromWarehouseId:
+          type: integer
+          nullable: true
+        toWarehouseId:
+          type: integer
+          nullable: true
         driverCommission:
           type: string
         movementType:
@@ -2594,7 +2740,7 @@ components:
         commissionPerRound:
           type: string
           nullable: true
-      required: [tripDate, truckId, driverId, fromCityId, toCityId]
+      required: [tripDate, truckId, driverId]
 
     TripWithDetails:
       type: object
@@ -2613,12 +2759,28 @@ components:
           type: string
         fromCityId:
           type: integer
+          nullable: true
         fromCityName:
           type: string
+          nullable: true
         toCityId:
           type: integer
+          nullable: true
         toCityName:
           type: string
+          nullable: true
+        fromWarehouseId:
+          type: integer
+          nullable: true
+        fromWarehouseName:
+          type: string
+          nullable: true
+        toWarehouseId:
+          type: integer
+          nullable: true
+        toWarehouseName:
+          type: string
+          nullable: true
         driverCommission:
           type: string
         status:
@@ -2675,7 +2837,7 @@ components:
           type: number
         actualProfit:
           type: number
-      required: [id, tripDate, truckId, truckNumber, driverId, driverName, fromCityId, fromCityName, toCityId, toCityName, status, movementType, income, expense, profit, totalReceived, totalAdvances, actualProfit]
+      required: [id, tripDate, truckId, truckNumber, driverId, driverName, status, movementType, income, expense, profit, totalReceived, totalAdvances, actualProfit]
 
     TripLoadInput:
       type: object
