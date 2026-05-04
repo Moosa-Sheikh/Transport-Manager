@@ -453,8 +453,14 @@ export const ListTripsQueryParams = zod.object({
   to_city_id: zod.coerce.number().optional(),
   customer_id: zod.coerce.number().optional(),
   movement_type: zod
-    .enum(["customer_trip", "in_house_shifting", "customer_shifting"])
+    .enum([
+      "customer_trip",
+      "in_house_shifting",
+      "customer_shifting",
+      "shifting",
+    ])
     .optional(),
+  inhouse_warehouse_id: zod.coerce.number().optional(),
 });
 
 export const ListTripsResponseItem = zod.object({

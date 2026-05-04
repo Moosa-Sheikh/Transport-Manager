@@ -20,4 +20,5 @@ export type ListTripsParams = {
   to_city_id?: number;
   customer_id?: number;
   movement_type?: ListTripsMovementType;
+  inhouse_warehouse_id?: number;
 };

@@ -18,6 +18,7 @@ import {
   useListDrivers,
   useListCities,
   useListCustomers,
+  useListWarehouses,
   getListTripsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -33,6 +34,7 @@ function getInitialFilters() {
     from_city_id?: number;
     to_city_id?: number;
     customer_id?: number;
+    inhouse_warehouse_id?: number;
     movement_type?: "customer_trip" | "in_house_shifting" | "customer_shifting" | "shifting";
   } = {};
   if (params.get("driver_id")) f.driver_id = Number(params.get("driver_id"));
@@ -60,6 +62,7 @@ export default function TripListPage() {
   const driversQuery = useListDrivers({});
   const citiesQuery = useListCities({});
   const customersQuery = useListCustomers({});
+  const warehousesQuery = useListWarehouses({});
 
   const closeMutation = useCloseTrip({
     mutation: {
@@ -90,7 +93,8 @@ export default function TripListPage() {
     setFilters({});
   };
 
-  const activeFilterCount = Object.values(filters).filter(Boolean).length;
+  const isShiftingTab = filters.movement_type === "shifting" || filters.movement_type === "in_house_shifting" || filters.movement_type === "customer_shifting";
+  const activeFilterCount = Object.entries(filters).filter(([k, v]) => k !== "movement_type" && Boolean(v)).length;
 
   return (
       <div>
@@ -99,20 +103,26 @@ export default function TripListPage() {
             <h2 className="text-2xl font-bold text-gray-900">Trips</h2>
             <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 text-sm">
               <button
-                onClick={() => setFilters((f) => { const { movement_type, ...rest } = f; return rest; })}
+                onClick={() => setFilters({})}
                 className={`px-3 py-1 rounded-md font-medium transition-colors ${!filters.movement_type ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}
               >
                 All
               </button>
               <button
-                onClick={() => setFilters((f) => ({ ...f, movement_type: "customer_trip" }))}
+                onClick={() => setFilters((f) => {
+                  const { inhouse_warehouse_id, ...rest } = f;
+                  return { ...rest, movement_type: "customer_trip" };
+                })}
                 className={`px-3 py-1 rounded-md font-medium transition-colors ${filters.movement_type === "customer_trip" ? "bg-white shadow text-blue-700" : "text-gray-500 hover:text-gray-700"}`}
               >
                 Trips
               </button>
               <button
-                onClick={() => setFilters((f) => ({ ...f, movement_type: "shifting" }))}
-                className={`px-3 py-1 rounded-md font-medium transition-colors ${filters.movement_type === "shifting" || filters.movement_type === "customer_shifting" || filters.movement_type === "in_house_shifting" ? "bg-white shadow text-teal-700" : "text-gray-500 hover:text-gray-700"}`}
+                onClick={() => setFilters((f) => {
+                  const { from_city_id, to_city_id, profit, ...rest } = f;
+                  return { ...rest, movement_type: "shifting" };
+                })}
+                className={`px-3 py-1 rounded-md font-medium transition-colors ${isShiftingTab ? "bg-white shadow text-teal-700" : "text-gray-500 hover:text-gray-700"}`}
               >
                 Shifting
               </button>
@@ -180,7 +190,7 @@ export default function TripListPage() {
         {showFilters && (
           <div className="mb-6 bg-white border border-gray-200 rounded-lg p-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-medium text-gray-900">Filter Trips</h3>
+              <h3 className="font-medium text-gray-900">{isShiftingTab ? "Filter Shifts" : "Filter Trips"}</h3>
               {activeFilterCount > 0 && (
                 <button
                   onClick={clearFilters}
@@ -287,69 +297,113 @@ export default function TripListPage() {
                   <option value="Closed">Closed</option>
                 </select>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Profit
-                </label>
-                <select
-                  value={filters.profit ?? ""}
-                  onChange={(e) =>
-                    setFilters((f) => ({
-                      ...f,
-                      profit: (e.target.value || undefined) as "positive" | "negative" | undefined,
-                    }))
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">All Trips</option>
-                  <option value="positive">Profitable</option>
-                  <option value="negative">Loss-Making</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  From City
-                </label>
-                <select
-                  value={filters.from_city_id ?? ""}
-                  onChange={(e) =>
-                    setFilters((f) => ({
-                      ...f,
-                      from_city_id: e.target.value ? Number(e.target.value) : undefined,
-                    }))
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">All Cities</option>
-                  {citiesQuery.data?.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  To City
-                </label>
-                <select
-                  value={filters.to_city_id ?? ""}
-                  onChange={(e) =>
-                    setFilters((f) => ({
-                      ...f,
-                      to_city_id: e.target.value ? Number(e.target.value) : undefined,
-                    }))
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">All Cities</option>
-                  {citiesQuery.data?.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {!isShiftingTab && (
+                <>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Profit
+                    </label>
+                    <select
+                      value={filters.profit ?? ""}
+                      onChange={(e) =>
+                        setFilters((f) => ({
+                          ...f,
+                          profit: (e.target.value || undefined) as "positive" | "negative" | undefined,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">All Trips</option>
+                      <option value="positive">Profitable</option>
+                      <option value="negative">Loss-Making</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      From City
+                    </label>
+                    <select
+                      value={filters.from_city_id ?? ""}
+                      onChange={(e) =>
+                        setFilters((f) => ({
+                          ...f,
+                          from_city_id: e.target.value ? Number(e.target.value) : undefined,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">All Cities</option>
+                      {citiesQuery.data?.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      To City
+                    </label>
+                    <select
+                      value={filters.to_city_id ?? ""}
+                      onChange={(e) =>
+                        setFilters((f) => ({
+                          ...f,
+                          to_city_id: e.target.value ? Number(e.target.value) : undefined,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">All Cities</option>
+                      {citiesQuery.data?.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+              {isShiftingTab && (
+                <>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Warehouse
+                    </label>
+                    <select
+                      value={filters.inhouse_warehouse_id ?? ""}
+                      onChange={(e) =>
+                        setFilters((f) => ({
+                          ...f,
+                          inhouse_warehouse_id: e.target.value ? Number(e.target.value) : undefined,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    >
+                      <option value="">All Warehouses</option>
+                      {warehousesQuery.data?.map((w) => (
+                        <option key={w.id} value={w.id}>{w.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Company
+                    </label>
+                    <select
+                      value={filters.customer_id ?? ""}
+                      onChange={(e) =>
+                        setFilters((f) => ({
+                          ...f,
+                          customer_id: e.target.value ? Number(e.target.value) : undefined,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    >
+                      <option value="">All Companies</option>
+                      {customersQuery.data?.map((c) => (
+                        <option key={c.id} value={c.id}>{c.companyName ?? c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}

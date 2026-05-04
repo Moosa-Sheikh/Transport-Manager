@@ -873,6 +873,7 @@ export type ListTripsParams = {
   to_city_id?: number;
   customer_id?: number;
   movement_type?: ListTripsMovementType;
+  inhouse_warehouse_id?: number;
 };
 
 export type ListTripsStatus =
@@ -898,6 +899,7 @@ export const ListTripsMovementType = {
   customer_trip: "customer_trip",
   in_house_shifting: "in_house_shifting",
   customer_shifting: "customer_shifting",
+  shifting: "shifting",
 } as const;
 
 export type DeleteTrip200 = {

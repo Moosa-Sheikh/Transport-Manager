@@ -114,7 +114,7 @@ function buildTripQuery() {
 
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const { date_from, date_to, truck_id, driver_id, status, profit, from_city_id, to_city_id, customer_id, movement_type } = req.query;
+    const { date_from, date_to, truck_id, driver_id, status, profit, from_city_id, to_city_id, customer_id, movement_type, inhouse_warehouse_id } = req.query;
     const conditions: SQL[] = [];
 
     if (typeof date_from === "string" && date_from) {
@@ -153,7 +153,13 @@ router.get("/", async (req: Request, res: Response) => {
     if (typeof customer_id === "string" && customer_id) {
       const cid = Number(customer_id);
       if (Number.isFinite(cid) && cid > 0) {
-        conditions.push(sql`(EXISTS (SELECT 1 FROM trip_loads WHERE trip_loads.trip_id = ${tripsTable.id} AND trip_loads.customer_id = ${cid}) OR (${tripsTable.movementType} = 'customer_shifting' AND ${tripsTable.customerId} = ${cid}))`);
+        conditions.push(sql`(EXISTS (SELECT 1 FROM trip_loads WHERE trip_loads.trip_id = ${tripsTable.id} AND trip_loads.customer_id = ${cid}) OR (${tripsTable.movementType} IN ('customer_shifting', 'in_house_shifting') AND ${tripsTable.customerId} = ${cid}))`);
+      }
+    }
+    if (typeof inhouse_warehouse_id === "string" && inhouse_warehouse_id) {
+      const wid = Number(inhouse_warehouse_id);
+      if (Number.isFinite(wid) && wid > 0) {
+        conditions.push(eq(tripsTable.inhouseWarehouseId, wid));
       }
     }
     if (typeof movement_type === "string") {

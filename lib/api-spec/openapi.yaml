@@ -844,7 +844,11 @@ paths:
           in: query
           schema:
             type: string
-            enum: [customer_trip, in_house_shifting, customer_shifting]
+            enum: [customer_trip, in_house_shifting, customer_shifting, shifting]
+        - name: inhouse_warehouse_id
+          in: query
+          schema:
+            type: integer
       responses:
         "200":
           description: Trip list
