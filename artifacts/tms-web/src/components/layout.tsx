@@ -43,6 +43,8 @@ const mastersLinks = [
 const tripsLinks = [
   { href: "/trips", label: "Trip List", icon: List },
   { href: "/trips/create", label: "Create Trip", icon: Plus },
+  { href: "/trips?movement_type=customer_shifting", label: "Customer Shifting", icon: ArrowRightLeft },
+  { href: "/trips?movement_type=in_house_shifting", label: "In-House Shifts", icon: Warehouse },
 ];
 
 const financeLinks = [

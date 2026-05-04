@@ -18,7 +18,6 @@ import {
   useListDrivers,
   useListCities,
   useListCustomers,
-  useListWarehouses,
   getListTripsQueryKey,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -34,7 +33,7 @@ function getInitialFilters() {
     from_city_id?: number;
     to_city_id?: number;
     customer_id?: number;
-    inhouse_warehouse_id?: number;
+    city_id?: number;
     movement_type?: "customer_trip" | "in_house_shifting" | "customer_shifting";
   } = {};
   if (params.get("driver_id")) f.driver_id = Number(params.get("driver_id"));
@@ -62,8 +61,6 @@ export default function TripListPage() {
   const driversQuery = useListDrivers({});
   const citiesQuery = useListCities({});
   const customersQuery = useListCustomers({});
-  const warehousesQuery = useListWarehouses({});
-
   const closeMutation = useCloseTrip({
     mutation: {
       onSuccess: () => {
@@ -371,20 +368,20 @@ export default function TripListPage() {
               )}
               {filters.movement_type === "in_house_shifting" && (
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Warehouse</label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">City / Location</label>
                   <select
-                    value={filters.inhouse_warehouse_id ?? ""}
+                    value={filters.city_id ?? ""}
                     onChange={(e) =>
                       setFilters((f) => ({
                         ...f,
-                        inhouse_warehouse_id: e.target.value ? Number(e.target.value) : undefined,
+                        city_id: e.target.value ? Number(e.target.value) : undefined,
                       }))
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                   >
-                    <option value="">All Warehouses</option>
-                    {warehousesQuery.data?.map((w) => (
-                      <option key={w.id} value={w.id}>{w.name}</option>
+                    <option value="">All Cities</option>
+                    {citiesQuery.data?.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
                 </div>

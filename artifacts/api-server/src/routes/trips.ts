@@ -43,13 +43,8 @@ const totalAdvancesSubquery = sql<number>`COALESCE((
 
 const customerShiftingRevenueExpr = sql<number>`(CASE WHEN ${tripsTable.movementType} = 'customer_shifting' THEN COALESCE(${tripsTable.rounds}, 0) * COALESCE(${tripsTable.ratePerRound}, 0) ELSE 0 END)::double precision`;
 const customerShiftingCommissionExpr = sql<number>`(CASE WHEN ${tripsTable.movementType} = 'customer_shifting' THEN COALESCE(${tripsTable.commissionPerRound}, 0) * COALESCE(${tripsTable.rounds}, 0) ELSE 0 END)::double precision`;
-const inHouseRoundsRevenueExpr = sql<number>`COALESCE((
-  SELECT SUM(COALESCE(rate_per_round, 0) * COALESCE(rounds, 0))
-  FROM trip_round_entries WHERE trip_round_entries.trip_id = ${tripsTable.id}
-), 0)::double precision`;
 const tripRevenueExpr = sql<number>`(CASE
   WHEN ${tripsTable.movementType} = 'customer_shifting' THEN ${customerShiftingRevenueExpr}
-  WHEN ${tripsTable.movementType} = 'in_house_shifting' THEN ${inHouseRoundsRevenueExpr}
   ELSE ${incomeSubquery}
 END)::double precision`;
 
@@ -95,10 +90,10 @@ function buildTripQuery() {
       totalReceived: totalReceivedSubquery.as("total_received"),
       totalAdvances: totalAdvancesSubquery.as("total_advances"),
       actualProfit: sql<number>`(${tripRevenueExpr} - ${expenseSubquery} - ${totalAdvancesSubquery})::double precision`.as("actual_profit"),
-      shiftingRevenue: sql<number>`(CASE WHEN ${tripsTable.movementType} = 'customer_shifting' THEN ${customerShiftingRevenueExpr} WHEN ${tripsTable.movementType} = 'in_house_shifting' THEN ${inHouseRoundsRevenueExpr} ELSE 0 END)::double precision`.as("shifting_revenue"),
+      shiftingRevenue: sql<number>`(CASE WHEN ${tripsTable.movementType} = 'customer_shifting' THEN ${customerShiftingRevenueExpr} ELSE 0 END)::double precision`.as("shifting_revenue"),
       driverCommissionTotal: sql<number>`(CASE
         WHEN ${tripsTable.movementType} = 'customer_shifting' THEN ${customerShiftingCommissionExpr}
-        WHEN ${tripsTable.movementType} = 'in_house_shifting' THEN (COALESCE(${tripsTable.commissionPerRound}, 0) * COALESCE((SELECT SUM(rounds) FROM trip_round_entries WHERE trip_round_entries.trip_id = ${tripsTable.id}), 0))::double precision
+        WHEN ${tripsTable.movementType} = 'in_house_shifting' THEN (COALESCE(${tripsTable.commissionPerRound}, 0) * COALESCE(${tripsTable.rounds}, 0))::double precision
         ELSE COALESCE(${tripsTable.driverCommission}, 0)::double precision
       END)::double precision`.as("driver_commission_total"),
     })
@@ -118,7 +113,7 @@ function buildTripQuery() {
 
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const { date_from, date_to, truck_id, driver_id, status, profit, from_city_id, to_city_id, customer_id, movement_type, inhouse_warehouse_id } = req.query;
+    const { date_from, date_to, truck_id, driver_id, status, profit, from_city_id, to_city_id, customer_id, movement_type, city_id } = req.query;
     const conditions: SQL[] = [];
 
     if (typeof date_from === "string" && date_from) {
@@ -160,10 +155,10 @@ router.get("/", async (req: Request, res: Response) => {
         conditions.push(sql`(EXISTS (SELECT 1 FROM trip_loads WHERE trip_loads.trip_id = ${tripsTable.id} AND trip_loads.customer_id = ${cid}) OR (${tripsTable.movementType} IN ('customer_shifting', 'in_house_shifting') AND ${tripsTable.customerId} = ${cid}))`);
       }
     }
-    if (typeof inhouse_warehouse_id === "string" && inhouse_warehouse_id) {
-      const wid = Number(inhouse_warehouse_id);
-      if (Number.isFinite(wid) && wid > 0) {
-        conditions.push(eq(tripsTable.inhouseWarehouseId, wid));
+    if (typeof city_id === "string" && city_id) {
+      const cid = Number(city_id);
+      if (Number.isFinite(cid) && cid > 0) {
+        conditions.push(eq(tripsTable.cityId, cid));
       }
     }
     if (typeof movement_type === "string") {
@@ -238,21 +233,21 @@ router.post("/", async (req: Request, res: Response) => {
         return;
       }
     } else if (resolvedMovementType === "customer_shifting") {
-      numFromWarehouseId = Number(fromWarehouseId);
-      numToWarehouseId = Number(toWarehouseId);
-      if (!Number.isInteger(numFromWarehouseId) || numFromWarehouseId <= 0 ||
-          !Number.isInteger(numToWarehouseId) || numToWarehouseId <= 0) {
-        res.status(400).json({ error: "From and To warehouses are required for customer shifting" });
+      numFromCityId = Number(fromCityId);
+      numToCityId = Number(toCityId);
+      if (!Number.isInteger(numFromCityId) || numFromCityId <= 0 ||
+          !Number.isInteger(numToCityId) || numToCityId <= 0) {
+        res.status(400).json({ error: "From and To cities are required for customer shifting" });
         return;
       }
-      if (numFromWarehouseId === numToWarehouseId) {
-        res.status(400).json({ error: "From and To warehouses cannot be the same" });
+      if (numFromCityId === numToCityId) {
+        res.status(400).json({ error: "From and To cities cannot be the same for customer shifting" });
         return;
       }
     } else {
-      numInhouseWarehouseId = Number(inhouseWarehouseId);
-      if (!Number.isInteger(numInhouseWarehouseId) || numInhouseWarehouseId <= 0) {
-        res.status(400).json({ error: "Warehouse is required for in-house shifting" });
+      numCityId = Number(cityId);
+      if (!Number.isInteger(numCityId) || numCityId <= 0) {
+        res.status(400).json({ error: "City is required for in-house shifting" });
         return;
       }
     }
@@ -295,14 +290,26 @@ router.post("/", async (req: Request, res: Response) => {
       resolvedRate = String(ratePerRound);
       resolvedCommissionPerRound = String(commissionPerRound);
     } else if (resolvedMovementType === "in_house_shifting") {
-      if (customerId !== undefined && customerId !== null && customerId !== "") {
-        const cId = Number(customerId);
-        if (Number.isInteger(cId) && cId > 0) {
-          resolvedCustomerId = cId;
-        }
-      }
+      const iId = Number(itemId);
+      const rNum = Number(rounds);
+      const rateNum = Number(ratePerRound);
       const commNum = Number(commissionPerRound);
-      if (commissionPerRound !== undefined && commissionPerRound !== null && commissionPerRound !== "" && Number.isFinite(commNum) && commNum >= 0) {
+      if (!Number.isInteger(iId) || iId <= 0) {
+        res.status(400).json({ error: "Item is required for in-house shifting" });
+        return;
+      }
+      if (!Number.isInteger(rNum) || rNum <= 0) {
+        res.status(400).json({ error: "Rounds must be a positive integer" });
+        return;
+      }
+      if (!Number.isFinite(rateNum) || rateNum < 0) {
+        res.status(400).json({ error: "Rate per round must be non-negative" });
+        return;
+      }
+      resolvedItemId = iId;
+      resolvedRounds = rNum;
+      resolvedRate = String(ratePerRound);
+      if (Number.isFinite(commNum) && commNum >= 0) {
         resolvedCommissionPerRound = String(commissionPerRound);
       }
     }

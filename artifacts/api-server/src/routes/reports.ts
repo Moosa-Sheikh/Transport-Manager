@@ -645,9 +645,11 @@ async function buildShiftingReportData(
       t.driver_id AS "driverId",
       d.name AS "driverName",
       t.from_city_id AS "fromCityId",
-      COALESCE(fc.name, fw.name) AS "fromCityName",
+      fc.name AS "fromCityName",
       t.to_city_id AS "toCityId",
-      COALESCE(tc.name, tw.name) AS "toCityName",
+      tc.name AS "toCityName",
+      t.city_id AS "cityId",
+      ic.name AS "cityName",
       t.from_warehouse_id AS "fromWarehouseId",
       fw.name AS "fromWarehouseName",
       t.to_warehouse_id AS "toWarehouseId",
@@ -665,21 +667,12 @@ async function buildShiftingReportData(
       COALESCE(t.rounds, 0)::integer AS "rounds",
       COALESCE(t.rate_per_round, 0)::double precision AS "ratePerRound",
       COALESCE(t.commission_per_round, 0)::double precision AS "commissionPerRound",
-      (CASE WHEN t.movement_type = 'customer_shifting'
+      (CASE WHEN t.movement_type IN ('customer_shifting', 'in_house_shifting')
             THEN COALESCE(t.commission_per_round, 0) * COALESCE(t.rounds, 0)
-            WHEN t.movement_type = 'in_house_shifting'
-            THEN COALESCE(t.commission_per_round, 0) * COALESCE((
-              SELECT SUM(rounds) FROM trip_round_entries WHERE trip_id = t.id
-            ), 0)
             ELSE COALESCE(t.driver_commission, 0)
       END)::double precision AS "driverCommission",
       (CASE WHEN t.movement_type = 'customer_shifting'
             THEN COALESCE(t.rounds, 0) * COALESCE(t.rate_per_round, 0)
-            WHEN t.movement_type = 'in_house_shifting'
-            THEN COALESCE((
-              SELECT SUM(COALESCE(rate_per_round, 0) * COALESCE(rounds, 0))
-              FROM trip_round_entries WHERE trip_id = t.id
-            ), 0)
             ELSE 0
       END)::double precision AS "revenue",
       COALESCE((
@@ -691,6 +684,7 @@ async function buildShiftingReportData(
     JOIN drivers d ON d.id = t.driver_id
     LEFT JOIN cities fc ON fc.id = t.from_city_id
     LEFT JOIN cities tc ON tc.id = t.to_city_id
+    LEFT JOIN cities ic ON ic.id = t.city_id
     LEFT JOIN warehouses fw ON fw.id = t.from_warehouse_id
     LEFT JOIN warehouses tw ON tw.id = t.to_warehouse_id
     LEFT JOIN warehouses iw ON iw.id = t.inhouse_warehouse_id
@@ -717,6 +711,8 @@ async function buildShiftingReportData(
       fromCityName: r.fromCityName ? String(r.fromCityName) : "",
       toCityId: r.toCityId !== null && r.toCityId !== undefined ? Number(r.toCityId) : null,
       toCityName: r.toCityName ? String(r.toCityName) : "",
+      cityId: r.cityId !== null && r.cityId !== undefined ? Number(r.cityId) : null,
+      cityName: r.cityName ? String(r.cityName) : null,
       fromWarehouseId: r.fromWarehouseId !== null && r.fromWarehouseId !== undefined ? Number(r.fromWarehouseId) : null,
       fromWarehouseName: r.fromWarehouseName ? String(r.fromWarehouseName) : null,
       toWarehouseId: r.toWarehouseId !== null && r.toWarehouseId !== undefined ? Number(r.toWarehouseId) : null,
@@ -868,17 +864,21 @@ router.get("/export/csv", async (req: Request, res: Response) => {
         const shiftTruckId = req.query.truck_id ? Number(req.query.truck_id) : undefined;
         const shiftDriverId = req.query.driver_id ? Number(req.query.driver_id) : undefined;
         const shiftStatus = req.query.status === "Open" || req.query.status === "Closed" ? String(req.query.status) : undefined;
+        const shiftCustomerId = req.query.customer_id ? Number(req.query.customer_id) : undefined;
+        const shiftItemId = req.query.item_id ? Number(req.query.item_id) : undefined;
         const data = await buildShiftingReportData(
           dateFrom, dateTo,
           shiftTruckId && Number.isInteger(shiftTruckId) && shiftTruckId > 0 ? shiftTruckId : undefined,
           shiftDriverId && Number.isInteger(shiftDriverId) && shiftDriverId > 0 ? shiftDriverId : undefined,
-          shiftStatus, movType
+          shiftStatus, movType,
+          shiftCustomerId && Number.isInteger(shiftCustomerId) && shiftCustomerId > 0 ? shiftCustomerId : undefined,
+          shiftItemId && Number.isInteger(shiftItemId) && shiftItemId > 0 ? shiftItemId : undefined,
         );
         const header = ["Trip ID", "Date", "Type", "Truck", "Driver", "Location", "Company", "Customer", "Status", "Revenue (PKR)", "Expenses (PKR)", "Commission (PKR)", "Total Cost (PKR)", "Net Profit (PKR)"];
         csvContent = toCsvRow(header) + "\n" + data.map((r) => {
           const location = r.movementType === "in_house_shifting"
-            ? (r.inhouseWarehouseName ?? "")
-            : [r.fromWarehouseName ?? r.fromCityName, r.toWarehouseName ?? r.toCityName].filter(Boolean).join(" → ");
+            ? (r.cityName ?? r.inhouseWarehouseName ?? "")
+            : [r.fromCityName, r.toCityName].filter(Boolean).join(" → ");
           const typeLabel = r.movementType === "in_house_shifting" ? "In-House" : "Customer";
           return toCsvRow([r.tripId, r.tripDate, typeLabel, r.truckNumber, r.driverName, location, r.companyName ?? "", r.customerName ?? "", r.status, r.revenue, r.totalExpenses, r.driverCommission, r.totalCost, r.profit]);
         }).join("\n");

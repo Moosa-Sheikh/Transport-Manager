@@ -6,6 +6,15 @@ The system initially operates on a single local computer as a web application an
 
 Core operations include managing city-to-city trips, accommodating multiple loads per trip, flexible driver-to-truck assignments, and using 'Bilty numbers' for load referencing. Key functionalities include comprehensive expense tracking, trip profit calculation, and robust data filtering capabilities across various dimensions like truck, driver, date, customer, trip ID, and Bilty number.
 
+## Shifting Architecture (City-Based)
+
+The TMS supports three movement types:
+- **customer_trip**: Standard bilty trip city-to-city. Uses `from_city_id` + `to_city_id`. Revenue from freight loads.
+- **customer_shifting**: City-to-city shift for a customer. Uses `from_city_id` + `to_city_id` (NOT warehouses). Has `customerId`, `itemId`, `rounds`, `ratePerRound`, `commissionPerRound` at trip level. Revenue = rounds × rate.
+- **in_house_shifting**: Internal operation at a single city. Uses `city_id` (single location, NOT warehouse). Has `itemId`, `rounds`, `ratePerRound`, `commissionPerRound` at trip level. Pure cost (revenue=0, no customer).
+
+The `warehouses` table remains in the DB for historical data but is NOT used for new shifting trips. The `trip_round_entries` table also remains in DB but the UI does not expose it for in_house trips (all fields are trip-level). Driver commission for shifting trips is always `commissionPerRound × rounds` (trip-level), never from round_entries.
+
 The project encompasses a complete TMS with features spanning authentication, master data management (customers, drivers, trucks, cities, expense types), trip management, multi-load handling, expense tracking per trip, profit calculation, payments, cash book management, and a suite of financial reports (Trip, Driver, Truck, Cash Flow, Profit).
 
 # User Preferences
