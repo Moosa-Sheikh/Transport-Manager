@@ -2,6 +2,7 @@ import { useState } from "react";
 import { MoveHorizontal, Loader2, Filter, X, ChevronRight } from "lucide-react";
 import { useGetShiftingReport, useListTrucks, useListDrivers } from "@workspace/api-client-react";
 import { Link } from "wouter";
+import ReportActions from "./report-actions";
 
 function formatPKR(val: number) {
   return new Intl.NumberFormat("en-PK", {
@@ -88,12 +89,18 @@ export default function ShiftingReportPage() {
               </span>
             )}
           </button>
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium"
-          >
-            Print / Export
-          </button>
+          <ReportActions
+            csvUrl={`/reports/export/csv?${new URLSearchParams({
+              type: "shifting",
+              ...(filters.date_from ? { date_from: filters.date_from } : {}),
+              ...(filters.date_to ? { date_to: filters.date_to } : {}),
+              ...(filters.truck_id ? { truck_id: String(filters.truck_id) } : {}),
+              ...(filters.driver_id ? { driver_id: String(filters.driver_id) } : {}),
+              ...(filters.status ? { status: filters.status } : {}),
+              ...(filters.movement_type ? { movement_type: filters.movement_type } : {}),
+            })}`}
+            title="shifting-report"
+          />
         </div>
       </div>
 

@@ -45,7 +45,7 @@ export async function runMigrations() {
   const inserted = await db.execute(
     sql`INSERT INTO _meta_migrations (key) VALUES ('inhouse_redesign_purge_v1') ON CONFLICT (key) DO NOTHING RETURNING key`
   );
-  const insertedRows = (inserted as any).rows ?? (inserted as any);
+  const insertedRows = (inserted.rows as Record<string, unknown>[]);
   if (Array.isArray(insertedRows) && insertedRows.length > 0) {
     await db.execute(sql`DELETE FROM trips WHERE movement_type = 'in_house_shifting'`);
   }
@@ -64,15 +64,7 @@ export async function runMigrations() {
   `);
   await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_trip_round_entries_trip ON trip_round_entries(trip_id)`);
 
-  const inhouseWarehouseMarker = await db.execute(
-    sql`INSERT INTO _meta_migrations (key) VALUES ('inhouse_warehouse_v1') ON CONFLICT (key) DO NOTHING RETURNING key`
-  );
-  const ihwRows = (inhouseWarehouseMarker as any).rows ?? (inhouseWarehouseMarker as any);
-  if (Array.isArray(ihwRows) && ihwRows.length > 0) {
-    await db.execute(sql`ALTER TABLE trips ADD COLUMN IF NOT EXISTS inhouse_warehouse_id INTEGER REFERENCES warehouses(id) ON DELETE RESTRICT`);
-  } else {
-    await db.execute(sql`ALTER TABLE trips ADD COLUMN IF NOT EXISTS inhouse_warehouse_id INTEGER REFERENCES warehouses(id) ON DELETE RESTRICT`);
-  }
+  await db.execute(sql`ALTER TABLE trips ADD COLUMN IF NOT EXISTS inhouse_warehouse_id INTEGER REFERENCES warehouses(id) ON DELETE RESTRICT`);
 
   const seedItems: { name: string; unit: string; rate: string }[] = [
     { name: "Cement Bag", unit: "Bag", rate: "50" },
@@ -92,6 +84,20 @@ export async function runMigrations() {
       ON CONFLICT (name) DO NOTHING
     `);
   }
+
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_trips_truck_id ON trips(truck_id)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_trips_driver_id ON trips(driver_id)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_trips_trip_date ON trips(trip_date)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_trips_customer_id ON trips(customer_id)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_trips_status ON trips(status)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_trip_loads_trip_id ON trip_loads(trip_id)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_trip_loads_customer_id ON trip_loads(customer_id)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_trip_expenses_trip_id ON trip_expenses(trip_id)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_customer_payments_trip_id ON customer_payments(trip_id)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_driver_advances_trip_id ON driver_advances(trip_id)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_customer_dues_customer_id ON customer_dues(customer_id)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_customer_dues_trip_id ON customer_dues(trip_id)`);
+  await db.execute(sql`CREATE INDEX IF NOT EXISTS idx_cash_book_ref ON cash_book(reference_table, reference_id)`);
 
   logger.info("Migrations applied successfully");
 }

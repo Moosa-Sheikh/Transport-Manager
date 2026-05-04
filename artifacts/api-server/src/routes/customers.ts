@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db } from "@workspace/db";
-import { customersTable } from "@workspace/db/schema";
+import { customersTable, tripsTable, tripLoadsTable, customerDuesTable } from "@workspace/db/schema";
 import { eq, ilike } from "drizzle-orm";
 import { CreateCustomerBody, UpdateCustomerBody } from "@workspace/api-zod";
 import { parseId } from "../lib/validate-id.js";
@@ -60,6 +60,37 @@ router.delete("/:id", async (req: Request, res: Response) => {
   try {
     const id = parseId(req, res);
     if (id === null) return;
+
+    const [linkedTrip] = await db
+      .select({ id: tripsTable.id })
+      .from(tripsTable)
+      .where(eq(tripsTable.customerId, id))
+      .limit(1);
+    if (linkedTrip) {
+      res.status(409).json({ error: "Cannot delete this customer — they have shifting trips linked to them. Delete those trips first." });
+      return;
+    }
+
+    const [linkedLoad] = await db
+      .select({ id: tripLoadsTable.id })
+      .from(tripLoadsTable)
+      .where(eq(tripLoadsTable.customerId, id))
+      .limit(1);
+    if (linkedLoad) {
+      res.status(409).json({ error: "Cannot delete this customer — they have loads (bilties) on record. Delete those loads first." });
+      return;
+    }
+
+    const [linkedDue] = await db
+      .select({ id: customerDuesTable.id })
+      .from(customerDuesTable)
+      .where(eq(customerDuesTable.customerId, id))
+      .limit(1);
+    if (linkedDue) {
+      res.status(409).json({ error: "Cannot delete this customer — they have outstanding dues. Settle or remove those dues first." });
+      return;
+    }
+
     const [row] = await db.delete(customersTable).where(eq(customersTable.id, id)).returning();
     if (!row) {
       res.status(404).json({ error: "Customer not found" });

@@ -511,6 +511,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
       await tx.delete(driverAdvancesTable).where(eq(driverAdvancesTable.tripId, id));
       await tx.delete(tripExpensesTable).where(eq(tripExpensesTable.tripId, id));
       await tx.delete(tripLoadsTable).where(eq(tripLoadsTable.tripId, id));
+      await tx.delete(tripRoundEntriesTable).where(eq(tripRoundEntriesTable.tripId, id));
       await tx.delete(tripsTable).where(eq(tripsTable.id, id));
     });
 

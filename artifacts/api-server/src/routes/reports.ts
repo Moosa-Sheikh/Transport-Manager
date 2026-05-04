@@ -613,6 +613,128 @@ router.get("/profit", async (req: Request, res: Response) => {
   }
 });
 
+async function buildShiftingReportData(
+  dateFrom: string | null,
+  dateTo: string | null,
+  truckId: number | undefined,
+  driverId: number | undefined,
+  status: string | undefined,
+  movementType: string | null
+) {
+  const conditions: SQL[] = movementType
+    ? [sql`t.movement_type = ${movementType}`]
+    : [sql`t.movement_type IN ('customer_shifting', 'in_house_shifting')`];
+  if (dateFrom) conditions.push(sql`t.trip_date >= ${dateFrom}`);
+  if (dateTo) conditions.push(sql`t.trip_date <= ${dateTo}`);
+  if (truckId) conditions.push(sql`t.truck_id = ${truckId}`);
+  if (driverId) conditions.push(sql`t.driver_id = ${driverId}`);
+  if (status) conditions.push(sql`t.status = ${status}`);
+  const whereClause = sql`WHERE ${sql.join(conditions, sql` AND `)}`;
+
+  const rows = await db.execute(sql`
+    SELECT
+      t.id AS "tripId",
+      t.trip_date AS "tripDate",
+      t.movement_type AS "movementType",
+      t.truck_id AS "truckId",
+      tr.truck_number AS "truckNumber",
+      t.driver_id AS "driverId",
+      d.name AS "driverName",
+      t.from_city_id AS "fromCityId",
+      COALESCE(fc.name, fw.name) AS "fromCityName",
+      t.to_city_id AS "toCityId",
+      COALESCE(tc.name, tw.name) AS "toCityName",
+      t.from_warehouse_id AS "fromWarehouseId",
+      fw.name AS "fromWarehouseName",
+      t.to_warehouse_id AS "toWarehouseId",
+      tw.name AS "toWarehouseName",
+      t.inhouse_warehouse_id AS "inhouseWarehouseId",
+      iw.name AS "inhouseWarehouseName",
+      t.status AS "status",
+      t.notes AS "notes",
+      t.customer_id AS "customerId",
+      c.name AS "customerName",
+      c.company_name AS "companyName",
+      t.item_id AS "itemId",
+      i.name AS "itemName",
+      i.unit AS "itemUnit",
+      COALESCE(t.rounds, 0)::integer AS "rounds",
+      COALESCE(t.rate_per_round, 0)::double precision AS "ratePerRound",
+      COALESCE(t.commission_per_round, 0)::double precision AS "commissionPerRound",
+      (CASE WHEN t.movement_type = 'customer_shifting'
+            THEN COALESCE(t.commission_per_round, 0) * COALESCE(t.rounds, 0)
+            ELSE COALESCE(t.driver_commission, 0)
+      END)::double precision AS "driverCommission",
+      (CASE WHEN t.movement_type = 'customer_shifting'
+            THEN COALESCE(t.rounds, 0) * COALESCE(t.rate_per_round, 0)
+            WHEN t.movement_type = 'in_house_shifting'
+            THEN COALESCE((
+              SELECT SUM(COALESCE(rate_per_round, 0) * COALESCE(rounds, 0))
+              FROM trip_round_entries WHERE trip_id = t.id
+            ), 0)
+            ELSE 0
+      END)::double precision AS "revenue",
+      COALESCE((
+        SELECT SUM(COALESCE(amount, 0)::numeric)
+        FROM trip_expenses WHERE trip_id = t.id
+      ), 0)::double precision AS "totalExpenses"
+    FROM trips t
+    JOIN trucks tr ON tr.id = t.truck_id
+    JOIN drivers d ON d.id = t.driver_id
+    LEFT JOIN cities fc ON fc.id = t.from_city_id
+    LEFT JOIN cities tc ON tc.id = t.to_city_id
+    LEFT JOIN warehouses fw ON fw.id = t.from_warehouse_id
+    LEFT JOIN warehouses tw ON tw.id = t.to_warehouse_id
+    LEFT JOIN warehouses iw ON iw.id = t.inhouse_warehouse_id
+    LEFT JOIN customers c ON c.id = t.customer_id
+    LEFT JOIN items i ON i.id = t.item_id
+    ${whereClause}
+    ORDER BY t.trip_date DESC
+  `);
+
+  return (rows.rows as Record<string, unknown>[]).map((r) => {
+    const totalExpenses = Number(r.totalExpenses);
+    const driverCommission = Number(r.driverCommission);
+    const revenue = Number(r.revenue);
+    const totalCost = totalExpenses + driverCommission;
+    return {
+      tripId: Number(r.tripId),
+      tripDate: String(r.tripDate),
+      movementType: String(r.movementType),
+      truckId: Number(r.truckId),
+      truckNumber: String(r.truckNumber),
+      driverId: Number(r.driverId),
+      driverName: String(r.driverName),
+      fromCityId: r.fromCityId !== null && r.fromCityId !== undefined ? Number(r.fromCityId) : null,
+      fromCityName: r.fromCityName ? String(r.fromCityName) : "",
+      toCityId: r.toCityId !== null && r.toCityId !== undefined ? Number(r.toCityId) : null,
+      toCityName: r.toCityName ? String(r.toCityName) : "",
+      fromWarehouseId: r.fromWarehouseId !== null && r.fromWarehouseId !== undefined ? Number(r.fromWarehouseId) : null,
+      fromWarehouseName: r.fromWarehouseName ? String(r.fromWarehouseName) : null,
+      toWarehouseId: r.toWarehouseId !== null && r.toWarehouseId !== undefined ? Number(r.toWarehouseId) : null,
+      toWarehouseName: r.toWarehouseName ? String(r.toWarehouseName) : null,
+      inhouseWarehouseId: r.inhouseWarehouseId !== null && r.inhouseWarehouseId !== undefined ? Number(r.inhouseWarehouseId) : null,
+      inhouseWarehouseName: r.inhouseWarehouseName ? String(r.inhouseWarehouseName) : null,
+      status: String(r.status),
+      notes: r.notes ? String(r.notes) : null,
+      customerId: r.customerId !== null && r.customerId !== undefined ? Number(r.customerId) : null,
+      customerName: r.customerName ? String(r.customerName) : null,
+      companyName: r.companyName ? String(r.companyName) : null,
+      itemId: r.itemId !== null && r.itemId !== undefined ? Number(r.itemId) : null,
+      itemName: r.itemName ? String(r.itemName) : null,
+      itemUnit: r.itemUnit ? String(r.itemUnit) : null,
+      rounds: Number(r.rounds),
+      ratePerRound: Number(r.ratePerRound),
+      commissionPerRound: Number(r.commissionPerRound),
+      revenue,
+      totalExpenses,
+      driverCommission,
+      totalCost,
+      profit: revenue - totalCost,
+    };
+  });
+}
+
 router.get("/shifting", async (req: Request, res: Response) => {
   try {
     const dateFrom = validateDateParam(req.query.date_from);
@@ -620,124 +742,12 @@ router.get("/shifting", async (req: Request, res: Response) => {
     const rawTruckId = req.query.truck_id ? Number(req.query.truck_id) : undefined;
     const rawDriverId = req.query.driver_id ? Number(req.query.driver_id) : undefined;
     const status = req.query.status === "Open" || req.query.status === "Closed" ? String(req.query.status) : undefined;
-
     const truckId = rawTruckId && Number.isInteger(rawTruckId) && rawTruckId > 0 ? rawTruckId : undefined;
     const driverId = rawDriverId && Number.isInteger(rawDriverId) && rawDriverId > 0 ? rawDriverId : undefined;
-
     const movementType = req.query.movement_type === "customer_shifting" || req.query.movement_type === "in_house_shifting"
-      ? String(req.query.movement_type)
-      : null;
-    const conditions: SQL[] = movementType
-      ? [sql`t.movement_type = ${movementType}`]
-      : [sql`t.movement_type IN ('customer_shifting', 'in_house_shifting')`];
-    if (dateFrom) conditions.push(sql`t.trip_date >= ${dateFrom}`);
-    if (dateTo) conditions.push(sql`t.trip_date <= ${dateTo}`);
-    if (truckId) conditions.push(sql`t.truck_id = ${truckId}`);
-    if (driverId) conditions.push(sql`t.driver_id = ${driverId}`);
-    if (status) conditions.push(sql`t.status = ${status}`);
-    const whereClause = sql`WHERE ${sql.join(conditions, sql` AND `)}`;
+      ? String(req.query.movement_type) : null;
 
-    const rows = await db.execute(sql`
-      SELECT
-        t.id AS "tripId",
-        t.trip_date AS "tripDate",
-        t.movement_type AS "movementType",
-        t.truck_id AS "truckId",
-        tr.truck_number AS "truckNumber",
-        t.driver_id AS "driverId",
-        d.name AS "driverName",
-        t.from_city_id AS "fromCityId",
-        COALESCE(fc.name, fw.name) AS "fromCityName",
-        t.to_city_id AS "toCityId",
-        COALESCE(tc.name, tw.name) AS "toCityName",
-        t.from_warehouse_id AS "fromWarehouseId",
-        fw.name AS "fromWarehouseName",
-        t.to_warehouse_id AS "toWarehouseId",
-        tw.name AS "toWarehouseName",
-        t.inhouse_warehouse_id AS "inhouseWarehouseId",
-        iw.name AS "inhouseWarehouseName",
-        t.status AS "status",
-        t.notes AS "notes",
-        t.customer_id AS "customerId",
-        c.name AS "customerName",
-        t.item_id AS "itemId",
-        i.name AS "itemName",
-        i.unit AS "itemUnit",
-        COALESCE(t.rounds, 0)::integer AS "rounds",
-        COALESCE(t.rate_per_round, 0)::double precision AS "ratePerRound",
-        COALESCE(t.commission_per_round, 0)::double precision AS "commissionPerRound",
-        (CASE WHEN t.movement_type = 'customer_shifting'
-              THEN COALESCE(t.commission_per_round, 0) * COALESCE(t.rounds, 0)
-              ELSE COALESCE(t.driver_commission, 0)
-        END)::double precision AS "driverCommission",
-        (CASE WHEN t.movement_type = 'customer_shifting'
-              THEN COALESCE(t.rounds, 0) * COALESCE(t.rate_per_round, 0)
-              WHEN t.movement_type = 'in_house_shifting'
-              THEN COALESCE((
-                SELECT SUM(COALESCE(rate_per_round, 0) * COALESCE(rounds, 0))
-                FROM trip_round_entries WHERE trip_id = t.id
-              ), 0)
-              ELSE 0
-        END)::double precision AS "revenue",
-        COALESCE((
-          SELECT SUM(COALESCE(amount, 0)::numeric)
-          FROM trip_expenses WHERE trip_id = t.id
-        ), 0)::double precision AS "totalExpenses"
-      FROM trips t
-      JOIN trucks tr ON tr.id = t.truck_id
-      JOIN drivers d ON d.id = t.driver_id
-      LEFT JOIN cities fc ON fc.id = t.from_city_id
-      LEFT JOIN cities tc ON tc.id = t.to_city_id
-      LEFT JOIN warehouses fw ON fw.id = t.from_warehouse_id
-      LEFT JOIN warehouses tw ON tw.id = t.to_warehouse_id
-      LEFT JOIN warehouses iw ON iw.id = t.inhouse_warehouse_id
-      LEFT JOIN customers c ON c.id = t.customer_id
-      LEFT JOIN items i ON i.id = t.item_id
-      ${whereClause}
-      ORDER BY t.trip_date DESC
-    `);
-
-    const data = (rows.rows as Record<string, unknown>[]).map((r) => {
-      const totalExpenses = Number(r.totalExpenses);
-      const driverCommission = Number(r.driverCommission);
-      const revenue = Number(r.revenue);
-      const totalCost = totalExpenses + driverCommission;
-      return {
-        tripId: Number(r.tripId),
-        tripDate: String(r.tripDate),
-        movementType: String(r.movementType),
-        truckId: Number(r.truckId),
-        truckNumber: String(r.truckNumber),
-        driverId: Number(r.driverId),
-        driverName: String(r.driverName),
-        fromCityId: r.fromCityId !== null && r.fromCityId !== undefined ? Number(r.fromCityId) : null,
-        fromCityName: r.fromCityName ? String(r.fromCityName) : "",
-        toCityId: r.toCityId !== null && r.toCityId !== undefined ? Number(r.toCityId) : null,
-        toCityName: r.toCityName ? String(r.toCityName) : "",
-        fromWarehouseId: r.fromWarehouseId !== null && r.fromWarehouseId !== undefined ? Number(r.fromWarehouseId) : null,
-        fromWarehouseName: r.fromWarehouseName ? String(r.fromWarehouseName) : null,
-        toWarehouseId: r.toWarehouseId !== null && r.toWarehouseId !== undefined ? Number(r.toWarehouseId) : null,
-        toWarehouseName: r.toWarehouseName ? String(r.toWarehouseName) : null,
-        inhouseWarehouseId: r.inhouseWarehouseId !== null && r.inhouseWarehouseId !== undefined ? Number(r.inhouseWarehouseId) : null,
-        inhouseWarehouseName: r.inhouseWarehouseName ? String(r.inhouseWarehouseName) : null,
-        status: String(r.status),
-        notes: r.notes ? String(r.notes) : null,
-        customerId: r.customerId !== null && r.customerId !== undefined ? Number(r.customerId) : null,
-        customerName: r.customerName ? String(r.customerName) : null,
-        itemId: r.itemId !== null && r.itemId !== undefined ? Number(r.itemId) : null,
-        itemName: r.itemName ? String(r.itemName) : null,
-        itemUnit: r.itemUnit ? String(r.itemUnit) : null,
-        rounds: Number(r.rounds),
-        ratePerRound: Number(r.ratePerRound),
-        commissionPerRound: Number(r.commissionPerRound),
-        revenue,
-        totalExpenses,
-        driverCommission,
-        totalCost,
-        profit: revenue - totalCost,
-      };
-    });
-
+    const data = await buildShiftingReportData(dateFrom, dateTo, truckId, driverId, status, movementType);
     res.json(data);
   } catch (err) {
     req.log.error({ err }, "Shifting report error");
@@ -840,8 +850,31 @@ router.get("/export/csv", async (req: Request, res: Response) => {
         filename = "customer-report.csv";
         break;
       }
+      case "shifting": {
+        const movType = req.query.movement_type === "customer_shifting" || req.query.movement_type === "in_house_shifting"
+          ? String(req.query.movement_type) : null;
+        const shiftTruckId = req.query.truck_id ? Number(req.query.truck_id) : undefined;
+        const shiftDriverId = req.query.driver_id ? Number(req.query.driver_id) : undefined;
+        const shiftStatus = req.query.status === "Open" || req.query.status === "Closed" ? String(req.query.status) : undefined;
+        const data = await buildShiftingReportData(
+          dateFrom, dateTo,
+          shiftTruckId && Number.isInteger(shiftTruckId) && shiftTruckId > 0 ? shiftTruckId : undefined,
+          shiftDriverId && Number.isInteger(shiftDriverId) && shiftDriverId > 0 ? shiftDriverId : undefined,
+          shiftStatus, movType
+        );
+        const header = ["Trip ID", "Date", "Type", "Truck", "Driver", "Location", "Company", "Customer", "Status", "Revenue (PKR)", "Expenses (PKR)", "Commission (PKR)", "Total Cost (PKR)", "Net Profit (PKR)"];
+        csvContent = toCsvRow(header) + "\n" + data.map((r) => {
+          const location = r.movementType === "in_house_shifting"
+            ? (r.inhouseWarehouseName ?? "")
+            : [r.fromWarehouseName ?? r.fromCityName, r.toWarehouseName ?? r.toCityName].filter(Boolean).join(" → ");
+          const typeLabel = r.movementType === "in_house_shifting" ? "In-House" : "Customer";
+          return toCsvRow([r.tripId, r.tripDate, typeLabel, r.truckNumber, r.driverName, location, r.companyName ?? "", r.customerName ?? "", r.status, r.revenue, r.totalExpenses, r.driverCommission, r.totalCost, r.profit]);
+        }).join("\n");
+        filename = "shifting-report.csv";
+        break;
+      }
       default:
-        res.status(400).json({ error: "Invalid report type. Must be: trips, drivers, trucks, cashflow, profit, customers" });
+        res.status(400).json({ error: "Invalid report type. Must be: trips, drivers, trucks, cashflow, profit, customers, shifting" });
         return;
     }
 
