@@ -34,7 +34,7 @@ function getInitialFilters() {
     to_city_id?: number;
     customer_id?: number;
     city_id?: number;
-    movement_type?: "customer_trip" | "in_house_shifting" | "customer_shifting" | "shifting";
+    movement_type?: "customer_trip" | "in_house_shifting" | "shifting";
   } = {};
   if (params.get("driver_id")) f.driver_id = Number(params.get("driver_id"));
   if (params.get("date_from")) f.date_from = params.get("date_from")!;
@@ -43,7 +43,7 @@ function getInitialFilters() {
   if (params.get("status")) f.status = params.get("status") as "Open" | "Closed";
   if (params.get("customer_id")) f.customer_id = Number(params.get("customer_id"));
   const mt = params.get("movement_type");
-  if (mt === "customer_trip" || mt === "in_house_shifting" || mt === "customer_shifting" || mt === "shifting") f.movement_type = mt as typeof f.movement_type;
+  if (mt === "customer_trip" || mt === "in_house_shifting" || mt === "shifting") f.movement_type = mt as typeof f.movement_type;
   return f;
 }
 
@@ -537,11 +537,6 @@ export default function TripListPage() {
                           {trip.movementType === "in_house_shifting" && (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
                               In-House
-                            </span>
-                          )}
-                          {trip.movementType === "customer_shifting" && (
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-teal-100 text-teal-700">
-                              Cust. Shift
                             </span>
                           )}
                         </div>

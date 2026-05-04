@@ -13,7 +13,7 @@ function formatPKR(val: number) {
   }).format(val);
 }
 
-type MovementFilter = "customer_shifting" | "in_house_shifting";
+type MovementFilter = "in_house_shifting";
 
 interface Filters {
   date_from?: string;
@@ -47,11 +47,9 @@ export default function ShiftingReportPage() {
   const itemsQuery = useListItems({});
 
   const rows = query.data ?? [];
-  const totalRevenue = rows.reduce((s, r) => s + (r.revenue ?? 0), 0);
   const totalExpenses = rows.reduce((s, r) => s + r.totalExpenses, 0);
   const totalCommission = rows.reduce((s, r) => s + r.driverCommission, 0);
   const totalCost = rows.reduce((s, r) => s + r.totalCost, 0);
-  const totalProfit = rows.reduce((s, r) => s + (r.profit ?? 0), 0);
 
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
   const clearFilters = () => setFilters({});
@@ -72,7 +70,7 @@ export default function ShiftingReportPage() {
           <MoveHorizontal className="w-6 h-6 text-purple-600 print:hidden" />
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Shifting Report</h2>
-            <p className="text-sm text-gray-500 mt-0.5">Customer & in-house shifting movements</p>
+            <p className="text-sm text-gray-500 mt-0.5">In-house shifting movements</p>
           </div>
         </div>
         <div className="flex items-center gap-2 print:hidden">
@@ -109,26 +107,6 @@ export default function ShiftingReportPage() {
         </div>
       </div>
 
-      <div className="mb-4 flex items-center gap-1 bg-gray-100 rounded-lg p-1 text-sm w-fit print:hidden">
-        <button
-          onClick={() => setFilters((f) => { const { movement_type, ...rest } = f; return rest; })}
-          className={`px-3 py-1 rounded-md font-medium transition-colors ${!filters.movement_type ? "bg-white shadow text-gray-900" : "text-gray-500 hover:text-gray-700"}`}
-        >
-          All Shifts
-        </button>
-        <button
-          onClick={() => setFilters((f) => ({ ...f, movement_type: "customer_shifting" }))}
-          className={`px-3 py-1 rounded-md font-medium transition-colors ${filters.movement_type === "customer_shifting" ? "bg-white shadow text-teal-700" : "text-gray-500 hover:text-gray-700"}`}
-        >
-          Customer Shifts
-        </button>
-        <button
-          onClick={() => setFilters((f) => ({ ...f, movement_type: "in_house_shifting" }))}
-          className={`px-3 py-1 rounded-md font-medium transition-colors ${filters.movement_type === "in_house_shifting" ? "bg-white shadow text-orange-700" : "text-gray-500 hover:text-gray-700"}`}
-        >
-          In-House Shifts
-        </button>
-      </div>
 
       {showFilters && (
         <div className="mb-6 bg-white border border-gray-200 rounded-lg p-4 print:hidden">
@@ -230,14 +208,10 @@ export default function ShiftingReportPage() {
       )}
 
       {rows.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           <div className="bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-3 text-center">
             <div className="text-[10px] font-medium text-purple-600 uppercase mb-1">Total Shifts</div>
             <div className="text-xl font-bold text-purple-800">{rows.length}</div>
-          </div>
-          <div className="bg-gradient-to-r from-teal-50 to-teal-100 border border-teal-200 rounded-lg p-3 text-center">
-            <div className="text-[10px] font-medium text-teal-600 uppercase mb-1">Revenue</div>
-            <div className="text-xl font-bold text-teal-800">{formatPKR(totalRevenue)}</div>
           </div>
           <div className="bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-3 text-center">
             <div className="text-[10px] font-medium text-orange-600 uppercase mb-1">Expenses</div>
@@ -247,13 +221,9 @@ export default function ShiftingReportPage() {
             <div className="text-[10px] font-medium text-pink-600 uppercase mb-1">Commission</div>
             <div className="text-xl font-bold text-pink-800">{formatPKR(totalCommission)}</div>
           </div>
-          <div className={`bg-gradient-to-r border rounded-lg p-3 text-center ${
-            totalProfit >= 0
-              ? "from-green-50 to-green-100 border-green-200"
-              : "from-red-50 to-red-100 border-red-200"
-          }`}>
-            <div className={`text-[10px] font-medium uppercase mb-1 ${totalProfit >= 0 ? "text-green-600" : "text-red-600"}`}>Net (Rev − Cost)</div>
-            <div className={`text-xl font-bold ${totalProfit >= 0 ? "text-green-800" : "text-red-800"}`}>{formatPKR(totalProfit)}</div>
+          <div className="bg-gradient-to-r from-red-50 to-red-100 border border-red-200 rounded-lg p-3 text-center">
+            <div className="text-[10px] font-medium text-red-600 uppercase mb-1">Total Cost</div>
+            <div className="text-xl font-bold text-red-800">{formatPKR(totalCost)}</div>
           </div>
         </div>
       )}
@@ -282,24 +252,19 @@ export default function ShiftingReportPage() {
                 <tr className="bg-purple-50 border-b border-purple-200">
                   <th className="text-left px-3 py-3 font-medium text-purple-700">ID</th>
                   <th className="text-left px-3 py-3 font-medium text-purple-700">Date</th>
-                  <th className="text-left px-3 py-3 font-medium text-purple-700">Type</th>
                   <th className="text-left px-3 py-3 font-medium text-purple-700">Truck</th>
                   <th className="text-left px-3 py-3 font-medium text-purple-700">Driver</th>
-                  <th className="text-left px-3 py-3 font-medium text-purple-700">Customer</th>
-                  <th className="text-left px-3 py-3 font-medium text-purple-700">Route / Location</th>
+                  <th className="text-left px-3 py-3 font-medium text-purple-700">Route</th>
                   <th className="text-left px-3 py-3 font-medium text-purple-700">Item</th>
                   <th className="text-right px-3 py-3 font-medium text-purple-700">Rounds</th>
                   <th className="text-right px-3 py-3 font-medium text-purple-700">Rate</th>
-                  <th className="text-right px-3 py-3 font-medium text-purple-700">Revenue</th>
                   <th className="text-right px-3 py-3 font-medium text-purple-700">Expenses</th>
                   <th className="text-right px-3 py-3 font-medium text-purple-700">Commission</th>
-                  <th className="text-right px-3 py-3 font-medium text-purple-700">Profit</th>
+                  <th className="text-right px-3 py-3 font-medium text-purple-700">Total Cost</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => {
-                  const isCustomer = row.movementType === "customer_shifting";
-                  return (
+                {rows.map((row) => (
                     <tr key={row.tripId} className="border-b border-gray-100 hover:bg-purple-50/30">
                       <td className="px-3 py-3 font-medium text-gray-900">
                         <Link href={`/trips/${row.tripId}`} className="text-purple-700 hover:underline">
@@ -313,24 +278,13 @@ export default function ShiftingReportPage() {
                           year: "numeric",
                         })}
                       </td>
-                      <td className="px-3 py-3">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${
-                          isCustomer ? "bg-teal-100 text-teal-700" : "bg-orange-100 text-orange-700"
-                        }`}>
-                          {isCustomer ? "Customer" : "In-House"}
-                        </span>
-                      </td>
                       <td className="px-3 py-3 text-gray-700">{row.truckNumber}</td>
                       <td className="px-3 py-3 text-gray-700">{row.driverName}</td>
-                      <td className="px-3 py-3 text-gray-700">{isCustomer ? (row.customerName ?? "—") : <span className="text-gray-400 italic text-xs">Internal</span>}</td>
                       <td className="px-3 py-3 text-gray-700 text-xs">{routeLabel(row)}</td>
-                      <td className="px-3 py-3 text-gray-700">{isCustomer ? (row.itemName ?? "—") : <span className="text-gray-400">—</span>}</td>
+                      <td className="px-3 py-3 text-gray-700">{row.itemName ?? "—"}</td>
                       <td className="px-3 py-3 text-right text-gray-700">{row.rounds ?? 0}</td>
                       <td className="px-3 py-3 text-right text-gray-700">
                         {row.ratePerRound != null && row.ratePerRound > 0 ? formatPKR(Number(row.ratePerRound)) : "—"}
-                      </td>
-                      <td className="px-3 py-3 text-right text-teal-700 font-medium">
-                        {isCustomer ? formatPKR(row.revenue ?? 0) : "—"}
                       </td>
                       <td className="px-3 py-3 text-right text-orange-700 font-medium">
                         {formatPKR(row.totalExpenses)}
@@ -338,26 +292,20 @@ export default function ShiftingReportPage() {
                       <td className="px-3 py-3 text-right text-pink-700 font-medium">
                         {row.driverCommission > 0 ? formatPKR(row.driverCommission) : "—"}
                       </td>
-                      <td className={`px-3 py-3 text-right font-semibold ${
-                        isCustomer
-                          ? (row.profit ?? 0) >= 0 ? "text-green-700" : "text-red-700"
-                          : "text-red-700"
-                      }`}>
-                        {isCustomer ? formatPKR(row.profit ?? 0) : `(${formatPKR(row.totalCost)})`}
+                      <td className="px-3 py-3 text-right font-semibold text-red-700">
+                        ({formatPKR(row.totalCost)})
                       </td>
                     </tr>
-                  );
-                })}
+                  ))}
               </tbody>
               <tfoot>
                 <tr className="bg-purple-50 border-t-2 border-purple-200 font-semibold">
-                  <td className="px-3 py-3 text-purple-800" colSpan={10}>
+                  <td className="px-3 py-3 text-purple-800" colSpan={8}>
                     Total ({rows.length} shifts)
                   </td>
-                  <td className="px-3 py-3 text-right text-teal-800">{formatPKR(totalRevenue)}</td>
                   <td className="px-3 py-3 text-right text-orange-800">{formatPKR(totalExpenses)}</td>
                   <td className="px-3 py-3 text-right text-pink-800">{formatPKR(totalCommission)}</td>
-                  <td className={`px-3 py-3 text-right ${totalProfit >= 0 ? "text-green-800" : "text-red-800"}`}>{formatPKR(totalProfit)}</td>
+                  <td className="px-3 py-3 text-right text-red-800">({formatPKR(totalCost)})</td>
                 </tr>
               </tfoot>
             </table>

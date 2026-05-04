@@ -1,24 +1,21 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, Loader2, Route, Warehouse, Users } from "lucide-react";
+import { ArrowLeft, Loader2, Route, Warehouse } from "lucide-react";
 import { Link } from "wouter";
 import {
   useCreateTrip,
   useListTrucks,
   useListDrivers,
   useListCities,
-  useListCustomers,
   useListItems,
   useListWarehouses,
 } from "@workspace/api-client-react";
 
 type TripCategory = "trip" | "shifting";
-type ShiftingMode = "customer" | "inhouse";
 
 export default function CreateTripPage() {
   const [, navigate] = useLocation();
   const [category, setCategory] = useState<TripCategory>("trip");
-  const [shiftingMode, setShiftingMode] = useState<ShiftingMode>("customer");
   const [tripDate, setTripDate] = useState(new Date().toISOString().split("T")[0]);
   const [truckId, setTruckId] = useState("");
   const [driverId, setDriverId] = useState("");
@@ -29,7 +26,6 @@ export default function CreateTripPage() {
 
   const [shiftFromWarehouseId, setShiftFromWarehouseId] = useState("");
   const [shiftToWarehouseId, setShiftToWarehouseId] = useState("");
-  const [customerId, setCustomerId] = useState("");
   const [shiftItemId, setShiftItemId] = useState("");
   const [shiftRounds, setShiftRounds] = useState("1");
   const [shiftRatePerRound, setShiftRatePerRound] = useState("");
@@ -41,13 +37,10 @@ export default function CreateTripPage() {
   const trucksQuery = useListTrucks({});
   const driversQuery = useListDrivers({});
   const citiesQuery = useListCities({});
-  const customersQuery = useListCustomers({});
   const itemsQuery = useListItems({});
   const warehousesQuery = useListWarehouses({});
 
   const isShifting = category === "shifting";
-  const isCustomerShifting = isShifting && shiftingMode === "customer";
-  const isInHouseShifting = isShifting && shiftingMode === "inhouse";
 
   const createMutation = useCreateTrip({
     mutation: {
@@ -98,29 +91,12 @@ export default function CreateTripPage() {
       payload.fromCityId = Number(fromCityId);
       payload.toCityId = Number(toCityId);
       payload.driverCommission = driverCommission || "0";
-    } else if (isCustomerShifting) {
-      if (!shiftFromWarehouseId || !shiftToWarehouseId) {
-        setError("From and To warehouses are required for customer shifting");
-        return;
-      }
-      if (!customerId) { setError("Customer is required for customer shifting"); return; }
-      if (!shiftItemId) { setError("Item is required for customer shifting"); return; }
-      if (!shiftRounds || Number(shiftRounds) <= 0) { setError("Rounds must be a positive number"); return; }
-      if (!shiftRatePerRound || Number(shiftRatePerRound) <= 0) { setError("Rate per round must be greater than zero"); return; }
-      payload.movementType = "customer_shifting";
-      payload.fromWarehouseId = Number(shiftFromWarehouseId);
-      payload.toWarehouseId = Number(shiftToWarehouseId);
-      payload.customerId = Number(customerId);
-      payload.itemId = Number(shiftItemId);
-      payload.rounds = Number(shiftRounds);
-      payload.ratePerRound = shiftRatePerRound;
-      payload.commissionPerRound = shiftCommissionPerRound || "0";
     } else {
       if (!shiftFromWarehouseId || !shiftToWarehouseId) {
-        setError("From and To warehouses are required for in-house shifting");
+        setError("From and To warehouses are required for shifting");
         return;
       }
-      if (!shiftItemId) { setError("Item is required for in-house shifting"); return; }
+      if (!shiftItemId) { setError("Item is required for shifting"); return; }
       if (!shiftRounds || Number(shiftRounds) <= 0) { setError("Rounds must be a positive number"); return; }
       if (!shiftRatePerRound || Number(shiftRatePerRound) < 0) { setError("Rate per round must be non-negative"); return; }
       payload.movementType = "in_house_shifting";
@@ -173,51 +149,17 @@ export default function CreateTripPage() {
               type="button"
               onClick={() => setCategory("shifting")}
               className={`flex items-center gap-3 p-3 rounded-lg border-2 text-sm font-medium transition-colors text-left ${
-                isShifting ? "border-purple-500 bg-purple-50 text-purple-800" : "border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                isShifting ? "border-orange-500 bg-orange-50 text-orange-800" : "border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
               }`}
             >
               <Warehouse className="w-5 h-5 flex-shrink-0" />
               <div>
                 <div className="font-semibold">Shifting</div>
-                <div className="text-xs font-normal text-gray-500">Warehouse-to-warehouse shifting</div>
+                <div className="text-xs font-normal text-gray-500">In-house warehouse shift</div>
               </div>
             </button>
           </div>
         </div>
-
-        {isShifting && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Shifting Type</label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setShiftingMode("customer")}
-                className={`flex items-center gap-3 p-3 rounded-lg border-2 text-sm font-medium transition-colors text-left ${
-                  isCustomerShifting ? "border-teal-500 bg-teal-50 text-teal-800" : "border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-                }`}
-              >
-                <Users className="w-5 h-5 flex-shrink-0" />
-                <div>
-                  <div className="font-semibold">For Customer</div>
-                  <div className="text-xs font-normal text-gray-500">Billable warehouse shift</div>
-                </div>
-              </button>
-              <button
-                type="button"
-                onClick={() => setShiftingMode("inhouse")}
-                className={`flex items-center gap-3 p-3 rounded-lg border-2 text-sm font-medium transition-colors text-left ${
-                  isInHouseShifting ? "border-orange-500 bg-orange-50 text-orange-800" : "border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
-                }`}
-              >
-                <Warehouse className="w-5 h-5 flex-shrink-0" />
-                <div>
-                  <div className="font-semibold">In-House</div>
-                  <div className="text-xs font-normal text-gray-500">Internal / cost-only shift</div>
-                </div>
-              </button>
-            </div>
-          </div>
-        )}
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Trip Date <span className="text-red-500">*</span></label>
@@ -266,14 +208,14 @@ export default function CreateTripPage() {
         )}
 
         {isShifting && (
-          <div className={`space-y-4 p-4 border rounded-lg ${isCustomerShifting ? "bg-teal-50/40 border-teal-200" : "bg-orange-50/40 border-orange-200"}`}>
+          <div className="space-y-4 p-4 border border-orange-200 rounded-lg bg-orange-50/40">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">From Warehouse <span className="text-red-500">*</span></label>
                 <select
                   value={shiftFromWarehouseId}
                   onChange={(e) => setShiftFromWarehouseId(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 ${isCustomerShifting ? "border-teal-300 focus:ring-teal-500 focus:border-teal-500" : "border-orange-300 focus:ring-orange-500 focus:border-orange-500"}`}
+                  className="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 >
                   <option value="">Select origin warehouse</option>
                   {warehousesQuery.data?.map((w) => (<option key={w.id} value={w.id}>{w.name} ({w.cityName})</option>))}
@@ -284,7 +226,7 @@ export default function CreateTripPage() {
                 <select
                   value={shiftToWarehouseId}
                   onChange={(e) => setShiftToWarehouseId(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 ${isCustomerShifting ? "border-teal-300 focus:ring-teal-500 focus:border-teal-500" : "border-orange-300 focus:ring-orange-500 focus:border-orange-500"}`}
+                  className="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 >
                   <option value="">Select destination warehouse</option>
                   {warehousesQuery.data?.map((w) => (<option key={w.id} value={w.id}>{w.name} ({w.cityName})</option>))}
@@ -292,23 +234,13 @@ export default function CreateTripPage() {
               </div>
             </div>
 
-            {isCustomerShifting && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Customer <span className="text-red-500">*</span></label>
-                <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className="w-full px-3 py-2 border border-teal-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
-                  <option value="">Select customer</option>
-                  {customersQuery.data?.map((c) => (<option key={c.id} value={c.id}>{c.companyName ?? c.name}</option>))}
-                </select>
-              </div>
-            )}
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Item <span className="text-red-500">*</span></label>
                 <select
                   value={shiftItemId}
                   onChange={(e) => handleShiftItemChange(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 ${isCustomerShifting ? "border-teal-300 focus:ring-teal-500 focus:border-teal-500" : "border-orange-300 focus:ring-orange-500 focus:border-orange-500"}`}
+                  className="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 >
                   <option value="">Select item</option>
                   {itemsQuery.data?.map((i) => (<option key={i.id} value={i.id}>{i.name} ({i.unit})</option>))}
@@ -321,21 +253,20 @@ export default function CreateTripPage() {
                   value={shiftRounds}
                   onChange={(e) => setShiftRounds(e.target.value)}
                   placeholder="1"
-                  className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 ${isCustomerShifting ? "border-teal-300 focus:ring-teal-500 focus:border-teal-500" : "border-orange-300 focus:ring-orange-500 focus:border-orange-500"}`}
+                  className="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 />
               </div>
             </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Rate / Round (PKR) {isCustomerShifting && <span className="text-red-500">*</span>}
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Rate / Round (PKR)</label>
                 <input
                   type="number" step="0.01" min="0"
                   value={shiftRatePerRound}
                   onChange={(e) => setShiftRatePerRound(e.target.value)}
                   placeholder="0"
-                  className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 ${isCustomerShifting ? "border-teal-300 focus:ring-teal-500 focus:border-teal-500" : "border-orange-300 focus:ring-orange-500 focus:border-orange-500"}`}
+                  className="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 />
               </div>
               <div>
@@ -345,16 +276,14 @@ export default function CreateTripPage() {
                   value={shiftCommissionPerRound}
                   onChange={(e) => setShiftCommissionPerRound(e.target.value)}
                   placeholder="0"
-                  className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 ${isCustomerShifting ? "border-teal-300 focus:ring-teal-500 focus:border-teal-500" : "border-orange-300 focus:ring-orange-500 focus:border-orange-500"}`}
+                  className="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 />
               </div>
             </div>
+
             {shiftRounds && shiftRatePerRound && Number(shiftRounds) > 0 && Number(shiftRatePerRound) > 0 && (
-              <div className={`text-sm rounded p-2 border ${isCustomerShifting ? "text-teal-700 bg-teal-50 border-teal-200" : "text-orange-700 bg-orange-50 border-orange-200"}`}>
-                {isCustomerShifting
-                  ? <>Total Revenue: <strong>{new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR", minimumFractionDigits: 0 }).format(Number(shiftRounds) * Number(shiftRatePerRound))}</strong></>
-                  : <>Internal cost: <strong>{new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR", minimumFractionDigits: 0 }).format(Number(shiftRounds) * Number(shiftRatePerRound))}</strong></>
-                }
+              <div className="text-sm rounded p-2 border text-orange-700 bg-orange-50 border-orange-200">
+                Internal cost: <strong>{new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR", minimumFractionDigits: 0 }).format(Number(shiftRounds) * Number(shiftRatePerRound))}</strong>
                 {shiftCommissionPerRound && Number(shiftCommissionPerRound) > 0 && (
                   <span className="ml-3">· Driver commission: <strong>{new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR", minimumFractionDigits: 0 }).format(Number(shiftRounds) * Number(shiftCommissionPerRound))}</strong></span>
                 )}
@@ -369,7 +298,7 @@ export default function CreateTripPage() {
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 ${isCustomerShifting ? "border-teal-300 focus:ring-teal-500" : isInHouseShifting ? "border-orange-300 focus:ring-orange-500" : "border-gray-300 focus:ring-blue-500"}`}
+            className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 ${isShifting ? "border-orange-300 focus:ring-orange-500" : "border-gray-300 focus:ring-blue-500"}`}
           />
         </div>
 
@@ -379,11 +308,11 @@ export default function CreateTripPage() {
             type="submit"
             disabled={createMutation.isPending}
             className={`px-6 py-2 text-sm text-white rounded-lg disabled:opacity-50 flex items-center gap-2 font-medium ${
-              isCustomerShifting ? "bg-teal-600 hover:bg-teal-700" : isInHouseShifting ? "bg-orange-600 hover:bg-orange-700" : "bg-blue-600 hover:bg-blue-700"
+              isShifting ? "bg-orange-600 hover:bg-orange-700" : "bg-blue-600 hover:bg-blue-700"
             }`}
           >
             {createMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-            {isCustomerShifting ? "Create Customer Shift" : isInHouseShifting ? "Create In-House Shift" : "Create Trip"}
+            {isShifting ? "Create Shifting" : "Create Trip"}
           </button>
         </div>
       </form>

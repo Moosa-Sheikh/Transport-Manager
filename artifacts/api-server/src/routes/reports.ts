@@ -48,23 +48,11 @@ async function buildTripReportData(filters: {
       COALESCE(fc.name, fw.name) AS "fromCity",
       COALESCE(tc.name, tw.name) AS "toCity",
       t.status,
-      (CASE WHEN t.movement_type = 'customer_shifting'
-            THEN COALESCE(t.commission_per_round, 0) * COALESCE(t.rounds, 0)
-            WHEN t.movement_type = 'in_house_shifting' THEN COALESCE(t.driver_commission, 0)
-            ELSE COALESCE(t.driver_commission, 0)
-       END)::double precision AS "driverCommission",
-      (CASE WHEN t.movement_type = 'customer_shifting'
-            THEN COALESCE(t.rounds, 0) * COALESCE(t.rate_per_round, 0)
-            WHEN t.movement_type = 'in_house_shifting'
-            THEN COALESCE((
-              SELECT SUM(COALESCE(rate_per_round, 0) * COALESCE(rounds, 0))
-              FROM trip_round_entries WHERE trip_id = t.id
-            ), 0)
-            ELSE COALESCE((
-              SELECT SUM(COALESCE(freight, 0) + COALESCE(loading_charges, 0) + COALESCE(unloading_charges, 0) - COALESCE(broker_commission, 0))
-              FROM trip_loads WHERE trip_id = t.id
-            ), 0)
-       END)::double precision AS "totalIncome",
+      COALESCE(t.driver_commission, 0)::double precision AS "driverCommission",
+      COALESCE((
+        SELECT SUM(COALESCE(freight, 0) + COALESCE(loading_charges, 0) + COALESCE(unloading_charges, 0) - COALESCE(broker_commission, 0))
+        FROM trip_loads WHERE trip_id = t.id
+      ), 0)::double precision AS "totalIncome",
       COALESCE((
         SELECT SUM(COALESCE(amount, 0)::numeric)
         FROM trip_expenses WHERE trip_id = t.id
@@ -149,16 +137,10 @@ async function buildDriverReportData(dateFrom?: string | null, dateTo?: string |
       COALESCE((
         SELECT COUNT(*)::integer FROM trips t WHERE t.driver_id = d.id AND t.status = 'Closed' ${dateWhere} ${tripStatusWhere}
       ), 0) AS "closedTrips",
-      (COALESCE((
+      COALESCE((
         SELECT SUM(COALESCE(l.freight, 0) + COALESCE(l.loading_charges, 0) + COALESCE(l.unloading_charges, 0) - COALESCE(l.broker_commission, 0))
-        FROM trip_loads l JOIN trips t ON t.id = l.trip_id WHERE t.driver_id = d.id AND t.movement_type = 'customer_trip' ${dateWhere} ${tripStatusWhere}
-      ), 0) + COALESCE((
-        SELECT SUM(COALESCE(t.rounds, 0) * COALESCE(t.rate_per_round, 0))
-        FROM trips t WHERE t.driver_id = d.id AND t.movement_type = 'customer_shifting' ${dateWhere} ${tripStatusWhere}
-      ), 0) + COALESCE((
-        SELECT SUM(COALESCE(re.rate_per_round, 0) * COALESCE(re.rounds, 0))
-        FROM trip_round_entries re JOIN trips t ON t.id = re.trip_id WHERE t.driver_id = d.id AND t.movement_type = 'in_house_shifting' ${dateWhere} ${tripStatusWhere}
-      ), 0))::double precision AS "totalIncome",
+        FROM trip_loads l JOIN trips t ON t.id = l.trip_id WHERE t.driver_id = d.id ${dateWhere} ${tripStatusWhere}
+      ), 0)::double precision AS "totalIncome",
       COALESCE((
         SELECT SUM(COALESCE(e.amount, 0)::numeric)
         FROM trip_expenses e JOIN trips t ON t.id = e.trip_id WHERE t.driver_id = d.id AND e.expense_category = 'driver' ${dateWhere} ${tripStatusWhere}
@@ -168,9 +150,7 @@ async function buildDriverReportData(dateFrom?: string | null, dateTo?: string |
         FROM driver_advances da JOIN trips t ON t.id = da.trip_id WHERE t.driver_id = d.id ${dateWhere} ${tripStatusWhere}
       ), 0)::double precision AS "totalAdvances",
       COALESCE((
-        SELECT SUM(CASE WHEN t.movement_type = 'customer_shifting'
-                        THEN COALESCE(t.commission_per_round, 0) * COALESCE(t.rounds, 0)
-                        ELSE COALESCE(t.driver_commission, 0) END::numeric)
+        SELECT SUM(COALESCE(t.driver_commission, 0)::numeric)
         FROM trips t WHERE t.driver_id = d.id ${dateWhere} ${tripStatusWhere}
       ), 0)::double precision AS "driverCommission",
       COALESCE((
@@ -250,41 +230,22 @@ async function buildCustomerReportData(dateFrom?: string | null, dateTo?: string
       c.name AS "customerName",
       c.company_name AS "companyName",
       COALESCE((
-        SELECT COUNT(*)::integer FROM (
-          SELECT tl.trip_id FROM trip_loads tl JOIN trips t ON t.id = tl.trip_id
-            WHERE tl.customer_id = c.id AND t.status = 'Open' ${dateWhere} ${tripStatusWhere}
-          UNION
-          SELECT t.id FROM trips t
-            WHERE t.customer_id = c.id AND t.movement_type = 'customer_shifting' AND t.status = 'Open' ${dateWhere} ${tripStatusWhere}
-        ) u
+        SELECT COUNT(*)::integer FROM trip_loads tl JOIN trips t ON t.id = tl.trip_id
+          WHERE tl.customer_id = c.id AND t.status = 'Open' ${dateWhere} ${tripStatusWhere}
       ), 0) AS "openTrips",
       COALESCE((
-        SELECT COUNT(*)::integer FROM (
-          SELECT tl.trip_id FROM trip_loads tl JOIN trips t ON t.id = tl.trip_id
-            WHERE tl.customer_id = c.id AND t.status = 'Closed' ${dateWhere} ${tripStatusWhere}
-          UNION
-          SELECT t.id FROM trips t
-            WHERE t.customer_id = c.id AND t.movement_type = 'customer_shifting' AND t.status = 'Closed' ${dateWhere} ${tripStatusWhere}
-        ) u
+        SELECT COUNT(*)::integer FROM trip_loads tl JOIN trips t ON t.id = tl.trip_id
+          WHERE tl.customer_id = c.id AND t.status = 'Closed' ${dateWhere} ${tripStatusWhere}
       ), 0) AS "closedTrips",
       COALESCE((
-        SELECT COUNT(*)::integer FROM (
-          SELECT tl.trip_id FROM trip_loads tl JOIN trips t ON t.id = tl.trip_id
-            WHERE tl.customer_id = c.id ${dateWhere} ${tripStatusWhere}
-          UNION
-          SELECT t.id FROM trips t
-            WHERE t.customer_id = c.id AND t.movement_type = 'customer_shifting' ${dateWhere} ${tripStatusWhere}
-        ) u
+        SELECT COUNT(*)::integer FROM trip_loads tl JOIN trips t ON t.id = tl.trip_id
+          WHERE tl.customer_id = c.id ${dateWhere} ${tripStatusWhere}
       ), 0) AS "totalTrips",
-      (COALESCE((
+      COALESCE((
         SELECT SUM(COALESCE(tl.freight, 0) + COALESCE(tl.loading_charges, 0) + COALESCE(tl.unloading_charges, 0))
         FROM trip_loads tl JOIN trips t ON t.id = tl.trip_id
         WHERE tl.customer_id = c.id ${dateWhere} ${tripStatusWhere}
-      ), 0) + COALESCE((
-        SELECT SUM(COALESCE(t.rounds, 0) * COALESCE(t.rate_per_round, 0))
-        FROM trips t
-        WHERE t.customer_id = c.id AND t.movement_type = 'customer_shifting' ${dateWhere} ${tripStatusWhere}
-      ), 0))::double precision AS "totalFreight",
+      ), 0)::double precision AS "totalFreight",
       COALESCE((
         SELECT SUM(COALESCE(e.amount, 0)::numeric)
         FROM trip_expenses e
@@ -375,24 +336,16 @@ async function buildTruckReportData(dateFrom?: string | null, dateTo?: string | 
       COALESCE((
         SELECT COUNT(*)::integer FROM trips t WHERE t.truck_id = tr.id AND t.status = 'Closed' ${dateWhere} ${tripStatusWhere}
       ), 0) AS "closedTrips",
-      (COALESCE((
+      COALESCE((
         SELECT SUM(COALESCE(l.freight, 0) + COALESCE(l.loading_charges, 0) + COALESCE(l.unloading_charges, 0) - COALESCE(l.broker_commission, 0))
-        FROM trip_loads l JOIN trips t ON t.id = l.trip_id WHERE t.truck_id = tr.id AND t.movement_type = 'customer_trip' ${dateWhere} ${tripStatusWhere}
-      ), 0) + COALESCE((
-        SELECT SUM(COALESCE(t.rounds, 0) * COALESCE(t.rate_per_round, 0))
-        FROM trips t WHERE t.truck_id = tr.id AND t.movement_type = 'customer_shifting' ${dateWhere} ${tripStatusWhere}
-      ), 0) + COALESCE((
-        SELECT SUM(COALESCE(re.rate_per_round, 0) * COALESCE(re.rounds, 0))
-        FROM trip_round_entries re JOIN trips t ON t.id = re.trip_id WHERE t.truck_id = tr.id AND t.movement_type = 'in_house_shifting' ${dateWhere} ${tripStatusWhere}
-      ), 0))::double precision AS "totalIncome",
+        FROM trip_loads l JOIN trips t ON t.id = l.trip_id WHERE t.truck_id = tr.id ${dateWhere} ${tripStatusWhere}
+      ), 0)::double precision AS "totalIncome",
       COALESCE((
         SELECT SUM(COALESCE(e.amount, 0)::numeric)
         FROM trip_expenses e JOIN trips t ON t.id = e.trip_id WHERE t.truck_id = tr.id AND e.expense_category = 'truck' ${dateWhere} ${tripStatusWhere}
       ), 0)::double precision AS "totalExpenses",
       COALESCE((
-        SELECT SUM(CASE WHEN t.movement_type = 'customer_shifting'
-                        THEN COALESCE(t.commission_per_round, 0) * COALESCE(t.rounds, 0)
-                        ELSE COALESCE(t.driver_commission, 0) END::numeric)
+        SELECT SUM(COALESCE(t.driver_commission, 0)::numeric)
         FROM trips t WHERE t.truck_id = tr.id ${dateWhere} ${tripStatusWhere}
       ), 0)::double precision AS "driverCommission"
     FROM trucks tr
@@ -474,16 +427,10 @@ async function buildProfitData(dateFrom?: string | null, dateTo?: string | null)
 
   const [result] = (await db.execute(sql`
     SELECT
-      (COALESCE((
+      COALESCE((
         SELECT SUM(COALESCE(l.freight, 0) + COALESCE(l.loading_charges, 0) + COALESCE(l.unloading_charges, 0) - COALESCE(l.broker_commission, 0))
         FROM trip_loads l JOIN trips t ON t.id = l.trip_id ${dateWhere}
-      ), 0) + COALESCE((
-        SELECT SUM(COALESCE(t.rounds, 0) * COALESCE(t.rate_per_round, 0))
-        FROM trips t WHERE t.movement_type = 'customer_shifting' ${dateCondition.length ? sql`AND ${sql.join(dateCondition, sql` AND `)}` : sql``}
-      ), 0) + COALESCE((
-        SELECT SUM(COALESCE(re.rate_per_round, 0) * COALESCE(re.rounds, 0))
-        FROM trip_round_entries re JOIN trips t ON t.id = re.trip_id WHERE t.movement_type = 'in_house_shifting' ${dateCondition.length ? sql`AND ${sql.join(dateCondition, sql` AND `)}` : sql``}
-      ), 0))::double precision AS "totalIncome",
+      ), 0)::double precision AS "totalIncome",
       COALESCE((
         SELECT SUM(COALESCE(e.amount, 0)::numeric)
         FROM trip_expenses e JOIN trips t ON t.id = e.trip_id ${dateWhere}
@@ -625,7 +572,7 @@ async function buildShiftingReportData(
 ) {
   const conditions: SQL[] = movementType
     ? [sql`t.movement_type = ${movementType}`]
-    : [sql`t.movement_type IN ('customer_shifting', 'in_house_shifting')`];
+    : [sql`t.movement_type = 'in_house_shifting'`];
   if (dateFrom) conditions.push(sql`t.trip_date >= ${dateFrom}`);
   if (dateTo) conditions.push(sql`t.trip_date <= ${dateTo}`);
   if (truckId) conditions.push(sql`t.truck_id = ${truckId}`);
@@ -665,14 +612,8 @@ async function buildShiftingReportData(
       COALESCE(t.rounds, 0)::integer AS "rounds",
       COALESCE(t.rate_per_round, 0)::double precision AS "ratePerRound",
       COALESCE(t.commission_per_round, 0)::double precision AS "commissionPerRound",
-      (CASE WHEN t.movement_type IN ('customer_shifting', 'in_house_shifting')
-            THEN COALESCE(t.commission_per_round, 0) * COALESCE(t.rounds, 0)
-            ELSE COALESCE(t.driver_commission, 0)
-      END)::double precision AS "driverCommission",
-      (CASE WHEN t.movement_type = 'customer_shifting'
-            THEN COALESCE(t.rounds, 0) * COALESCE(t.rate_per_round, 0)
-            ELSE 0
-      END)::double precision AS "revenue",
+      COALESCE(t.commission_per_round, 0) * COALESCE(t.rounds, 0)::double precision AS "driverCommission",
+      0::double precision AS "revenue",
       COALESCE((
         SELECT SUM(COALESCE(amount, 0)::numeric)
         FROM trip_expenses WHERE trip_id = t.id
@@ -743,7 +684,7 @@ router.get("/shifting", async (req: Request, res: Response) => {
     const status = req.query.status === "Open" || req.query.status === "Closed" ? String(req.query.status) : undefined;
     const truckId = rawTruckId && Number.isInteger(rawTruckId) && rawTruckId > 0 ? rawTruckId : undefined;
     const driverId = rawDriverId && Number.isInteger(rawDriverId) && rawDriverId > 0 ? rawDriverId : undefined;
-    const movementType = req.query.movement_type === "customer_shifting" || req.query.movement_type === "in_house_shifting"
+    const movementType = req.query.movement_type === "in_house_shifting"
       ? String(req.query.movement_type) : null;
 
     const rawCustomerId = req.query.customer_id ? Number(req.query.customer_id) : undefined;
@@ -854,7 +795,7 @@ router.get("/export/csv", async (req: Request, res: Response) => {
         break;
       }
       case "shifting": {
-        const movType = req.query.movement_type === "customer_shifting" || req.query.movement_type === "in_house_shifting"
+        const movType = req.query.movement_type === "in_house_shifting"
           ? String(req.query.movement_type) : null;
         const shiftTruckId = req.query.truck_id ? Number(req.query.truck_id) : undefined;
         const shiftDriverId = req.query.driver_id ? Number(req.query.driver_id) : undefined;

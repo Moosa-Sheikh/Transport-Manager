@@ -41,12 +41,7 @@ const totalAdvancesSubquery = sql<number>`COALESCE((
   FROM driver_advances WHERE driver_advances.trip_id = ${tripsTable.id}
 ), 0)::double precision`;
 
-const customerShiftingRevenueExpr = sql<number>`(CASE WHEN ${tripsTable.movementType} = 'customer_shifting' THEN COALESCE(${tripsTable.rounds}, 0) * COALESCE(${tripsTable.ratePerRound}, 0) ELSE 0 END)::double precision`;
-const customerShiftingCommissionExpr = sql<number>`(CASE WHEN ${tripsTable.movementType} = 'customer_shifting' THEN COALESCE(${tripsTable.commissionPerRound}, 0) * COALESCE(${tripsTable.rounds}, 0) ELSE 0 END)::double precision`;
-const tripRevenueExpr = sql<number>`(CASE
-  WHEN ${tripsTable.movementType} = 'customer_shifting' THEN ${customerShiftingRevenueExpr}
-  ELSE ${incomeSubquery}
-END)::double precision`;
+const tripRevenueExpr = incomeSubquery;
 
 function buildTripQuery() {
   return db
@@ -90,9 +85,7 @@ function buildTripQuery() {
       totalReceived: totalReceivedSubquery.as("total_received"),
       totalAdvances: totalAdvancesSubquery.as("total_advances"),
       actualProfit: sql<number>`(${tripRevenueExpr} - ${expenseSubquery} - ${totalAdvancesSubquery})::double precision`.as("actual_profit"),
-      shiftingRevenue: sql<number>`(CASE WHEN ${tripsTable.movementType} = 'customer_shifting' THEN ${customerShiftingRevenueExpr} ELSE 0 END)::double precision`.as("shifting_revenue"),
       driverCommissionTotal: sql<number>`(CASE
-        WHEN ${tripsTable.movementType} = 'customer_shifting' THEN ${customerShiftingCommissionExpr}
         WHEN ${tripsTable.movementType} = 'in_house_shifting' THEN (COALESCE(${tripsTable.commissionPerRound}, 0) * COALESCE(${tripsTable.rounds}, 0))::double precision
         ELSE COALESCE(${tripsTable.driverCommission}, 0)::double precision
       END)::double precision`.as("driver_commission_total"),
@@ -152,7 +145,7 @@ router.get("/", async (req: Request, res: Response) => {
     if (typeof customer_id === "string" && customer_id) {
       const cid = Number(customer_id);
       if (Number.isFinite(cid) && cid > 0) {
-        conditions.push(sql`(EXISTS (SELECT 1 FROM trip_loads WHERE trip_loads.trip_id = ${tripsTable.id} AND trip_loads.customer_id = ${cid}) OR (${tripsTable.movementType} IN ('customer_shifting', 'in_house_shifting') AND ${tripsTable.customerId} = ${cid}))`);
+        conditions.push(sql`(EXISTS (SELECT 1 FROM trip_loads WHERE trip_loads.trip_id = ${tripsTable.id} AND trip_loads.customer_id = ${cid}))`);
       }
     }
     if (typeof city_id === "string" && city_id) {
@@ -163,8 +156,8 @@ router.get("/", async (req: Request, res: Response) => {
     }
     if (typeof movement_type === "string") {
       if (movement_type === "shifting") {
-        conditions.push(sql`${tripsTable.movementType} IN ('customer_shifting', 'in_house_shifting')`);
-      } else if (movement_type === "customer_trip" || movement_type === "in_house_shifting" || movement_type === "customer_shifting") {
+        conditions.push(eq(tripsTable.movementType, "in_house_shifting"));
+      } else if (movement_type === "customer_trip" || movement_type === "in_house_shifting") {
         conditions.push(eq(tripsTable.movementType, movement_type));
       }
     }
@@ -211,7 +204,7 @@ router.post("/", async (req: Request, res: Response) => {
       return;
     }
 
-    const validModes = new Set(["customer_trip", "in_house_shifting", "customer_shifting"]);
+    const validModes = new Set(["customer_trip", "in_house_shifting"]);
     const resolvedMovementType = validModes.has(movementType) ? movementType as string : "customer_trip";
 
     let numFromCityId: number | null = null;
@@ -232,14 +225,6 @@ router.post("/", async (req: Request, res: Response) => {
         res.status(400).json({ error: "From city and To city cannot be the same" });
         return;
       }
-    } else if (resolvedMovementType === "customer_shifting") {
-      numFromWarehouseId = Number(fromWarehouseId);
-      numToWarehouseId = Number(toWarehouseId);
-      if (!Number.isInteger(numFromWarehouseId) || numFromWarehouseId <= 0 ||
-          !Number.isInteger(numToWarehouseId) || numToWarehouseId <= 0) {
-        res.status(400).json({ error: "From and To warehouses are required for customer shifting" });
-        return;
-      }
     } else {
       numFromWarehouseId = Number(fromWarehouseId);
       numToWarehouseId = Number(toWarehouseId);
@@ -256,38 +241,7 @@ router.post("/", async (req: Request, res: Response) => {
     let resolvedRate = "0";
     let resolvedCommissionPerRound = "0";
 
-    if (resolvedMovementType === "customer_shifting") {
-      const cId = Number(customerId);
-      const iId = Number(itemId);
-      const rNum = Number(rounds);
-      const rateNum = Number(ratePerRound);
-      const commNum = Number(commissionPerRound);
-      if (!Number.isInteger(cId) || cId <= 0) {
-        res.status(400).json({ error: "Customer is required for customer shifting" });
-        return;
-      }
-      if (!Number.isInteger(iId) || iId <= 0) {
-        res.status(400).json({ error: "Item is required for customer shifting" });
-        return;
-      }
-      if (!Number.isInteger(rNum) || rNum <= 0) {
-        res.status(400).json({ error: "Rounds must be a positive integer" });
-        return;
-      }
-      if (!Number.isFinite(rateNum) || rateNum <= 0) {
-        res.status(400).json({ error: "Rate per round must be greater than zero for customer shifting" });
-        return;
-      }
-      if (!Number.isFinite(commNum) || commNum < 0) {
-        res.status(400).json({ error: "Commission per round must be non-negative" });
-        return;
-      }
-      resolvedCustomerId = cId;
-      resolvedItemId = iId;
-      resolvedRounds = rNum;
-      resolvedRate = String(ratePerRound);
-      resolvedCommissionPerRound = String(commissionPerRound);
-    } else if (resolvedMovementType === "in_house_shifting") {
+    if (resolvedMovementType === "in_house_shifting") {
       const iId = Number(itemId);
       const rNum = Number(rounds);
       const rateNum = Number(ratePerRound);
@@ -382,31 +336,7 @@ router.put("/:id/close", async (req: Request, res: Response) => {
     await db.transaction(async (tx) => {
       await tx.update(tripsTable).set({ status: "Closed" }).where(eq(tripsTable.id, id));
 
-      if (existing.movementType === "customer_shifting") {
-        const rounds = Number(existing.rounds ?? 1);
-        const rate = Number(existing.ratePerRound ?? 0);
-        const revenue = rounds * rate;
-        const paidRows = await tx
-          .select({ total: sql<number>`COALESCE(SUM(amount::numeric), 0)::double precision` })
-          .from(customerPaymentsTable)
-          .where(eq(customerPaymentsTable.tripId, id));
-        const paid = Number(paidRows[0]?.total ?? 0);
-        const due = Math.round((revenue - paid) * 100) / 100;
-        if (existing.customerId && due > 0.01) {
-          await tx.insert(customerDuesTable).values({
-            tripId: id,
-            loadId: null,
-            customerId: existing.customerId,
-            biltyNumber: null,
-            dueAmount: String(due),
-            dueDate: existing.tripDate,
-            notes: `Auto-generated on customer shifting trip #${id} close`,
-          });
-        }
-        return;
-      }
-
-      if (existing.movementType === "in_house_shifting") {
+        if (existing.movementType === "in_house_shifting") {
         return;
       }
 
@@ -1231,16 +1161,7 @@ router.post("/:id/customer-payments", async (req: Request, res: Response) => {
       return;
     }
 
-    if (trip.movementType === "customer_shifting") {
-      if (!trip.customerId) {
-        res.status(400).json({ error: "Customer shifting trip is missing its customer" });
-        return;
-      }
-      if (custId !== trip.customerId) {
-        res.status(400).json({ error: "Payments for customer shifting must use the trip's customer" });
-        return;
-      }
-    } else if (trip.movementType === "in_house_shifting") {
+    if (trip.movementType === "in_house_shifting") {
       res.status(400).json({ error: "In-house shifting trips do not accept customer payments" });
       return;
     }
