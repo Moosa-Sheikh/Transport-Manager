@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "MzB_I614CMpJ-rfmxYmst"
+uri = "file://LOCAL_SETUP.md"
+type = "text"
+title = "Local Setup Guide — Pakistan TMS"

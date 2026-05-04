@@ -49,3 +49,6 @@ Thumbs.db
 .local/
 zipFile.zip
 ./some/folder/zipFile.zip
+
+# Local setup guide — private, never push to GitHub
+LOCAL_SETUP.md
