@@ -1025,6 +1025,8 @@ export type GetShiftingReportParams = {
   driver_id?: number;
   status?: GetShiftingReportStatus;
   movement_type?: GetShiftingReportMovementType;
+  customer_id?: number;
+  item_id?: number;
 };
 
 export type GetShiftingReportStatus =

@@ -674,7 +674,7 @@ export default function TripDetailPage() {
               </div>
               <div className="bg-gradient-to-r from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-3 text-center">
                 <div className="text-[10px] font-medium text-purple-600 uppercase mb-1">Commission</div>
-                <div className="text-lg font-bold text-purple-800">{formatPKR(Number(trip.driverCommission ?? 0))}</div>
+                <div className="text-lg font-bold text-purple-800">{formatPKR(Number(trip.driverCommissionTotal ?? 0))}</div>
               </div>
               <div className={`bg-gradient-to-r border rounded-lg p-3 text-center ${
                 trip.profit >= 0 ? "from-green-50 to-green-100 border-green-200" : "from-red-50 to-red-100 border-red-200"

@@ -619,7 +619,9 @@ async function buildShiftingReportData(
   truckId: number | undefined,
   driverId: number | undefined,
   status: string | undefined,
-  movementType: string | null
+  movementType: string | null,
+  customerId: number | undefined,
+  itemId: number | undefined
 ) {
   const conditions: SQL[] = movementType
     ? [sql`t.movement_type = ${movementType}`]
@@ -629,6 +631,8 @@ async function buildShiftingReportData(
   if (truckId) conditions.push(sql`t.truck_id = ${truckId}`);
   if (driverId) conditions.push(sql`t.driver_id = ${driverId}`);
   if (status) conditions.push(sql`t.status = ${status}`);
+  if (customerId) conditions.push(sql`t.customer_id = ${customerId}`);
+  if (itemId) conditions.push(sql`t.item_id = ${itemId}`);
   const whereClause = sql`WHERE ${sql.join(conditions, sql` AND `)}`;
 
   const rows = await db.execute(sql`
@@ -663,6 +667,10 @@ async function buildShiftingReportData(
       COALESCE(t.commission_per_round, 0)::double precision AS "commissionPerRound",
       (CASE WHEN t.movement_type = 'customer_shifting'
             THEN COALESCE(t.commission_per_round, 0) * COALESCE(t.rounds, 0)
+            WHEN t.movement_type = 'in_house_shifting'
+            THEN COALESCE(t.commission_per_round, 0) * COALESCE((
+              SELECT SUM(rounds) FROM trip_round_entries WHERE trip_id = t.id
+            ), 0)
             ELSE COALESCE(t.driver_commission, 0)
       END)::double precision AS "driverCommission",
       (CASE WHEN t.movement_type = 'customer_shifting'
@@ -747,7 +755,11 @@ router.get("/shifting", async (req: Request, res: Response) => {
     const movementType = req.query.movement_type === "customer_shifting" || req.query.movement_type === "in_house_shifting"
       ? String(req.query.movement_type) : null;
 
-    const data = await buildShiftingReportData(dateFrom, dateTo, truckId, driverId, status, movementType);
+    const rawCustomerId = req.query.customer_id ? Number(req.query.customer_id) : undefined;
+    const rawItemId = req.query.item_id ? Number(req.query.item_id) : undefined;
+    const customerId = rawCustomerId && Number.isInteger(rawCustomerId) && rawCustomerId > 0 ? rawCustomerId : undefined;
+    const itemId = rawItemId && Number.isInteger(rawItemId) && rawItemId > 0 ? rawItemId : undefined;
+    const data = await buildShiftingReportData(dateFrom, dateTo, truckId, driverId, status, movementType, customerId, itemId);
     res.json(data);
   } catch (err) {
     req.log.error({ err }, "Shifting report error");

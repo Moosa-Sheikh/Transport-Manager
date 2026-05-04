@@ -1216,6 +1216,8 @@ export const GetShiftingReportQueryParams = zod.object({
   movement_type: zod
     .enum(["customer_shifting", "in_house_shifting"])
     .optional(),
+  customer_id: zod.coerce.number().optional(),
+  item_id: zod.coerce.number().optional(),
 });
 
 export const GetShiftingReportResponseItem = zod.object({

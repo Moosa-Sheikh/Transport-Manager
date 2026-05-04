@@ -35,7 +35,7 @@ function getInitialFilters() {
     to_city_id?: number;
     customer_id?: number;
     inhouse_warehouse_id?: number;
-    movement_type?: "customer_trip" | "in_house_shifting" | "customer_shifting" | "shifting";
+    movement_type?: "customer_trip" | "in_house_shifting" | "customer_shifting";
   } = {};
   if (params.get("driver_id")) f.driver_id = Number(params.get("driver_id"));
   if (params.get("date_from")) f.date_from = params.get("date_from")!;
@@ -43,8 +43,8 @@ function getInitialFilters() {
   if (params.get("truck_id")) f.truck_id = Number(params.get("truck_id"));
   if (params.get("status")) f.status = params.get("status") as "Open" | "Closed";
   if (params.get("customer_id")) f.customer_id = Number(params.get("customer_id"));
-  const mt = params.get("movement_type") || (params.get("view") === "shifting" ? "shifting" : null);
-  if (mt) f.movement_type = mt as "customer_trip" | "in_house_shifting" | "customer_shifting" | "shifting";
+  const mt = params.get("movement_type");
+  if (mt === "customer_trip" || mt === "in_house_shifting" || mt === "customer_shifting") f.movement_type = mt;
   return f;
 }
 
@@ -93,7 +93,7 @@ export default function TripListPage() {
     setFilters({});
   };
 
-  const isShiftingTab = filters.movement_type === "shifting" || filters.movement_type === "in_house_shifting" || filters.movement_type === "customer_shifting";
+  const isShiftingTab = filters.movement_type === "in_house_shifting" || filters.movement_type === "customer_shifting";
   const activeFilterCount = Object.entries(filters).filter(([k, v]) => k !== "movement_type" && Boolean(v)).length;
 
   return (
@@ -110,21 +110,30 @@ export default function TripListPage() {
               </button>
               <button
                 onClick={() => setFilters((f) => {
-                  const { inhouse_warehouse_id, ...rest } = f;
+                  const { inhouse_warehouse_id, from_city_id, to_city_id, ...rest } = f;
                   return { ...rest, movement_type: "customer_trip" };
                 })}
                 className={`px-3 py-1 rounded-md font-medium transition-colors ${filters.movement_type === "customer_trip" ? "bg-white shadow text-blue-700" : "text-gray-500 hover:text-gray-700"}`}
               >
-                Trips
+                Customer Trip
+              </button>
+              <button
+                onClick={() => setFilters((f) => {
+                  const { from_city_id, to_city_id, profit, inhouse_warehouse_id, ...rest } = f;
+                  return { ...rest, movement_type: "customer_shifting" };
+                })}
+                className={`px-3 py-1 rounded-md font-medium transition-colors ${filters.movement_type === "customer_shifting" ? "bg-white shadow text-teal-700" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                Cust. Shift
               </button>
               <button
                 onClick={() => setFilters((f) => {
                   const { from_city_id, to_city_id, profit, ...rest } = f;
-                  return { ...rest, movement_type: "shifting" };
+                  return { ...rest, movement_type: "in_house_shifting" };
                 })}
-                className={`px-3 py-1 rounded-md font-medium transition-colors ${isShiftingTab ? "bg-white shadow text-teal-700" : "text-gray-500 hover:text-gray-700"}`}
+                className={`px-3 py-1 rounded-md font-medium transition-colors ${filters.movement_type === "in_house_shifting" ? "bg-white shadow text-orange-700" : "text-gray-500 hover:text-gray-700"}`}
               >
-                Shifting
+                In-House
               </button>
             </div>
           </div>
@@ -360,49 +369,45 @@ export default function TripListPage() {
                   </div>
                 </>
               )}
-              {isShiftingTab && (
-                <>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">
-                      Warehouse
-                    </label>
-                    <select
-                      value={filters.inhouse_warehouse_id ?? ""}
-                      onChange={(e) =>
-                        setFilters((f) => ({
-                          ...f,
-                          inhouse_warehouse_id: e.target.value ? Number(e.target.value) : undefined,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                    >
-                      <option value="">All Warehouses</option>
-                      {warehousesQuery.data?.map((w) => (
-                        <option key={w.id} value={w.id}>{w.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">
-                      Company
-                    </label>
-                    <select
-                      value={filters.customer_id ?? ""}
-                      onChange={(e) =>
-                        setFilters((f) => ({
-                          ...f,
-                          customer_id: e.target.value ? Number(e.target.value) : undefined,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                    >
-                      <option value="">All Companies</option>
-                      {customersQuery.data?.map((c) => (
-                        <option key={c.id} value={c.id}>{c.companyName ?? c.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </>
+              {filters.movement_type === "in_house_shifting" && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Warehouse</label>
+                  <select
+                    value={filters.inhouse_warehouse_id ?? ""}
+                    onChange={(e) =>
+                      setFilters((f) => ({
+                        ...f,
+                        inhouse_warehouse_id: e.target.value ? Number(e.target.value) : undefined,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  >
+                    <option value="">All Warehouses</option>
+                    {warehousesQuery.data?.map((w) => (
+                      <option key={w.id} value={w.id}>{w.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {filters.movement_type === "customer_shifting" && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Company</label>
+                  <select
+                    value={filters.customer_id ?? ""}
+                    onChange={(e) =>
+                      setFilters((f) => ({
+                        ...f,
+                        customer_id: e.target.value ? Number(e.target.value) : undefined,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                  >
+                    <option value="">All Companies</option>
+                    {customersQuery.data?.map((c) => (
+                      <option key={c.id} value={c.id}>{c.companyName ?? c.name}</option>
+                    ))}
+                  </select>
+                </div>
               )}
             </div>
           </div>

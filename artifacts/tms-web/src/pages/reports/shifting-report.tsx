@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { MoveHorizontal, Loader2, Filter, X, ChevronRight } from "lucide-react";
-import { useGetShiftingReport, useListTrucks, useListDrivers } from "@workspace/api-client-react";
+import { useGetShiftingReport, useListTrucks, useListDrivers, useListCustomers, useListItems } from "@workspace/api-client-react";
 import { Link } from "wouter";
 import ReportActions from "./report-actions";
 
@@ -22,6 +22,8 @@ interface Filters {
   driver_id?: number;
   status?: "Open" | "Closed";
   movement_type?: MovementFilter;
+  customer_id?: number;
+  item_id?: number;
 }
 
 export default function ShiftingReportPage() {
@@ -35,10 +37,14 @@ export default function ShiftingReportPage() {
     driver_id: filters.driver_id,
     status: filters.status,
     movement_type: filters.movement_type,
+    customer_id: filters.customer_id,
+    item_id: filters.item_id,
   });
 
   const trucksQuery = useListTrucks({});
   const driversQuery = useListDrivers({});
+  const customersQuery = useListCustomers({});
+  const itemsQuery = useListItems({});
 
   const rows = query.data ?? [];
   const totalRevenue = rows.reduce((s, r) => s + (r.revenue ?? 0), 0);
@@ -98,6 +104,8 @@ export default function ShiftingReportPage() {
               ...(filters.driver_id ? { driver_id: String(filters.driver_id) } : {}),
               ...(filters.status ? { status: filters.status } : {}),
               ...(filters.movement_type ? { movement_type: filters.movement_type } : {}),
+              ...(filters.customer_id ? { customer_id: String(filters.customer_id) } : {}),
+              ...(filters.item_id ? { item_id: String(filters.item_id) } : {}),
             })}`}
             title="shifting-report"
           />
@@ -135,7 +143,7 @@ export default function ShiftingReportPage() {
               </button>
             )}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Date From</label>
               <input
@@ -190,6 +198,34 @@ export default function ShiftingReportPage() {
                 <option value="">All Status</option>
                 <option value="Open">Open</option>
                 <option value="Closed">Closed</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Customer</label>
+              <select
+                value={filters.customer_id ?? ""}
+                onChange={(e) => setFilters((f) => ({ ...f, customer_id: e.target.value ? Number(e.target.value) : undefined }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              >
+                <option value="">All Customers</option>
+                {customersQuery.data?.map((c) => (
+                  <option key={c.id} value={c.id}>{c.companyName ?? c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Item</label>
+              <select
+                value={filters.item_id ?? ""}
+                onChange={(e) => setFilters((f) => ({ ...f, item_id: e.target.value ? Number(e.target.value) : undefined }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              >
+                <option value="">All Items</option>
+                {itemsQuery.data?.map((i) => (
+                  <option key={i.id} value={i.id}>{i.name}</option>
+                ))}
               </select>
             </div>
           </div>

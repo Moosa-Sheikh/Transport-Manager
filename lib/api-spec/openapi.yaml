@@ -1725,6 +1725,14 @@ paths:
           schema:
             type: string
             enum: [customer_shifting, in_house_shifting]
+        - name: customer_id
+          in: query
+          schema:
+            type: integer
+        - name: item_id
+          in: query
+          schema:
+            type: integer
       responses:
         "200":
           description: In-house shifting report data

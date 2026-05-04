@@ -96,7 +96,11 @@ function buildTripQuery() {
       totalAdvances: totalAdvancesSubquery.as("total_advances"),
       actualProfit: sql<number>`(${tripRevenueExpr} - ${expenseSubquery} - ${totalAdvancesSubquery})::double precision`.as("actual_profit"),
       shiftingRevenue: sql<number>`(CASE WHEN ${tripsTable.movementType} = 'customer_shifting' THEN ${customerShiftingRevenueExpr} WHEN ${tripsTable.movementType} = 'in_house_shifting' THEN ${inHouseRoundsRevenueExpr} ELSE 0 END)::double precision`.as("shifting_revenue"),
-      driverCommissionTotal: sql<number>`(CASE WHEN ${tripsTable.movementType} = 'customer_shifting' THEN ${customerShiftingCommissionExpr} ELSE COALESCE(${tripsTable.driverCommission}, 0)::double precision END)::double precision`.as("driver_commission_total"),
+      driverCommissionTotal: sql<number>`(CASE
+        WHEN ${tripsTable.movementType} = 'customer_shifting' THEN ${customerShiftingCommissionExpr}
+        WHEN ${tripsTable.movementType} = 'in_house_shifting' THEN (COALESCE(${tripsTable.commissionPerRound}, 0) * COALESCE((SELECT SUM(rounds) FROM trip_round_entries WHERE trip_round_entries.trip_id = ${tripsTable.id}), 0))::double precision
+        ELSE COALESCE(${tripsTable.driverCommission}, 0)::double precision
+      END)::double precision`.as("driver_commission_total"),
     })
     .from(tripsTable)
     .innerJoin(trucksTable, eq(tripsTable.truckId, trucksTable.id))
@@ -291,15 +295,19 @@ router.post("/", async (req: Request, res: Response) => {
       resolvedRate = String(ratePerRound);
       resolvedCommissionPerRound = String(commissionPerRound);
     } else if (resolvedMovementType === "in_house_shifting") {
-      const cId = Number(customerId);
-      if (!Number.isInteger(cId) || cId <= 0) {
-        res.status(400).json({ error: "Company (customer) is required for in-house shifting" });
-        return;
+      if (customerId !== undefined && customerId !== null && customerId !== "") {
+        const cId = Number(customerId);
+        if (Number.isInteger(cId) && cId > 0) {
+          resolvedCustomerId = cId;
+        }
       }
-      resolvedCustomerId = cId;
+      const commNum = Number(commissionPerRound);
+      if (commissionPerRound !== undefined && commissionPerRound !== null && commissionPerRound !== "" && Number.isFinite(commNum) && commNum >= 0) {
+        resolvedCommissionPerRound = String(commissionPerRound);
+      }
     }
 
-    const commissionVal = (resolvedMovementType === "customer_trip" || resolvedMovementType === "in_house_shifting") && driverCommission !== undefined && driverCommission !== null && driverCommission !== ""
+    const commissionVal = resolvedMovementType === "customer_trip" && driverCommission !== undefined && driverCommission !== null && driverCommission !== ""
       ? String(driverCommission)
       : "0";
 
