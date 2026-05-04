@@ -57,14 +57,11 @@ export default function ShiftingReportPage() {
   const clearFilters = () => setFilters({});
 
   function routeLabel(row: (typeof rows)[number]) {
-    if (row.movementType === "customer_shifting") {
-      const from = row.fromWarehouseName ?? row.fromCityName ?? "";
-      const to = row.toWarehouseName ?? row.toCityName ?? "";
-      if (from && to) return `${from} → ${to}`;
-      if (from) return from;
-      if (to) return to;
-      return "—";
-    }
+    const from = row.fromWarehouseName ?? row.fromCityName ?? "";
+    const to = row.toWarehouseName ?? row.toCityName ?? "";
+    if (from && to) return `${from} → ${to}`;
+    if (from) return from;
+    if (to) return to;
     return row.inhouseWarehouseName ?? "—";
   }
 

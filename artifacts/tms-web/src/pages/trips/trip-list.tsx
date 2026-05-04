@@ -34,7 +34,7 @@ function getInitialFilters() {
     to_city_id?: number;
     customer_id?: number;
     city_id?: number;
-    movement_type?: "customer_trip" | "in_house_shifting" | "customer_shifting";
+    movement_type?: "customer_trip" | "in_house_shifting" | "customer_shifting" | "shifting";
   } = {};
   if (params.get("driver_id")) f.driver_id = Number(params.get("driver_id"));
   if (params.get("date_from")) f.date_from = params.get("date_from")!;
@@ -43,7 +43,7 @@ function getInitialFilters() {
   if (params.get("status")) f.status = params.get("status") as "Open" | "Closed";
   if (params.get("customer_id")) f.customer_id = Number(params.get("customer_id"));
   const mt = params.get("movement_type");
-  if (mt === "customer_trip" || mt === "in_house_shifting" || mt === "customer_shifting") f.movement_type = mt;
+  if (mt === "customer_trip" || mt === "in_house_shifting" || mt === "customer_shifting" || mt === "shifting") f.movement_type = mt as typeof f.movement_type;
   return f;
 }
 
@@ -90,7 +90,7 @@ export default function TripListPage() {
     setFilters({});
   };
 
-  const isShiftingTab = filters.movement_type === "in_house_shifting" || filters.movement_type === "customer_shifting";
+  const isShiftingTab = filters.movement_type === "shifting";
   const activeFilterCount = Object.entries(filters).filter(([k, v]) => k !== "movement_type" && Boolean(v)).length;
 
   return (
@@ -107,30 +107,21 @@ export default function TripListPage() {
               </button>
               <button
                 onClick={() => setFilters((f) => {
-                  const { inhouse_warehouse_id, from_city_id, to_city_id, ...rest } = f;
+                  const { from_city_id, to_city_id, city_id, customer_id, ...rest } = f;
                   return { ...rest, movement_type: "customer_trip" };
                 })}
                 className={`px-3 py-1 rounded-md font-medium transition-colors ${filters.movement_type === "customer_trip" ? "bg-white shadow text-blue-700" : "text-gray-500 hover:text-gray-700"}`}
               >
-                Customer Trip
+                Trips
               </button>
               <button
                 onClick={() => setFilters((f) => {
-                  const { from_city_id, to_city_id, profit, inhouse_warehouse_id, ...rest } = f;
-                  return { ...rest, movement_type: "customer_shifting" };
+                  const { from_city_id, to_city_id, city_id, profit, ...rest } = f;
+                  return { ...rest, movement_type: "shifting" };
                 })}
-                className={`px-3 py-1 rounded-md font-medium transition-colors ${filters.movement_type === "customer_shifting" ? "bg-white shadow text-teal-700" : "text-gray-500 hover:text-gray-700"}`}
+                className={`px-3 py-1 rounded-md font-medium transition-colors ${isShiftingTab ? "bg-white shadow text-purple-700" : "text-gray-500 hover:text-gray-700"}`}
               >
-                Cust. Shift
-              </button>
-              <button
-                onClick={() => setFilters((f) => {
-                  const { from_city_id, to_city_id, profit, ...rest } = f;
-                  return { ...rest, movement_type: "in_house_shifting" };
-                })}
-                className={`px-3 py-1 rounded-md font-medium transition-colors ${filters.movement_type === "in_house_shifting" ? "bg-white shadow text-orange-700" : "text-gray-500 hover:text-gray-700"}`}
-              >
-                In-House
+                Shifting
               </button>
             </div>
           </div>
@@ -366,27 +357,7 @@ export default function TripListPage() {
                   </div>
                 </>
               )}
-              {filters.movement_type === "in_house_shifting" && (
-                <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">City / Location</label>
-                  <select
-                    value={filters.city_id ?? ""}
-                    onChange={(e) =>
-                      setFilters((f) => ({
-                        ...f,
-                        city_id: e.target.value ? Number(e.target.value) : undefined,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                  >
-                    <option value="">All Cities</option>
-                    {citiesQuery.data?.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-              {filters.movement_type === "customer_shifting" && (
+              {isShiftingTab && (
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Company</label>
                   <select
@@ -397,7 +368,7 @@ export default function TripListPage() {
                         customer_id: e.target.value ? Number(e.target.value) : undefined,
                       }))
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   >
                     <option value="">All Companies</option>
                     {customersQuery.data?.map((c) => (
@@ -546,18 +517,11 @@ export default function TripListPage() {
                         {trip.driverName}
                       </td>
                       <td className="px-4 py-3 text-gray-700">
-                        {trip.movementType === "in_house_shifting" ? (
-                          <span className="flex flex-col">
-                            <span className="font-medium">{trip.inhouseWarehouseName ?? trip.cityName ?? "—"}</span>
-                            <span className="text-xs text-gray-500">{trip.inhouseWarehouseCityName ? `${trip.inhouseWarehouseCityName} · ` : ""}{trip.customerName ?? ""}</span>
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1">
-                            {trip.fromWarehouseName ?? trip.fromCityName ?? "—"}
-                            <ChevronRight className="w-3 h-3 text-gray-400" />
-                            {trip.toWarehouseName ?? trip.toCityName ?? "—"}
-                          </span>
-                        )}
+                        <span className="flex items-center gap-1">
+                          {trip.fromWarehouseName ?? trip.fromCityName ?? "—"}
+                          <ChevronRight className="w-3 h-3 text-gray-400" />
+                          {trip.toWarehouseName ?? trip.toCityName ?? "—"}
+                        </span>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5 flex-wrap">

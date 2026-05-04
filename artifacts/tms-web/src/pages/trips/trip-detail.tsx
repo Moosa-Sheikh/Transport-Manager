@@ -465,18 +465,12 @@ export default function TripDetailPage() {
                 </span>
               </div>
               <div>
-                <div className="text-xs font-medium text-gray-500 uppercase mb-1">{trip.movementType === "in_house_shifting" ? "Location" : "Route"}</div>
-                {trip.movementType === "in_house_shifting" ? (
-                  <div className="text-sm text-gray-900 font-medium">
-                    {trip.cityName ?? trip.inhouseWarehouseName ?? "—"}
-                  </div>
-                ) : (
-                  <div className="text-sm text-gray-900 flex items-center gap-2">
-                    <span className="font-medium">{trip.fromCityName ?? trip.fromWarehouseName ?? "—"}</span>
-                    <ChevronRight className="w-4 h-4 text-gray-400" />
-                    <span className="font-medium">{trip.toCityName ?? trip.toWarehouseName ?? "—"}</span>
-                  </div>
-                )}
+                <div className="text-xs font-medium text-gray-500 uppercase mb-1">Route</div>
+                <div className="text-sm text-gray-900 flex items-center gap-2">
+                  <span className="font-medium">{trip.fromWarehouseName ?? trip.fromCityName ?? "—"}</span>
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                  <span className="font-medium">{trip.toWarehouseName ?? trip.toCityName ?? "—"}</span>
+                </div>
               </div>
               <div>
                 <div className="text-xs font-medium text-gray-500 uppercase mb-1">Truck</div>
@@ -546,11 +540,11 @@ export default function TripDetailPage() {
             </div>
           </div>
 
-          {trip.movementType === "customer_shifting" && (
+          {(trip.movementType === "customer_shifting" || trip.movementType === "in_house_shifting") && (
             <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
               <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Shifting Details</h3>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                {trip.customerName && (
+                {trip.movementType === "customer_shifting" && trip.customerName && (
                   <div>
                     <div className="text-xs font-medium text-gray-500 uppercase mb-1">Customer</div>
                     <div className="text-sm text-gray-900 font-medium">{trip.customerName}</div>
@@ -566,12 +560,10 @@ export default function TripDetailPage() {
                   <div className="text-xs font-medium text-gray-500 uppercase mb-1">Rounds</div>
                   <div className="text-sm text-gray-900 font-medium">{trip.rounds ?? 0}</div>
                 </div>
-                {trip.movementType === "customer_shifting" && trip.ratePerRound && (
-                  <div>
-                    <div className="text-xs font-medium text-gray-500 uppercase mb-1">Rate / Round</div>
-                    <div className="text-sm text-gray-900 font-medium">{formatPKR(Number(trip.ratePerRound))}</div>
-                  </div>
-                )}
+                <div>
+                  <div className="text-xs font-medium text-gray-500 uppercase mb-1">Rate / Round</div>
+                  <div className="text-sm text-gray-900 font-medium">{formatPKR(Number(trip.ratePerRound ?? 0))}</div>
+                </div>
                 <div>
                   <div className="text-xs font-medium text-gray-500 uppercase mb-1">Commission / Round</div>
                   <div className="text-sm text-gray-900 font-medium">{formatPKR(Number(trip.commissionPerRound ?? 0))}</div>

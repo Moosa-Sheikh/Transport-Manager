@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { ArrowLeft, Loader2, Route, MapPin, Users } from "lucide-react";
+import { ArrowLeft, Loader2, Route, Warehouse, Users } from "lucide-react";
 import { Link } from "wouter";
 import {
   useCreateTrip,
@@ -9,6 +9,7 @@ import {
   useListCities,
   useListCustomers,
   useListItems,
+  useListWarehouses,
 } from "@workspace/api-client-react";
 
 type TripCategory = "trip" | "shifting";
@@ -26,19 +27,13 @@ export default function CreateTripPage() {
   const [toCityId, setToCityId] = useState("");
   const [driverCommission, setDriverCommission] = useState("");
 
-  const [shiftFromCityId, setShiftFromCityId] = useState("");
-  const [shiftToCityId, setShiftToCityId] = useState("");
+  const [shiftFromWarehouseId, setShiftFromWarehouseId] = useState("");
+  const [shiftToWarehouseId, setShiftToWarehouseId] = useState("");
   const [customerId, setCustomerId] = useState("");
-  const [itemId, setItemId] = useState("");
-  const [rounds, setRounds] = useState("");
-  const [ratePerRound, setRatePerRound] = useState("");
-  const [commissionPerRound, setCommissionPerRound] = useState("");
-
-  const [inhouseCityId, setInhouseCityId] = useState("");
-  const [inhouseItemId, setInhouseItemId] = useState("");
-  const [inhouseRounds, setInhouseRounds] = useState("");
-  const [inhouseRatePerRound, setInhouseRatePerRound] = useState("");
-  const [inhouseCommissionPerRound, setInhouseCommissionPerRound] = useState("");
+  const [shiftItemId, setShiftItemId] = useState("");
+  const [shiftRounds, setShiftRounds] = useState("1");
+  const [shiftRatePerRound, setShiftRatePerRound] = useState("");
+  const [shiftCommissionPerRound, setShiftCommissionPerRound] = useState("");
 
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
@@ -48,6 +43,7 @@ export default function CreateTripPage() {
   const citiesQuery = useListCities({});
   const customersQuery = useListCustomers({});
   const itemsQuery = useListItems({});
+  const warehousesQuery = useListWarehouses({});
 
   const isShifting = category === "shifting";
   const isCustomerShifting = isShifting && shiftingMode === "customer";
@@ -65,19 +61,11 @@ export default function CreateTripPage() {
     },
   });
 
-  const handleItemChange = (val: string) => {
-    setItemId(val);
+  const handleShiftItemChange = (val: string) => {
+    setShiftItemId(val);
     const item = itemsQuery.data?.find((i) => String(i.id) === val);
     if (item?.defaultRatePerRound && Number(item.defaultRatePerRound) > 0) {
-      setRatePerRound(String(item.defaultRatePerRound));
-    }
-  };
-
-  const handleInhouseItemChange = (val: string) => {
-    setInhouseItemId(val);
-    const item = itemsQuery.data?.find((i) => String(i.id) === val);
-    if (item?.defaultRatePerRound && Number(item.defaultRatePerRound) > 0) {
-      setInhouseRatePerRound(String(item.defaultRatePerRound));
+      setShiftRatePerRound(String(item.defaultRatePerRound));
     }
   };
 
@@ -111,37 +99,37 @@ export default function CreateTripPage() {
       payload.toCityId = Number(toCityId);
       payload.driverCommission = driverCommission || "0";
     } else if (isCustomerShifting) {
-      if (!shiftFromCityId || !shiftToCityId) {
-        setError("From and To cities are required for customer shifting");
-        return;
-      }
-      if (shiftFromCityId === shiftToCityId) {
-        setError("From and To cities cannot be the same");
+      if (!shiftFromWarehouseId || !shiftToWarehouseId) {
+        setError("From and To warehouses are required for customer shifting");
         return;
       }
       if (!customerId) { setError("Customer is required for customer shifting"); return; }
-      if (!itemId) { setError("Item is required for customer shifting"); return; }
-      if (!rounds || Number(rounds) <= 0) { setError("Rounds must be a positive number"); return; }
-      if (!ratePerRound || Number(ratePerRound) <= 0) { setError("Rate per round must be greater than zero"); return; }
+      if (!shiftItemId) { setError("Item is required for customer shifting"); return; }
+      if (!shiftRounds || Number(shiftRounds) <= 0) { setError("Rounds must be a positive number"); return; }
+      if (!shiftRatePerRound || Number(shiftRatePerRound) <= 0) { setError("Rate per round must be greater than zero"); return; }
       payload.movementType = "customer_shifting";
-      payload.fromCityId = Number(shiftFromCityId);
-      payload.toCityId = Number(shiftToCityId);
+      payload.fromWarehouseId = Number(shiftFromWarehouseId);
+      payload.toWarehouseId = Number(shiftToWarehouseId);
       payload.customerId = Number(customerId);
-      payload.itemId = Number(itemId);
-      payload.rounds = Number(rounds);
-      payload.ratePerRound = ratePerRound;
-      payload.commissionPerRound = commissionPerRound || "0";
+      payload.itemId = Number(shiftItemId);
+      payload.rounds = Number(shiftRounds);
+      payload.ratePerRound = shiftRatePerRound;
+      payload.commissionPerRound = shiftCommissionPerRound || "0";
     } else {
-      if (!inhouseCityId) { setError("City is required for in-house shifting"); return; }
-      if (!inhouseItemId) { setError("Item is required for in-house shifting"); return; }
-      if (!inhouseRounds || Number(inhouseRounds) <= 0) { setError("Rounds must be a positive number"); return; }
-      if (!inhouseRatePerRound || Number(inhouseRatePerRound) < 0) { setError("Rate per round must be non-negative"); return; }
+      if (!shiftFromWarehouseId || !shiftToWarehouseId) {
+        setError("From and To warehouses are required for in-house shifting");
+        return;
+      }
+      if (!shiftItemId) { setError("Item is required for in-house shifting"); return; }
+      if (!shiftRounds || Number(shiftRounds) <= 0) { setError("Rounds must be a positive number"); return; }
+      if (!shiftRatePerRound || Number(shiftRatePerRound) < 0) { setError("Rate per round must be non-negative"); return; }
       payload.movementType = "in_house_shifting";
-      payload.cityId = Number(inhouseCityId);
-      payload.itemId = Number(inhouseItemId);
-      payload.rounds = Number(inhouseRounds);
-      payload.ratePerRound = inhouseRatePerRound;
-      payload.commissionPerRound = inhouseCommissionPerRound || "0";
+      payload.fromWarehouseId = Number(shiftFromWarehouseId);
+      payload.toWarehouseId = Number(shiftToWarehouseId);
+      payload.itemId = Number(shiftItemId);
+      payload.rounds = Number(shiftRounds);
+      payload.ratePerRound = shiftRatePerRound;
+      payload.commissionPerRound = shiftCommissionPerRound || "0";
     }
 
     createMutation.mutate({ data: payload as Parameters<typeof createMutation.mutate>[0]["data"] });
@@ -188,10 +176,10 @@ export default function CreateTripPage() {
                 isShifting ? "border-purple-500 bg-purple-50 text-purple-800" : "border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"
               }`}
             >
-              <MapPin className="w-5 h-5 flex-shrink-0" />
+              <Warehouse className="w-5 h-5 flex-shrink-0" />
               <div>
                 <div className="font-semibold">Shifting</div>
-                <div className="text-xs font-normal text-gray-500">City-based shifting operations</div>
+                <div className="text-xs font-normal text-gray-500">Warehouse-to-warehouse shifting</div>
               </div>
             </button>
           </div>
@@ -211,7 +199,7 @@ export default function CreateTripPage() {
                 <Users className="w-5 h-5 flex-shrink-0" />
                 <div>
                   <div className="font-semibold">For Customer</div>
-                  <div className="text-xs font-normal text-gray-500">City-to-city for a customer</div>
+                  <div className="text-xs font-normal text-gray-500">Billable warehouse shift</div>
                 </div>
               </button>
               <button
@@ -221,10 +209,10 @@ export default function CreateTripPage() {
                   isInHouseShifting ? "border-orange-500 bg-orange-50 text-orange-800" : "border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
                 }`}
               >
-                <MapPin className="w-5 h-5 flex-shrink-0" />
+                <Warehouse className="w-5 h-5 flex-shrink-0" />
                 <div>
                   <div className="font-semibold">In-House</div>
-                  <div className="text-xs font-normal text-gray-500">Internal ops at a city location</div>
+                  <div className="text-xs font-normal text-gray-500">Internal / cost-only shift</div>
                 </div>
               </button>
             </div>
@@ -277,102 +265,98 @@ export default function CreateTripPage() {
           </>
         )}
 
-        {isCustomerShifting && (
-          <div className="space-y-4 p-4 bg-teal-50/40 border border-teal-200 rounded-lg">
+        {isShifting && (
+          <div className={`space-y-4 p-4 border rounded-lg ${isCustomerShifting ? "bg-teal-50/40 border-teal-200" : "bg-orange-50/40 border-orange-200"}`}>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">From City <span className="text-red-500">*</span></label>
-                <select value={shiftFromCityId} onChange={(e) => setShiftFromCityId(e.target.value)} className="w-full px-3 py-2 border border-teal-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
-                  <option value="">Select origin city</option>
-                  {citiesQuery.data?.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+                <label className="block text-sm font-medium text-gray-700 mb-1">From Warehouse <span className="text-red-500">*</span></label>
+                <select
+                  value={shiftFromWarehouseId}
+                  onChange={(e) => setShiftFromWarehouseId(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 ${isCustomerShifting ? "border-teal-300 focus:ring-teal-500 focus:border-teal-500" : "border-orange-300 focus:ring-orange-500 focus:border-orange-500"}`}
+                >
+                  <option value="">Select origin warehouse</option>
+                  {warehousesQuery.data?.map((w) => (<option key={w.id} value={w.id}>{w.name} ({w.cityName})</option>))}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">To City <span className="text-red-500">*</span></label>
-                <select value={shiftToCityId} onChange={(e) => setShiftToCityId(e.target.value)} className="w-full px-3 py-2 border border-teal-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
-                  <option value="">Select destination city</option>
-                  {citiesQuery.data?.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+                <label className="block text-sm font-medium text-gray-700 mb-1">To Warehouse <span className="text-red-500">*</span></label>
+                <select
+                  value={shiftToWarehouseId}
+                  onChange={(e) => setShiftToWarehouseId(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 ${isCustomerShifting ? "border-teal-300 focus:ring-teal-500 focus:border-teal-500" : "border-orange-300 focus:ring-orange-500 focus:border-orange-500"}`}
+                >
+                  <option value="">Select destination warehouse</option>
+                  {warehousesQuery.data?.map((w) => (<option key={w.id} value={w.id}>{w.name} ({w.cityName})</option>))}
                 </select>
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Customer <span className="text-red-500">*</span></label>
-              <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className="w-full px-3 py-2 border border-teal-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
-                <option value="">Select customer</option>
-                {customersQuery.data?.map((c) => (<option key={c.id} value={c.id}>{c.companyName ?? c.name}</option>))}
-              </select>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+            {isCustomerShifting && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Item <span className="text-red-500">*</span></label>
-                <select value={itemId} onChange={(e) => handleItemChange(e.target.value)} className="w-full px-3 py-2 border border-teal-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
-                  <option value="">Select item</option>
-                  {itemsQuery.data?.map((i) => (<option key={i.id} value={i.id}>{i.name} ({i.unit})</option>))}
+                <label className="block text-sm font-medium text-gray-700 mb-1">Customer <span className="text-red-500">*</span></label>
+                <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className="w-full px-3 py-2 border border-teal-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500">
+                  <option value="">Select customer</option>
+                  {customersQuery.data?.map((c) => (<option key={c.id} value={c.id}>{c.companyName ?? c.name}</option>))}
                 </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Rounds <span className="text-red-500">*</span></label>
-                <input type="number" min="1" step="1" value={rounds} onChange={(e) => setRounds(e.target.value)} placeholder="e.g. 5" className="w-full px-3 py-2 border border-teal-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500" />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Rate / Round (PKR) <span className="text-red-500">*</span></label>
-                <input type="number" step="0.01" min="0" value={ratePerRound} onChange={(e) => setRatePerRound(e.target.value)} placeholder="0" className="w-full px-3 py-2 border border-teal-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Commission / Round (PKR)</label>
-                <input type="number" step="0.01" min="0" value={commissionPerRound} onChange={(e) => setCommissionPerRound(e.target.value)} placeholder="0" className="w-full px-3 py-2 border border-teal-300 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500" />
-              </div>
-            </div>
-            {rounds && ratePerRound && Number(rounds) > 0 && Number(ratePerRound) > 0 && (
-              <div className="text-sm text-teal-700 bg-teal-50 border border-teal-200 rounded p-2">
-                Total Revenue: <strong>{new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR", minimumFractionDigits: 0 }).format(Number(rounds) * Number(ratePerRound))}</strong>
-                {commissionPerRound && Number(commissionPerRound) > 0 && (
-                  <span className="ml-3">· Commission: <strong>{new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR", minimumFractionDigits: 0 }).format(Number(rounds) * Number(commissionPerRound))}</strong></span>
-                )}
               </div>
             )}
-          </div>
-        )}
 
-        {isInHouseShifting && (
-          <div className="space-y-4 p-4 bg-orange-50/40 border border-orange-200 rounded-lg">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">City / Location <span className="text-red-500">*</span></label>
-              <select value={inhouseCityId} onChange={(e) => setInhouseCityId(e.target.value)} className="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
-                <option value="">Select city</option>
-                {citiesQuery.data?.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
-              </select>
-            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Item <span className="text-red-500">*</span></label>
-                <select value={inhouseItemId} onChange={(e) => handleInhouseItemChange(e.target.value)} className="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500">
+                <select
+                  value={shiftItemId}
+                  onChange={(e) => handleShiftItemChange(e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 ${isCustomerShifting ? "border-teal-300 focus:ring-teal-500 focus:border-teal-500" : "border-orange-300 focus:ring-orange-500 focus:border-orange-500"}`}
+                >
                   <option value="">Select item</option>
                   {itemsQuery.data?.map((i) => (<option key={i.id} value={i.id}>{i.name} ({i.unit})</option>))}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Rounds <span className="text-red-500">*</span></label>
-                <input type="number" min="1" step="1" value={inhouseRounds} onChange={(e) => setInhouseRounds(e.target.value)} placeholder="e.g. 10" className="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500" />
+                <input
+                  type="number" min="1" step="1"
+                  value={shiftRounds}
+                  onChange={(e) => setShiftRounds(e.target.value)}
+                  placeholder="1"
+                  className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 ${isCustomerShifting ? "border-teal-300 focus:ring-teal-500 focus:border-teal-500" : "border-orange-300 focus:ring-orange-500 focus:border-orange-500"}`}
+                />
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Rate / Round (PKR) <span className="text-red-500">*</span></label>
-                <input type="number" step="0.01" min="0" value={inhouseRatePerRound} onChange={(e) => setInhouseRatePerRound(e.target.value)} placeholder="0" className="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Rate / Round (PKR) {isCustomerShifting && <span className="text-red-500">*</span>}
+                </label>
+                <input
+                  type="number" step="0.01" min="0"
+                  value={shiftRatePerRound}
+                  onChange={(e) => setShiftRatePerRound(e.target.value)}
+                  placeholder="0"
+                  className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 ${isCustomerShifting ? "border-teal-300 focus:ring-teal-500 focus:border-teal-500" : "border-orange-300 focus:ring-orange-500 focus:border-orange-500"}`}
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Commission / Round (PKR)</label>
-                <input type="number" step="0.01" min="0" value={inhouseCommissionPerRound} onChange={(e) => setInhouseCommissionPerRound(e.target.value)} placeholder="0" className="w-full px-3 py-2 border border-orange-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500" />
+                <input
+                  type="number" step="0.01" min="0"
+                  value={shiftCommissionPerRound}
+                  onChange={(e) => setShiftCommissionPerRound(e.target.value)}
+                  placeholder="0"
+                  className={`w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 ${isCustomerShifting ? "border-teal-300 focus:ring-teal-500 focus:border-teal-500" : "border-orange-300 focus:ring-orange-500 focus:border-orange-500"}`}
+                />
               </div>
             </div>
-            {inhouseRounds && inhouseRatePerRound && Number(inhouseRounds) > 0 && (
-              <div className="text-sm text-orange-700 bg-orange-50 border border-orange-200 rounded p-2">
-                Internal cost: <strong>{new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR", minimumFractionDigits: 0 }).format(Number(inhouseRounds) * Number(inhouseRatePerRound || 0))}</strong>
-                {inhouseCommissionPerRound && Number(inhouseCommissionPerRound) > 0 && (
-                  <span className="ml-3">· Driver commission: <strong>{new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR", minimumFractionDigits: 0 }).format(Number(inhouseRounds) * Number(inhouseCommissionPerRound))}</strong></span>
+            {shiftRounds && shiftRatePerRound && Number(shiftRounds) > 0 && Number(shiftRatePerRound) > 0 && (
+              <div className={`text-sm rounded p-2 border ${isCustomerShifting ? "text-teal-700 bg-teal-50 border-teal-200" : "text-orange-700 bg-orange-50 border-orange-200"}`}>
+                {isCustomerShifting
+                  ? <>Total Revenue: <strong>{new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR", minimumFractionDigits: 0 }).format(Number(shiftRounds) * Number(shiftRatePerRound))}</strong></>
+                  : <>Internal cost: <strong>{new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR", minimumFractionDigits: 0 }).format(Number(shiftRounds) * Number(shiftRatePerRound))}</strong></>
+                }
+                {shiftCommissionPerRound && Number(shiftCommissionPerRound) > 0 && (
+                  <span className="ml-3">· Driver commission: <strong>{new Intl.NumberFormat("en-PK", { style: "currency", currency: "PKR", minimumFractionDigits: 0 }).format(Number(shiftRounds) * Number(shiftCommissionPerRound))}</strong></span>
                 )}
               </div>
             )}

@@ -648,8 +648,6 @@ async function buildShiftingReportData(
       fc.name AS "fromCityName",
       t.to_city_id AS "toCityId",
       tc.name AS "toCityName",
-      t.city_id AS "cityId",
-      ic.name AS "cityName",
       t.from_warehouse_id AS "fromWarehouseId",
       fw.name AS "fromWarehouseName",
       t.to_warehouse_id AS "toWarehouseId",
@@ -684,7 +682,6 @@ async function buildShiftingReportData(
     JOIN drivers d ON d.id = t.driver_id
     LEFT JOIN cities fc ON fc.id = t.from_city_id
     LEFT JOIN cities tc ON tc.id = t.to_city_id
-    LEFT JOIN cities ic ON ic.id = t.city_id
     LEFT JOIN warehouses fw ON fw.id = t.from_warehouse_id
     LEFT JOIN warehouses tw ON tw.id = t.to_warehouse_id
     LEFT JOIN warehouses iw ON iw.id = t.inhouse_warehouse_id
@@ -711,8 +708,6 @@ async function buildShiftingReportData(
       fromCityName: r.fromCityName ? String(r.fromCityName) : "",
       toCityId: r.toCityId !== null && r.toCityId !== undefined ? Number(r.toCityId) : null,
       toCityName: r.toCityName ? String(r.toCityName) : "",
-      cityId: r.cityId !== null && r.cityId !== undefined ? Number(r.cityId) : null,
-      cityName: r.cityName ? String(r.cityName) : null,
       fromWarehouseId: r.fromWarehouseId !== null && r.fromWarehouseId !== undefined ? Number(r.fromWarehouseId) : null,
       fromWarehouseName: r.fromWarehouseName ? String(r.fromWarehouseName) : null,
       toWarehouseId: r.toWarehouseId !== null && r.toWarehouseId !== undefined ? Number(r.toWarehouseId) : null,

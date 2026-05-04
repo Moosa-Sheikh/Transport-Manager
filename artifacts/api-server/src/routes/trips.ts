@@ -113,7 +113,7 @@ function buildTripQuery() {
 
 router.get("/", async (req: Request, res: Response) => {
   try {
-    const { date_from, date_to, truck_id, driver_id, status, profit, from_city_id, to_city_id, customer_id, movement_type, city_id } = req.query;
+    const { date_from, date_to, truck_id, driver_id, status, profit, from_city_id, to_city_id, customer_id, movement_type } = req.query;
     const conditions: SQL[] = [];
 
     if (typeof date_from === "string" && date_from) {
@@ -233,21 +233,19 @@ router.post("/", async (req: Request, res: Response) => {
         return;
       }
     } else if (resolvedMovementType === "customer_shifting") {
-      numFromCityId = Number(fromCityId);
-      numToCityId = Number(toCityId);
-      if (!Number.isInteger(numFromCityId) || numFromCityId <= 0 ||
-          !Number.isInteger(numToCityId) || numToCityId <= 0) {
-        res.status(400).json({ error: "From and To cities are required for customer shifting" });
-        return;
-      }
-      if (numFromCityId === numToCityId) {
-        res.status(400).json({ error: "From and To cities cannot be the same for customer shifting" });
+      numFromWarehouseId = Number(fromWarehouseId);
+      numToWarehouseId = Number(toWarehouseId);
+      if (!Number.isInteger(numFromWarehouseId) || numFromWarehouseId <= 0 ||
+          !Number.isInteger(numToWarehouseId) || numToWarehouseId <= 0) {
+        res.status(400).json({ error: "From and To warehouses are required for customer shifting" });
         return;
       }
     } else {
-      numCityId = Number(cityId);
-      if (!Number.isInteger(numCityId) || numCityId <= 0) {
-        res.status(400).json({ error: "City is required for in-house shifting" });
+      numFromWarehouseId = Number(fromWarehouseId);
+      numToWarehouseId = Number(toWarehouseId);
+      if (!Number.isInteger(numFromWarehouseId) || numFromWarehouseId <= 0 ||
+          !Number.isInteger(numToWarehouseId) || numToWarehouseId <= 0) {
+        res.status(400).json({ error: "From and To warehouses are required for in-house shifting" });
         return;
       }
     }
