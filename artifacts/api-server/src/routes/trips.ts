@@ -81,6 +81,7 @@ function buildTripQuery() {
       notes: tripsTable.notes,
       customerId: tripsTable.customerId,
       customerName: customersTable.name,
+      companyName: customersTable.companyName,
       itemId: tripsTable.itemId,
       itemName: itemsTable.name,
       itemUnit: itemsTable.unit,

@@ -34,6 +34,7 @@ export interface TripWithDetails {
   notes?: string | null;
   customerId?: number | null;
   customerName?: string | null;
+  companyName?: string | null;
   itemId?: number | null;
   itemName?: string | null;
   itemUnit?: string | null;

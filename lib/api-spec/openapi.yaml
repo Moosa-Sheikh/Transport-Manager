@@ -2914,6 +2914,9 @@ components:
         customerName:
           type: string
           nullable: true
+        companyName:
+          type: string
+          nullable: true
         itemId:
           type: integer
           nullable: true

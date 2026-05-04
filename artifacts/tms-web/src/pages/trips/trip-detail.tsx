@@ -547,7 +547,13 @@ export default function TripDetailPage() {
               {trip.movementType === "in_house_shifting" && (
                 <div>
                   <div className="text-xs font-medium text-gray-500 uppercase mb-1">Company</div>
-                  <div className="text-sm text-gray-900 font-medium">{trip.customerName ?? "—"}</div>
+                  <div className="text-sm text-gray-900 font-medium">{trip.companyName ?? trip.customerName ?? "—"}</div>
+                </div>
+              )}
+              {trip.movementType === "in_house_shifting" && trip.customerName && (
+                <div>
+                  <div className="text-xs font-medium text-gray-500 uppercase mb-1">Customer</div>
+                  <div className="text-sm text-gray-900">{trip.customerName}</div>
                 </div>
               )}
               <div>
