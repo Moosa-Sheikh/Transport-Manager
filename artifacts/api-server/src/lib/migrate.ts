@@ -42,13 +42,10 @@ export async function runMigrations() {
       applied_at TIMESTAMP DEFAULT NOW()
     )
   `);
-  const inserted = await db.execute(
-    sql`INSERT INTO _meta_migrations (key) VALUES ('inhouse_redesign_purge_v1') ON CONFLICT (key) DO NOTHING RETURNING key`
+  await db.execute(
+    sql`INSERT INTO _meta_migrations (key) VALUES ('inhouse_redesign_purge_v1') ON CONFLICT (key) DO NOTHING`
   );
-  const insertedRows = (inserted.rows as Record<string, unknown>[]);
-  if (Array.isArray(insertedRows) && insertedRows.length > 0) {
-    await db.execute(sql`DELETE FROM trips WHERE movement_type = 'in_house_shifting'`);
-  }
+  await db.execute(sql`DELETE FROM trips WHERE movement_type = 'in_house_shifting' AND inhouse_warehouse_id IS NULL`);
 
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS trip_round_entries (
